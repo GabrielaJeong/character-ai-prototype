@@ -8,11 +8,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
-app.use('/api/chat', require('./routes/chat'));
+// Routes — regenerate must be registered before /api/chat router (Express 5 path matching)
+app.post('/api/chat/regenerate', require('./routes/regenerate'));
+app.use('/api/chat',             require('./routes/chat'));
+app.use('/api/sessions',         require('./routes/sessions'));
+app.use('/api/sessions/:id/note', require('./routes/notes'));
 
 // Fallback: serve index.html for all non-API routes
-app.get('/{*splat}', (req, res) => {
+app.get('/{*splat}', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

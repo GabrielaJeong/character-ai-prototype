@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function buildSystemPrompt(persona) {
+function buildSystemPrompt(persona, note = '') {
   const base = fs.readFileSync(path.join(__dirname, 'system.md'), 'utf-8');
 
   const personaBlock = `
@@ -18,7 +18,18 @@ function buildSystemPrompt(persona) {
 Ihwa knows this person. Address them by name or pet name as appropriate.
 `;
 
-  return base + personaBlock;
+  const noteBlock = note.trim() ? `
+---
+
+## User Notes
+
+The user has provided the following context.
+Treat these as established facts in the conversation:
+
+${note.trim()}
+` : '';
+
+  return base + personaBlock + noteBlock;
 }
 
 module.exports = { buildSystemPrompt };
