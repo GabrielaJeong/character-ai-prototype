@@ -1,3 +1,10 @@
+// ─── Model Config ────────────────────────────────────────
+const MODELS = [
+  { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6', desc: '균형 잡힌 성능 · 기본값' },
+  { id: 'claude-opus-4-6',           label: 'Opus 4.6',   desc: '최고 성능'               },
+  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',  desc: '빠른 응답'               },
+];
+
 // ─── State ───────────────────────────────────────────────
 let sessionId       = null;
 let userName        = '';
@@ -5,10 +12,25 @@ let lastAssistantEl = null;
 let currentMode     = 'chat';   // 'chat' | 'novel'
 let messageLog      = [];        // [{ role, sender, text }]
 let userImageUrl    = null;      // base64 profile image
+let currentModel    = MODELS[0].id;
 
 // ─── Init ─────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  initModelPicker();
   checkSavedSessions();
+
+  // Close picker on outside click
+  document.addEventListener('click', (e) => {
+    const picker = document.getElementById('model-picker');
+    const btn    = document.getElementById('btn-model');
+    if (
+      picker.classList.contains('open') &&
+      !picker.contains(e.target) &&
+      !btn.contains(e.target)
+    ) {
+      picker.classList.remove('open');
+    }
+  });
 });
 
 async function checkSavedSessions() {
@@ -28,6 +50,61 @@ function showScreen(id) {
   target.classList.add('active');
   if (id !== 'screen-chat') target.scrollTop = 0;
   if (id === 'screen-history') loadSessionList();
+}
+
+// ─── Model Picker ────────────────────────────────────────
+function initModelPicker() {
+  const picker = document.getElementById('model-picker');
+  picker.innerHTML = '';
+  MODELS.forEach(m => {
+    const opt = document.createElement('div');
+    opt.className = 'model-option' + (m.id === currentModel ? ' active' : '');
+    opt.dataset.id = m.id;
+    opt.innerHTML = `
+      <div class="model-option-left">
+        <span class="model-option-name">${m.label}</span>
+        <span class="model-option-desc">${m.desc}</span>
+      </div>
+      <span class="model-option-check">✓</span>
+    `;
+    opt.onclick = () => selectModel(m.id);
+    picker.appendChild(opt);
+  });
+}
+
+function toggleModelPicker() {
+  const picker = document.getElementById('model-picker');
+  if (picker.classList.contains('open')) {
+    picker.classList.remove('open');
+    return;
+  }
+  const btn  = document.getElementById('btn-model');
+  const rect = btn.getBoundingClientRect();
+  picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  picker.style.left   = rect.left + 'px';
+  picker.classList.add('open');
+}
+
+function selectModel(id) {
+  currentModel = id;
+  const found = MODELS.find(m => m.id === id);
+  if (found) {
+    document.getElementById('model-label').textContent = found.label;
+  }
+  // Update active state in picker
+  document.querySelectorAll('.model-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.id === id);
+  });
+  document.getElementById('model-picker').classList.remove('open');
+}
+
+function setModelUI(id) {
+  const found = MODELS.find(m => m.id === id) || MODELS[0];
+  currentModel = found.id;
+  document.getElementById('model-label').textContent = found.label;
+  document.querySelectorAll('.model-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.id === found.id);
+  });
 }
 
 // ─── Session List ─────────────────────────────────────────
@@ -75,6 +152,9 @@ async function loadSession(id) {
 
     sessionId = data.id;
     userName  = data.persona.name || '';
+
+    // Restore model for this session
+    setModelUI(data.model || MODELS[0].id);
 
     const container = document.getElementById('chat-messages');
     container.innerHTML = '';
@@ -169,6 +249,7 @@ function startChat(event) {
   messageLog = [];
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('note-dot').style.display = 'none';
+  setModelUI(MODELS[0].id);
   // Persist user image to localStorage for this session
   if (userImageUrl) localStorage.setItem(`user-img:${sessionId}`, userImageUrl);
   showScreen('screen-chat');
@@ -235,7 +316,7 @@ async function sendMessage() {
   appendMessage('user', userName || '유저', text);
   const typingEl = appendTyping();
 
-  const body = { sessionId, message: text };
+  const body = { sessionId, message: text, model: currentModel };
   if (window._persona) {
     body.persona    = window._persona;
     window._persona = null;

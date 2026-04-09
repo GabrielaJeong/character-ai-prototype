@@ -4,6 +4,8 @@ const { stmt }  = require('../db');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const DEFAULT_MODEL = 'claude-sonnet-4-6';
+
 // POST /api/chat/regenerate
 module.exports = async (req, res) => {
   const { sessionId } = req.body;
@@ -30,9 +32,11 @@ module.exports = async (req, res) => {
   const noteRow      = stmt.getNote.get(sessionId);
   const systemPrompt = buildSystemPrompt(JSON.parse(session.persona), noteRow?.note || '');
 
+  const model = session.model || DEFAULT_MODEL;
+
   try {
     const response = await client.messages.create({
-      model:      'claude-sonnet-4-6',
+      model,
       max_tokens: 1024,
       system:     systemPrompt,
       messages:   history,

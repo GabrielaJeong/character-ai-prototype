@@ -140,7 +140,7 @@
   <div id="screen-chat" class="screen">
     <div class="chat-header">
       <button class="btn-back" onclick="resetChat()">←</button>
-      <div class="chat-avatar">이</div>
+      <img src="/images/ihwa.png" alt="이화" class="chat-avatar" />
       <div class="chat-header-info">
         <span class="chat-name">이화</span>
         <span class="chat-status">S.A. Team Nocturne · Profiler</span>
@@ -175,6 +175,13 @@
 
     <div id="chat-messages" class="chat-messages"></div>
 
+    <div class="model-bar">
+      <button class="btn-model" id="btn-model" onclick="toggleModelPicker()">
+        <span id="model-label">Sonnet 4.6</span>
+        <span class="model-caret">⌃</span>
+      </button>
+    </div>
+
     <div class="chat-input-wrap">
       <textarea
         id="chat-input"
@@ -189,6 +196,9 @@
   </div>
 
 </div><!-- /#app -->
+
+<!-- Model picker — outside #app to escape overflow:hidden -->
+<div id="model-picker" class="model-picker"></div>
 <script src="/js/app.js"></script>
 </body>
 </html>

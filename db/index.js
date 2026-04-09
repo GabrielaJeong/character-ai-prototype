@@ -6,15 +6,16 @@ const db = new Database(path.join(__dirname, 'chat.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Migrate: add note column if not exists
-try {
-  db.exec(`ALTER TABLE sessions ADD COLUMN note TEXT NOT NULL DEFAULT ''`);
-} catch (_) { /* column already exists */ }
+// Migrations
+try { db.exec(`ALTER TABLE sessions ADD COLUMN note  TEXT NOT NULL DEFAULT ''`); } catch (_) {}
+try { db.exec(`ALTER TABLE sessions ADD COLUMN model TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'`); } catch (_) {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
     id          TEXT    PRIMARY KEY,
     persona     TEXT    NOT NULL,
+    note        TEXT    NOT NULL DEFAULT '',
+    model       TEXT    NOT NULL DEFAULT 'claude-sonnet-4-6',
     created_at  INTEGER DEFAULT (unixepoch())
   );
 
@@ -29,14 +30,16 @@ db.exec(`
 `);
 
 const stmt = {
-  createSession:  db.prepare('INSERT INTO sessions (id, persona) VALUES (?, ?)'),
-  getSession:     db.prepare('SELECT * FROM sessions WHERE id = ?'),
-  deleteSession:  db.prepare('DELETE FROM sessions WHERE id = ?'),
+  createSession:      db.prepare('INSERT INTO sessions (id, persona, model) VALUES (?, ?, ?)'),
+  getSession:         db.prepare('SELECT * FROM sessions WHERE id = ?'),
+  deleteSession:      db.prepare('DELETE FROM sessions WHERE id = ?'),
+  updateSessionModel: db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
 
   listSessions: db.prepare(`
     SELECT
       s.id,
       s.persona,
+      s.model,
       s.created_at,
       COUNT(m.id)  AS message_count,
       (SELECT content FROM messages
