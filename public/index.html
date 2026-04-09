@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이화 — S.A. Team Nocturne</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- SCREEN 1: Landing -->
+  <div id="screen-landing" class="screen active">
+    <div class="landing-inner">
+      <p class="eyebrow">S.A. TEAM NOCTURNE</p>
+      <h1 class="landing-name">이화</h1>
+      <p class="landing-sub">프로파일러 · 서지안 · 29세</p>
+      <div class="landing-divider"></div>
+      <p class="landing-desc">그녀는 당신 앞에서만 다른 사람이 된다.</p>
+      <div class="landing-btns">
+        <button class="btn-primary" onclick="showScreen('screen-intro')">캐릭터 소개</button>
+        <button class="btn-ghost" onclick="showScreen('screen-persona')">바로 시작하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Character Intro -->
+  <div id="screen-intro" class="screen">
+    <div class="page-inner">
+      <div class="page-header">
+        <button class="btn-back" onclick="showScreen('screen-landing')">←</button>
+        <p class="eyebrow">CHARACTER NOTES</p>
+      </div>
+
+      <h2 class="page-title">서지안에 대하여</h2>
+
+      <div class="profile-table">
+        <div class="pt-row"><span class="pt-key">본명</span><span class="pt-val">서지안</span></div>
+        <div class="pt-row"><span class="pt-key">호명</span><span class="pt-val">이화</span></div>
+        <div class="pt-row"><span class="pt-key">나이</span><span class="pt-val">29세</span></div>
+        <div class="pt-row"><span class="pt-key">소속</span><span class="pt-val">S.A. Team Nocturne</span></div>
+        <div class="pt-row"><span class="pt-key">직책</span><span class="pt-val">프로파일러</span></div>
+        <div class="pt-row"><span class="pt-key">언어</span><span class="pt-val">한국어 · 영어 · 일본어 · 독일어 · 아랍어 · 불어</span></div>
+      </div>
+
+      <div class="note-block">
+        <p class="note-label">제작자 노트</p>
+        <p>이화는 평소 무표정하고 차갑게 보입니다. 낯선 사람에게는 먼저 웃지 않고, 불필요한 감정 표현을 하지 않습니다. 하지만 당신과 단둘이 있을 때는 다릅니다.</p>
+        <p>업무 이야기가 나오면 존댓말을 유지한 채 문장구조가 논리적으로 바뀝니다. 감정은 배제되고, 단정적인 어조로 말합니다. 같은 사람이 맞습니다.</p>
+        <p>어린 시절 외교관 부모를 따라 런던, 도쿄, 뉴욕, 암만, 몬트리올을 떠돌았습니다. 아버지는 런던 대사관 폭탄테러로 사망했고, 어머니는 그 충격으로 병원에 계십니다. 아랍어는 잘 하지만 소리 내어 쓰지 않으려 합니다.</p>
+        <p>오른손에 굳은살이 많고, 엄지에는 흰 골무, 검지에는 루비 은반지를 끼고 있습니다. 밖에서는 항상 가죽 브리프케이스를 들고 다닙니다.</p>
+      </div>
+
+      <button class="btn-primary full-width" onclick="showScreen('screen-persona')">페르소나 설정하기</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Persona Setup -->
+  <div id="screen-persona" class="screen">
+    <div class="page-inner">
+      <div class="page-header">
+        <button class="btn-back" onclick="showScreen('screen-landing')">←</button>
+        <p class="eyebrow">PERSONA SETUP</p>
+      </div>
+
+      <h2 class="page-title">당신은 누구인가요?</h2>
+      <p class="page-desc">이화가 당신을 알 수 있도록 정보를 입력해주세요.</p>
+
+      <button class="btn-recommend" onclick="fillRecommended()">추천 페르소나 채우기</button>
+
+      <form id="persona-form" onsubmit="startChat(event)">
+        <div class="form-group">
+          <label>이름 <span class="required">*</span></label>
+          <input type="text" id="p-name" placeholder="강현" required />
+        </div>
+        <div class="form-group">
+          <label>나이 <span class="required">*</span></label>
+          <input type="number" id="p-age" placeholder="29" min="1" max="99" required />
+        </div>
+        <div class="form-group">
+          <label>외형</label>
+          <input type="text" id="p-appearance" placeholder="키가 크고 무표정한 인상" />
+        </div>
+        <div class="form-group">
+          <label>성격</label>
+          <textarea id="p-personality" rows="2" placeholder="무뚝뚝하고 말이 없는 편"></textarea>
+        </div>
+        <div class="form-group">
+          <label>특이사항</label>
+          <textarea id="p-notes" rows="2" placeholder="이화의 남자친구. 같은 팀 프로파일러."></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary full-width" style="margin-top:8px;">대화 시작</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Chat -->
+  <div id="screen-chat" class="screen">
+    <div class="chat-header">
+      <button class="btn-back" onclick="resetChat()">←</button>
+      <div class="chat-header-info">
+        <span class="chat-name">이화</span>
+        <span class="chat-sub">S.A. Team Nocturne · Profiler</span>
+      </div>
+    </div>
+
+    <div id="chat-messages" class="chat-messages"></div>
+
+    <div class="chat-input-wrap">
+      <textarea
+        id="chat-input"
+        class="chat-input"
+        placeholder="메시지를 입력하세요"
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="btn-send" id="btn-send" onclick="sendMessage()">전송</button>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
