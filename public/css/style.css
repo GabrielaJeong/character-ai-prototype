@@ -19,6 +19,52 @@
   --font: 'Pretendard', 'Inter', -apple-system, sans-serif;
 }
 
+/* ─── Splash Screen ─────────────────────────────────────── */
+#splash {
+  position: fixed;
+  inset: 0;
+  background: #0A0E17;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 9999;
+  pointer-events: none;
+}
+#splash.splash-out {
+  animation: splashFadeOut 0.4s ease forwards;
+}
+@keyframes splashFadeOut {
+  to { opacity: 0; }
+}
+
+.splash-logo {
+  font-size: 42px;
+  font-weight: 800;
+  color: #E2E8F0;
+  font-family: 'Pretendard', 'Inter', -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+  animation: splashLogoIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes splashLogoIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+
+.splash-copy {
+  font-size: 13px;
+  color: #4A5568;
+  font-family: 'Pretendard', 'Inter', -apple-system, sans-serif;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: splashCopyIn 0.5s ease 0.3s forwards;
+}
+@keyframes splashCopyIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ─── Reset ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { height: 100%; }
@@ -79,14 +125,14 @@ body {
 ══════════════════════════════════════════════════════════ */
 #screen-landing {
   padding: 0;
-  padding-bottom: 64px; /* bottom-nav height */
 }
+
 
 .landing-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 36px 20px 20px;
+  padding: 36px 20px 20px 28px;
   flex-shrink: 0;
 }
 
@@ -179,16 +225,12 @@ body {
 
 /* ── Bottom navigation bar ───────────────────────────────── */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
   width: 100%;
-  max-width: 430px;
   background: #0D1117;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: stretch;
+  flex-shrink: 0;
   z-index: 200;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
@@ -1200,6 +1242,39 @@ body {
   transition: background 0.15s;
 }
 .btn-delete-confirm:hover { background: #c94f4f; }
+
+/* ── Regenerate Pagination ───────────────────────────────── */
+.msg-pagination {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.btn-pg {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  font-family: var(--font);
+}
+.btn-pg:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--accent); }
+.btn-pg:disabled { opacity: 0.25; cursor: default; }
+
+.pg-counter {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 28px;
+  text-align: center;
+}
 
 /* ── Regenerate Button ──────────────────────────────────── */
 .btn-regenerate {

@@ -151,8 +151,23 @@ function createChatInput(container, { inputId, btnId, onSend, placeholder = '메
 let personaAvatarUpload = null;  // persona setup screen
 let builderAvatarUpload = null;  // builder edit screen
 
+// ─── Splash ───────────────────────────────────────────────
+let _splashDone  = false;
+let _dataReady   = false;
+let _timerReady  = false;
+
+function _tryDismissSplash() {
+  if (_splashDone || !_dataReady || !_timerReady) return;
+  _splashDone = true;
+  const splash = document.getElementById('splash');
+  splash.classList.add('splash-out');
+  splash.addEventListener('animationend', () => splash.remove(), { once: true });
+}
+
 // ─── Init ─────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // Splash timer — minimum display ~1.5s
+  setTimeout(() => { _timerReady = true; _tryDismissSplash(); }, 1500);
   // Mount avatar upload components
   personaAvatarUpload = createAvatarUpload(
     document.getElementById('persona-avatar-container'),
@@ -206,6 +221,9 @@ async function loadCharacters() {
   } catch (_) {
     document.getElementById('char-grid').innerHTML =
       '<p style="font-size:13px;color:var(--text-dim);">캐릭터를 불러오지 못했습니다.</p>';
+  } finally {
+    _dataReady = true;
+    _tryDismissSplash();
   }
 }
 
@@ -710,7 +728,7 @@ function toggleModelPicker() {
   }
   const btn  = document.getElementById('btn-model');
   const rect = btn.getBoundingClientRect();
-  picker.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+  picker.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
   picker.style.left   = rect.left + 'px';
   picker.classList.add('open');
 }
@@ -1004,12 +1022,41 @@ function renderMessage(role, sender, text, container) {
     name.textContent = sender;
 
     const bubble = document.createElement('div');
-    bubble.className = 'msg-bubble';
+    bubble.className  = 'msg-bubble';
+    bubble._versions  = [text];
+    bubble._vIdx      = 0;
     if (currentMode === 'novel') {
       bubble.innerHTML = highlightDialogue(escapeHtml(text));
     } else {
       bubble.textContent = text;
     }
+
+    // Pagination (hidden until 2+ versions exist)
+    const pagination = document.createElement('div');
+    pagination.className    = 'msg-pagination';
+    pagination.style.display = 'none';
+    bubble._paginationEl = pagination;
+
+    const btnPrev = document.createElement('button');
+    btnPrev.className   = 'btn-pg';
+    btnPrev.textContent = '←';
+    btnPrev.onclick = () => {
+      if (bubble._vIdx > 0) { bubble._vIdx--; _applyVersion(bubble); }
+    };
+
+    const pgCounter = document.createElement('span');
+    pgCounter.className = 'pg-counter';
+
+    const btnNext = document.createElement('button');
+    btnNext.className   = 'btn-pg';
+    btnNext.textContent = '→';
+    btnNext.onclick = () => {
+      if (bubble._vIdx < bubble._versions.length - 1) { bubble._vIdx++; _applyVersion(bubble); }
+    };
+
+    pagination.appendChild(btnPrev);
+    pagination.appendChild(pgCounter);
+    pagination.appendChild(btnNext);
 
     const regenBtn = document.createElement('button');
     regenBtn.className   = 'btn-regenerate';
@@ -1018,6 +1065,7 @@ function renderMessage(role, sender, text, container) {
 
     inner.appendChild(name);
     inner.appendChild(bubble);
+    inner.appendChild(pagination);
     inner.appendChild(regenBtn);
     wrap.appendChild(inner);
     lastAssistantEl = wrap;
@@ -1059,12 +1107,33 @@ function highlightDialogue(html) {
   return html;
 }
 
+function _applyVersion(bubbleEl) {
+  const text  = bubbleEl._versions[bubbleEl._vIdx];
+  const total = bubbleEl._versions.length;
+  const idx   = bubbleEl._vIdx;
+
+  if (currentMode === 'novel') {
+    bubbleEl.innerHTML = highlightDialogue(escapeHtml(text));
+  } else {
+    bubbleEl.textContent = text;
+  }
+
+  const pg = bubbleEl._paginationEl;
+  if (!pg) return;
+  pg.style.display = total > 1 ? 'flex' : 'none';
+  pg.querySelector('.pg-counter').textContent = `${idx + 1} / ${total}`;
+  pg.querySelectorAll('.btn-pg')[0].disabled = idx === 0;
+  pg.querySelectorAll('.btn-pg')[1].disabled = idx === total - 1;
+}
+
 async function regenerateMessage(_wrapEl, bubbleEl, btnEl) {
   if (!sessionId) return;
-  btnEl.disabled       = true;
-  const prevText       = bubbleEl.textContent;
-  bubbleEl.className   = 'typing-bubble';
-  bubbleEl.innerHTML   = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  btnEl.disabled = true;
+  const prevText = bubbleEl._versions[bubbleEl._vIdx];
+
+  // Show typing indicator
+  bubbleEl.className = 'typing-bubble';
+  bubbleEl.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
 
   try {
     const res  = await fetch('/api/chat/regenerate', {
@@ -1075,16 +1144,18 @@ async function regenerateMessage(_wrapEl, bubbleEl, btnEl) {
     const data = await res.json();
     bubbleEl.className = 'msg-bubble';
     const newText = data.error ? '(재생성에 실패했습니다.)' : data.reply;
-    if (currentMode === 'novel' && !data.error) {
-      bubbleEl.innerHTML = highlightDialogue(escapeHtml(newText));
-    } else {
-      bubbleEl.textContent = newText;
-    }
+
+    // Add new version and show it
+    bubbleEl._versions.push(newText);
+    bubbleEl._vIdx = bubbleEl._versions.length - 1;
+    _applyVersion(bubbleEl);
+
     const last = messageLog.findLast(m => m.role === 'assistant');
     if (last) last.text = newText;
   } catch (_) {
-    bubbleEl.className   = 'msg-bubble';
-    bubbleEl.textContent = prevText;
+    bubbleEl.className = 'msg-bubble';
+    bubbleEl._versions[bubbleEl._vIdx] = prevText;
+    _applyVersion(bubbleEl);
   }
   btnEl.disabled = false;
   scrollToBottom();

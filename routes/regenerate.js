@@ -8,13 +8,13 @@ const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 
-async function getReply({ model, systemPrompt, history }) {
+async function getReply({ model, systemPrompt, history, maxTokens = 8192 }) {
   if (GEMINI_MODELS.has(model)) {
-    return callGemini({ model, systemInstruction: systemPrompt, history });
+    return callGemini({ model, systemInstruction: systemPrompt, history, maxTokens });
   }
   const response = await anthropic.messages.create({
     model,
-    max_tokens: 1024,
+    max_tokens: maxTokens,
     system:     systemPrompt,
     messages:   history,
   });
