@@ -1,22 +1,39 @@
-const express = require('express');
-const router  = express.Router();
+const express   = require('express');
+const router    = express.Router();
 const Anthropic = require('@anthropic-ai/sdk');
+const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const ALLOWED_MODELS = new Set([
   'claude-sonnet-4-6',
   'claude-opus-4-6',
   'claude-haiku-4-5-20251001',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
 ]);
+const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 
+async function getReply({ model, systemPrompt, history, maxTokens = 1024 }) {
+  if (GEMINI_MODELS.has(model)) {
+    return callGemini({ model, systemInstruction: systemPrompt, history, maxTokens });
+  }
+  const response = await anthropic.messages.create({
+    model,
+    max_tokens: maxTokens,
+    system:     systemPrompt,
+    messages:   history,
+  });
+  return response.content[0].text;
+}
+
 // POST /api/chat
 router.post('/', async (req, res) => {
-  const { sessionId, message, persona, model: rawModel, characterId: rawCharId } = req.body;
+  const { sessionId, message, persona, model: rawModel, characterId: rawCharId, safety: rawSafety } = req.body;
 
   if (!sessionId || !message) {
     return res.status(400).json({ error: 'sessionId and message are required' });
@@ -31,7 +48,8 @@ router.post('/', async (req, res) => {
     if (!persona) {
       return res.status(400).json({ error: 'persona is required for new sessions' });
     }
-    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId);
+    const safety = rawSafety === 'off' ? 'off' : 'on';
+    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId, safety);
     session = stmt.getSession.get(sessionId);
   } else if (session.model !== model) {
     stmt.updateSessionModel.run(model, sessionId);
@@ -53,23 +71,16 @@ router.post('/', async (req, res) => {
   }));
 
   const noteRow      = stmt.getNote.get(sessionId);
-  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '');
+  const safety       = session.safety || 'on';
+  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '', safety);
 
   try {
-    const response = await client.messages.create({
-      model,
-      max_tokens: 1024,
-      system:     systemPrompt,
-      messages:   history,
-    });
-
-    const reply = response.content[0].text;
+    const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });
     stmt.addMessage.run(sessionId, 'assistant', reply);
-
     res.json({ reply, sessionId, model, characterId: charId });
   } catch (err) {
-    console.error('Anthropic API error:', err.message);
-    res.status(500).json({ error: 'Failed to get response from Claude' });
+    console.error('Chat API error:', err.message);
+    res.status(500).json({ error: 'Failed to get response' });
   }
 });
 

@@ -344,6 +344,80 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
+   SAFETY SEGMENT CONTROL
+══════════════════════════════════════════════════════════ */
+.safety-segment-wrap {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            8px;
+}
+
+.safety-segment {
+  display:         inline-flex;
+  background:      var(--surface);
+  border:          1px solid var(--border);
+  border-radius:   10px;
+  padding:         3px;
+  gap:             2px;
+  position:        relative;
+}
+
+.safety-seg-btn {
+  position:      relative;
+  z-index:       1;
+  padding:       8px 22px;
+  border:        none;
+  border-radius: 7px;
+  background:    transparent;
+  color:         var(--text-dim);
+  font-size:     13px;
+  font-weight:   500;
+  font-family:   var(--font);
+  cursor:        pointer;
+  transition:    color 0.25s ease;
+  white-space:   nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* On active: text color */
+.safety-segment[data-safety="on"]  .safety-seg-btn#safety-btn-on  { color: #fff; }
+.safety-segment[data-safety="off"] .safety-seg-btn#safety-btn-off { color: #fff; }
+
+/* Sliding background pill */
+.safety-segment::before {
+  content:       '';
+  position:      absolute;
+  top:           3px;
+  bottom:        3px;
+  border-radius: 7px;
+  transition:    left 0.28s ease, width 0.28s ease, background 0.28s ease;
+  z-index:       0;
+}
+
+/* Position & color per state — approximated widths; JS adjusts via inline style if needed */
+.safety-segment[data-safety="on"]::before {
+  left:       3px;
+  width:      calc(50% - 3px);
+  background: var(--accent);     /* #5B8FB9 */
+}
+.safety-segment[data-safety="off"]::before {
+  left:       calc(50% + 1px);
+  width:      calc(50% - 4px);
+  background: #C0434A;
+}
+
+/* Disabled */
+.safety-segment-disabled .safety-seg-btn { cursor: not-allowed; opacity: 0.55; }
+
+.safety-segment-hint {
+  font-size:   11px;
+  color:       #C0434A;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════════════════
    SCREEN 2 — CHARACTER INTRO
 ══════════════════════════════════════════════════════════ */
 .page-wrap {
@@ -501,6 +575,33 @@ body {
   color: var(--text-dim);
 }
 
+.gender-btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.gender-btn {
+  flex: 1;
+  padding: 9px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.gender-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+.gender-btn.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
 /* ══════════════════════════════════════════════════════════
    SCREEN 4 — CHAT
 ══════════════════════════════════════════════════════════ */
@@ -645,6 +746,7 @@ body {
   font-family: var(--font);
   resize: none;
   outline: none;
+  min-height: 44px;
   max-height: 100px;
   overflow-y: auto;
   transition: border-color 0.15s;
@@ -753,6 +855,36 @@ body {
 .model-option.active .model-option-check { opacity: 1; }
 .model-option.active .model-option-name  { color: #5b8fb9; }
 
+.model-divider {
+  height:     1px;
+  background: rgba(91, 143, 185, 0.15);
+  margin:     4px 0;
+}
+
+.model-provider-badge {
+  display:       inline-block;
+  font-size:     9px;
+  font-weight:   500;
+  letter-spacing: 0.06em;
+  padding:       1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left:   6px;
+  line-height:   1.6;
+}
+
+.model-provider-claude {
+  background: rgba(91, 143, 185, 0.15);
+  color:      #5b8fb9;
+  border:     1px solid rgba(91, 143, 185, 0.25);
+}
+
+.model-provider-gemini {
+  background: rgba(66, 133, 244, 0.12);
+  color:      #7baaf7;
+  border:     1px solid rgba(66, 133, 244, 0.25);
+}
+
 /* ══════════════════════════════════════════════════════════
    SHARED COMPONENTS
 ══════════════════════════════════════════════════════════ */
@@ -804,7 +936,7 @@ body {
 
 .btn-send {
   width: 42px;
-  height: 42px;
+  align-self: stretch;
   background: var(--accent);
   color: #fff;
   border: none;
@@ -826,27 +958,79 @@ body {
 
 /* ── Session List ─────────────────────────────────────────── */
 .session-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   padding: 14px 16px;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
 }
 .session-card:hover { border-color: var(--accent-dim); }
 
+/* Avatar */
+.session-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-right: 12px;
+  align-self: center;
+}
+.session-card.select-mode .session-avatar-wrap {
+  margin-right: 10px;
+}
+
+.session-safety-pennant {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  width: 16px;
+  height: 36px;
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+  font-size: 7px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  writing-mode: vertical-rl;
+  letter-spacing: 0.1em;
+  line-height: 16px;
+  padding-top: 4px;
+  z-index: 1;
+  pointer-events: none;
+}
+.session-safety-pennant.all-ages { background: var(--accent); }
+.session-safety-pennant.adult    { background: #e05c5c; }
+
+.session-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.session-avatar.session-avatar-img {
+  background-size: cover;
+  background-position: top center;
+  font-size: 0;
+}
 .session-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.session-persona-name {
+.session-char-name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text);
 }
 
@@ -861,15 +1045,161 @@ body {
   line-height: 1.5;
   overflow: hidden;
   display: -webkit-box;
+  display: box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
+  box-orient: vertical;
 }
 
-.session-meta {
+.session-persona-tag {
   font-size: 11px;
   color: var(--text-dim);
-  letter-spacing: 0.04em;
+  text-align: right;
+  display: block;
 }
+
+/* ── Select-Delete UI ────────────────────────────────────── */
+.btn-select-delete {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.btn-select-delete:hover { border-color: var(--accent-dim); color: var(--text); }
+
+/* Active state: "삭제" — dim until selection exists */
+.btn-select-delete.btn-select-delete-active {
+  color: var(--text-dim);
+  border-color: var(--border);
+  cursor: pointer;
+}
+/* Ready: selection exists → red/coral */
+.btn-select-delete.btn-select-delete-active.btn-select-delete-ready {
+  color: #e05c5c;
+  border-color: #e05c5c;
+  background: rgba(224, 92, 92, 0.08);
+}
+
+.session-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Checkbox: hidden by default, slides in from left */
+.session-checkbox {
+  flex-shrink: 0;
+  width: 0;
+  height: 18px;
+  margin-right: 0;
+  border-radius: 4px;
+  border: 1.5px solid transparent;
+  background: var(--surface);
+  cursor: pointer;
+  transition: width 0.2s ease, margin-right 0.2s ease, border-color 0.15s, background 0.15s;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+/* Slide in */
+.session-card.select-mode .session-checkbox {
+  width: 18px;
+  margin-right: 12px;
+  border-color: var(--border);
+}
+
+/* Checked state */
+.session-card.select-mode .session-checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.session-card.select-mode .session-checkbox.checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  color: #fff;
+  line-height: 1;
+}
+
+/* Selected card highlight */
+.session-card.selected {
+  border-color: var(--accent-dim);
+  background: rgba(91, 143, 185, 0.06);
+}
+
+/* ── Delete Confirm Modal ─────────────────────────────────── */
+.delete-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 300;
+  align-items: flex-end;
+  justify-content: center;
+}
+.delete-modal-overlay.open {
+  display: flex;
+}
+.delete-modal {
+  width: 100%;
+  max-width: 430px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideUp 0.2s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.delete-modal-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.delete-modal-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.delete-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.delete-modal-actions .btn-ghost {
+  flex: 1;
+}
+.btn-delete-confirm {
+  flex: 1;
+  background: #e05c5c;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-delete-confirm:hover { background: #c94f4f; }
 
 /* ── Regenerate Button ──────────────────────────────────── */
 .btn-regenerate {
@@ -1000,6 +1330,103 @@ body {
   height:        6px;
   background:    var(--accent);
   border-radius: 50%;
+}
+
+/* ── Chat Header Profile Button ─────────────────────────── */
+.chat-header-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  transition: background 0.15s;
+}
+.chat-header-profile-btn:hover { background: rgba(255,255,255,0.05); }
+
+/* ── Character Profile Modal ─────────────────────────────── */
+.char-profile-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+}
+.char-profile-overlay.open { display: flex; }
+
+.char-profile-panel {
+  width: 100%;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.22s ease;
+}
+.char-profile-panel.closing {
+  animation: slideDown 0.22s ease forwards;
+}
+@keyframes slideDown {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
+.char-profile-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 16px 0;
+}
+
+.char-profile-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+.char-profile-close:hover { color: var(--text); }
+
+.char-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 20px 32px;
+}
+
+.char-profile-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  border: 2px solid var(--border);
+  align-self: center;
+  margin-top: 4px;
+}
+
+.char-profile-names {
+  text-align: center;
+}
+
+.char-profile-fullname {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.char-profile-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 3px;
 }
 
 /* ── Note Modal ─────────────────────────────────────────── */
@@ -1280,3 +1707,185 @@ body {
   text-decoration: underline;
 }
 .upload-remove:hover { color: var(--danger, #c25f5f); }
+
+/* ══════════════════════════════════════════════════════════
+   BUILDER SCREENS (6, 7, 8)
+══════════════════════════════════════════════════════════ */
+
+/* ── Screen 6: Builder Chat ─────────────────────────────── */
+#screen-builder-chat { overflow: hidden; }
+
+/* Header avatar — ✦ symbol circle */
+.builder-header-avatar {
+  width:           34px;
+  height:          34px;
+  border-radius:   50%;
+  background:      rgba(91,143,185,0.12);
+  border:          1px solid rgba(91,143,185,0.3);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       15px;
+  color:           var(--accent);
+  flex-shrink:     0;
+}
+
+/* Message avatar for builder agent */
+.builder-avatar {
+  width:           36px;
+  height:          36px;
+  border-radius:   50%;
+  background:      rgba(91,143,185,0.10);
+  border:          1px solid rgba(91,143,185,0.25);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       14px;
+  color:           var(--accent);
+  flex-shrink:     0;
+  align-self:      flex-start;
+  margin-bottom:   2px;
+}
+
+/* "캐릭터 생성하기" CTA button inside builder message */
+.btn-builder-generate {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           6px;
+  margin-top:    12px;
+  padding:       10px 18px;
+  background:    var(--accent);
+  color:         #fff;
+  border:        none;
+  border-radius: var(--radius-btn);
+  font-size:     13px;
+  font-weight:   600;
+  font-family:   var(--font);
+  cursor:        pointer;
+  letter-spacing: 0.02em;
+  transition:    background 0.15s;
+  align-self:    flex-start;
+}
+.btn-builder-generate:hover { background: #4a7ea8; }
+
+/* ── Screen 7: Builder Loading ──────────────────────────── */
+#screen-builder-loading {
+  align-items:     center;
+  justify-content: center;
+}
+
+.builder-loading-wrap {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            16px;
+  padding:        40px 30px;
+  text-align:     center;
+}
+
+.builder-loading-icon {
+  font-size:   52px;
+  color:       var(--accent);
+  animation:   builderPulse 1.8s ease-in-out infinite;
+  line-height: 1;
+}
+
+@keyframes builderPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.92); }
+  50%       { opacity: 1;   transform: scale(1.06); }
+}
+
+.builder-loading-title {
+  font-size:   18px;
+  font-weight: 500;
+  color:       var(--text);
+}
+
+.builder-loading-desc {
+  font-size:   13px;
+  color:       var(--text-dim);
+  line-height: 1.6;
+}
+
+.builder-progress {
+  width:         200px;
+  height:        2px;
+  background:    var(--border);
+  border-radius: 2px;
+  overflow:      hidden;
+  margin-top:    4px;
+}
+
+.builder-progress-bar {
+  height:        100%;
+  background:    var(--accent);
+  border-radius: 2px;
+  width:         0%;
+  transition:    width 0.4s ease;
+}
+
+/* ── Screen 8: Builder Edit — toggle switch ─────────────── */
+.builder-toggle-row {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         14px 0;
+  border-top:      1px solid var(--border);
+  border-bottom:   1px solid var(--border);
+  gap:             12px;
+}
+
+.builder-toggle-label {
+  font-size:   14px;
+  font-weight: 500;
+  color:       var(--text);
+}
+
+.builder-toggle-desc {
+  font-size:   12px;
+  color:       var(--text-dim);
+  margin-top:  3px;
+  line-height: 1.5;
+}
+
+.toggle-switch {
+  position:    relative;
+  width:       44px;
+  height:      26px;
+  flex-shrink: 0;
+  cursor:      pointer;
+}
+
+.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+.toggle-thumb {
+  position:      absolute;
+  inset:         0;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  border-radius: 26px;
+  transition:    background 0.2s, border-color 0.2s;
+}
+
+.toggle-thumb::before {
+  content:       '';
+  position:      absolute;
+  left:          4px;
+  top:           50%;
+  transform:     translateY(-50%);
+  width:         16px;
+  height:        16px;
+  background:    var(--text-dim);
+  border-radius: 50%;
+  transition:    transform 0.2s, background 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-thumb {
+  background:   rgba(91,143,185,0.18);
+  border-color: var(--accent);
+}
+
+.toggle-switch input:checked + .toggle-thumb::before {
+  transform:  translateY(-50%) translateX(18px);
+  background: var(--accent);
+}

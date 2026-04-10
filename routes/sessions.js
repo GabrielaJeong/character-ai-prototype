@@ -6,6 +6,8 @@ const { stmt } = require('../db');
 router.get('/', (req, res) => {
   const sessions = stmt.listSessions.all().map(s => ({
     id:            s.id,
+    character_id:  s.character_id,
+    safety:        s.safety || 'on',
     persona:       JSON.parse(s.persona),
     message_count: s.message_count,
     last_message:  s.last_message,
@@ -21,11 +23,31 @@ router.get('/:id', (req, res) => {
 
   const messages = stmt.getMessages.all(req.params.id);
   res.json({
-    id:       session.id,
-    persona:  JSON.parse(session.persona),
+    id:           session.id,
+    character_id: session.character_id,
+    persona:      JSON.parse(session.persona),
     messages,
-    created_at: session.created_at,
+    created_at:   session.created_at,
   });
+});
+
+// GET  /api/sessions/:id/safety
+router.get('/:id/safety', (req, res) => {
+  const session = stmt.getSession.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  res.json({ safety: session.safety || 'on' });
+});
+
+// PUT  /api/sessions/:id/safety
+router.put('/:id/safety', (req, res) => {
+  const { safety } = req.body;
+  if (safety !== 'on' && safety !== 'off') {
+    return res.status(400).json({ error: 'safety must be "on" or "off"' });
+  }
+  const session = stmt.getSession.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  stmt.updateSessionSafety.run(safety, req.params.id);
+  res.json({ ok: true, safety });
 });
 
 module.exports = router;

@@ -21,6 +21,8 @@
   "homepage": "https://github.com/GabrielaJeong/character-ai-prototype#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.86.1",
+    "@google/genai": "^1.49.0",
+    "@google/generative-ai": "^0.24.1",
     "better-sqlite3": "^12.8.0",
     "dotenv": "^17.4.1",
     "express": "^5.2.1"

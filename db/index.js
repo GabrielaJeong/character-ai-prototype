@@ -10,6 +10,7 @@ db.pragma('foreign_keys = ON');
 try { db.exec(`ALTER TABLE sessions ADD COLUMN note         TEXT NOT NULL DEFAULT ''`);       } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN model        TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'`); } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN character_id TEXT NOT NULL DEFAULT 'ihwa'`);   } catch (_) {}
+try { db.exec(`ALTER TABLE sessions ADD COLUMN safety       TEXT NOT NULL DEFAULT 'on'`);     } catch (_) {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
@@ -32,10 +33,11 @@ db.exec(`
 `);
 
 const stmt = {
-  createSession:      db.prepare('INSERT INTO sessions (id, persona, model, character_id) VALUES (?, ?, ?, ?)'),
-  getSession:         db.prepare('SELECT * FROM sessions WHERE id = ?'),
-  deleteSession:      db.prepare('DELETE FROM sessions WHERE id = ?'),
-  updateSessionModel: db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
+  createSession:        db.prepare('INSERT INTO sessions (id, persona, model, character_id, safety) VALUES (?, ?, ?, ?, ?)'),
+  getSession:           db.prepare('SELECT * FROM sessions WHERE id = ?'),
+  deleteSession:        db.prepare('DELETE FROM sessions WHERE id = ?'),
+  updateSessionModel:   db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
+  updateSessionSafety:  db.prepare('UPDATE sessions SET safety = ? WHERE id = ?'),
 
   listSessions: db.prepare(`
     SELECT
@@ -43,6 +45,7 @@ const stmt = {
       s.persona,
       s.model,
       s.character_id,
+      s.safety,
       s.created_at,
       COUNT(m.id)  AS message_count,
       (SELECT content FROM messages

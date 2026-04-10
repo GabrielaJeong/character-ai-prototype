@@ -1,11 +1,25 @@
 const Anthropic = require('@anthropic-ai/sdk');
+const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
+const anthropic         = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
+
+async function getReply({ model, systemPrompt, history }) {
+  if (GEMINI_MODELS.has(model)) {
+    return callGemini({ model, systemInstruction: systemPrompt, history });
+  }
+  const response = await anthropic.messages.create({
+    model,
+    max_tokens: 1024,
+    system:     systemPrompt,
+    messages:   history,
+  });
+  return response.content[0].text;
+}
 
 // POST /api/chat/regenerate
 module.exports = async (req, res) => {
@@ -29,20 +43,13 @@ module.exports = async (req, res) => {
 
   const noteRow      = stmt.getNote.get(sessionId);
   const charId       = session.character_id || DEFAULT_CHARACTER;
-  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '');
+  const safety       = session.safety || 'on';
+  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety);
   const model        = session.model || DEFAULT_MODEL;
 
   try {
-    const response = await client.messages.create({
-      model,
-      max_tokens: 1024,
-      system:     systemPrompt,
-      messages:   history,
-    });
-
-    const reply = response.content[0].text;
+    const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });
     stmt.addMessage.run(sessionId, 'assistant', reply);
-
     res.json({ reply });
   } catch (err) {
     console.error('Regenerate error:', err.message);

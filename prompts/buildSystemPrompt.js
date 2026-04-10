@@ -3,7 +3,7 @@ const path = require('path');
 
 const PROMPTS_DIR = __dirname;
 
-function buildSystemPrompt(characterId, persona, note = '') {
+function buildSystemPrompt(characterId, persona, note = '', safety = 'on') {
   const guardrails = fs.readFileSync(
     path.join(PROMPTS_DIR, 'common', 'guardrails.md'),
     'utf-8'
@@ -38,7 +38,19 @@ Treat these as established facts in the conversation:
 ${note.trim()}
 ` : '';
 
-  return charPrompt + '\n\n' + guardrails + personaBlock + noteBlock;
+  const safetyBlock = `
+---
+
+## Content Rating (Safety Toggle)
+
+Current setting: **${safety === 'off' ? 'Safety OFF (19+)' : 'Safety ON (All Ages)'}**
+
+${safety === 'off'
+  ? 'Sexual and explicit content is permitted. Follow the Safety OFF rules defined in the guardrails.'
+  : 'Safety ON is active. Follow the Safety ON rules defined in the guardrails. No sexual or explicit content.'}
+`;
+
+  return charPrompt + '\n\n' + guardrails + safetyBlock + personaBlock + noteBlock;
 }
 
 module.exports = { buildSystemPrompt };

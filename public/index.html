@@ -43,9 +43,6 @@
           <p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>
         </div>
       </div>
-      <div class="landing-footer">
-        <button id="btn-continue" class="btn-ghost" onclick="showScreen('screen-history')" style="display:none;">이전 대화 불러오기</button>
-      </div>
     </div>
   </div>
 
@@ -53,12 +50,25 @@
   <div id="screen-history" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
-        <button class="btn-back" onclick="showScreen('screen-landing')">←</button>
+        <button class="btn-back" onclick="navigateTo('/')">←</button>
         <span class="nav-label">Previous Conversations</span>
+        <button class="btn-select-delete" id="btn-select-delete" onclick="_selectMode ? handleDeleteClick() : enterSelectMode()">선택 삭제</button>
       </div>
       <div class="page-body">
-        <p class="page-title">이전 대화</p>
+        <p class="page-title">대화</p>
         <div id="session-list" style="display:flex;flex-direction:column;gap:10px;margin-top:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Delete Confirm Modal ──────────────────────────────── -->
+  <div id="delete-modal-overlay" class="delete-modal-overlay" onclick="closeDeleteModal(event)">
+    <div class="delete-modal">
+      <p class="delete-modal-title" id="delete-modal-title">선택한 N개의 대화를 삭제하시겠습니까?</p>
+      <p class="delete-modal-desc">삭제된 대화는 복구할 수 없습니다.</p>
+      <div class="delete-modal-actions">
+        <button class="btn-ghost delete-modal-cancel" onclick="closeDeleteModal()">취소</button>
+        <button class="btn-delete-confirm" onclick="confirmDelete()">삭제</button>
       </div>
     </div>
   </div>
@@ -67,10 +77,11 @@
   <div id="screen-intro" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
-        <button class="btn-back" onclick="showScreen('screen-landing')">←</button>
+        <button class="btn-back" onclick="navigateTo('/')">←</button>
         <span class="nav-label">Character Profile</span>
       </div>
       <div class="page-body">
+        <div id="safety-segment-container"></div>
         <div class="intro-img-wrap">
           <img id="intro-img" src="" alt="" class="intro-img" />
         </div>
@@ -80,7 +91,7 @@
         </div>
         <div class="profile-card" id="intro-profile-card"></div>
         <div class="note-card" id="intro-note-card"></div>
-        <button class="btn-primary" onclick="showScreen('screen-persona')">페르소나 설정하기</button>
+        <button class="btn-primary" onclick="navigateTo('/persona')">페르소나 설정하기</button>
       </div>
     </div>
   </div>
@@ -89,7 +100,7 @@
   <div id="screen-persona" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
-        <button class="btn-back" onclick="showScreen('screen-intro')">←</button>
+        <button class="btn-back" onclick="navigateTo(`/character/${currentCharacter?.id}`)">←</button>
         <span class="nav-label">Persona Setup</span>
       </div>
       <div class="page-body">
@@ -105,17 +116,7 @@
         <form id="persona-form" onsubmit="startChat(event)" style="display:flex;flex-direction:column;gap:14px;">
           <div class="form-group">
             <label>프로필 이미지</label>
-            <div class="upload-avatar-wrap">
-              <div class="upload-avatar" id="upload-avatar" onclick="document.getElementById('user-img-input').click()">
-                <span class="upload-avatar-plus" id="upload-avatar-plus">+</span>
-                <img id="upload-avatar-preview" class="upload-avatar-img" style="display:none;" alt="프로필" />
-              </div>
-              <input type="file" id="user-img-input" accept="image/*" style="display:none;" onchange="handleUserImageUpload(event)" />
-              <div>
-                <p class="upload-avatar-hint">1장 업로드 가능<br>채팅 모드에서만 표시됩니다.</p>
-                <button type="button" class="upload-remove" id="upload-remove" onclick="removeUserImage()">이미지 제거</button>
-              </div>
-            </div>
+            <div id="persona-avatar-container"></div>
           </div>
           <div class="form-group">
             <label>이름 <span class="required">*</span></label>
@@ -124,6 +125,13 @@
           <div class="form-group">
             <label>나이 <span class="required">*</span></label>
             <input type="number" id="p-age" placeholder="29" min="1" max="99" required />
+          </div>
+          <div class="form-group">
+            <label>성별</label>
+            <div class="gender-btn-group">
+              <button type="button" class="gender-btn" data-value="male" onclick="selectGender('male')">남</button>
+              <button type="button" class="gender-btn" data-value="female" onclick="selectGender('female')">여</button>
+            </div>
           </div>
           <div class="form-group">
             <label>외형</label>
@@ -147,16 +155,28 @@
   <div id="screen-chat" class="screen">
     <div class="chat-header">
       <button class="btn-back" onclick="resetChat()">←</button>
-      <img id="chat-header-avatar" src="/images/ihwa.png" alt="" class="chat-avatar" />
-      <div class="chat-header-info">
-        <span class="chat-name" id="chat-header-name">이화</span>
-        <span class="chat-status" id="chat-header-status">S.A. Team Nocturne · Profiler</span>
-      </div>
+      <button class="chat-header-profile-btn" onclick="openCharProfile()">
+        <img id="chat-header-avatar" src="/images/ihwa.png" alt="" class="chat-avatar" />
+        <div class="chat-header-info">
+          <span class="chat-name" id="chat-header-name">이화</span>
+          <span class="chat-status" id="chat-header-status">S.A. Team Nocturne · Profiler</span>
+        </div>
+      </button>
       <button class="btn-mode-toggle" id="btn-mode-toggle" onclick="toggleMode()">📖 소설</button>
       <button class="btn-note" id="btn-note" onclick="openNote()" title="유저 노트">
         📝<span class="note-dot" id="note-dot" style="display:none;"></span>
       </button>
     </div>
+
+  <!-- Character Profile Modal -->
+  <div id="char-profile-overlay" class="char-profile-overlay" onclick="closeCharProfile(event)">
+    <div class="char-profile-panel">
+      <div class="char-profile-header">
+        <button class="char-profile-close" onclick="closeCharProfilePanel()">✕</button>
+      </div>
+      <div class="char-profile-body" id="char-profile-body"></div>
+    </div>
+  </div>
 
   <!-- Note Modal -->
   <div id="note-overlay" class="note-overlay" onclick="closeNote(event)">
@@ -189,16 +209,106 @@
       </button>
     </div>
 
-    <div class="chat-input-wrap">
-      <textarea
-        id="chat-input"
-        class="chat-input"
-        placeholder="메시지를 입력하세요"
-        rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <button class="btn-send" id="btn-send" onclick="sendMessage()">↑</button>
+    <div id="chat-input-container"></div>
+  </div>
+
+
+  <!-- ── SCREEN 6: Builder Chat ────────────────────────────── -->
+  <div id="screen-builder-chat" class="screen">
+    <div class="chat-header">
+      <button class="btn-back" onclick="navigateTo('/')">←</button>
+      <div class="builder-header-avatar">✦</div>
+      <div class="chat-header-info">
+        <span class="chat-name">Folio Builder</span>
+        <span class="chat-status">캐릭터 제작 어시스턴트</span>
+      </div>
+    </div>
+    <div id="builder-messages" class="chat-messages"></div>
+    <div id="builder-input-container"></div>
+  </div>
+
+  <!-- ── SCREEN 7: Builder Loading ─────────────────────────── -->
+  <div id="screen-builder-loading" class="screen">
+    <div class="builder-loading-wrap">
+      <div class="builder-loading-icon">✦</div>
+      <p class="builder-loading-title">캐릭터를 만드는 중...</p>
+      <p class="builder-loading-desc">AI가 시스템 프롬프트를 작성하고 있습니다</p>
+      <div class="builder-progress">
+        <div class="builder-progress-bar" id="builder-progress-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 8: Builder Edit ────────────────────────────── -->
+  <div id="screen-builder-edit" class="screen">
+    <div class="page-wrap">
+      <div class="page-nav">
+        <button class="btn-back" onclick="navigateTo('/builder')">←</button>
+        <span class="nav-label">캐릭터 검토</span>
+      </div>
+      <div class="page-body">
+        <div>
+          <p class="page-title">캐릭터 검토</p>
+          <p style="font-size:13px;color:var(--text-dim);margin-top:-4px;">내용을 확인하고 수정한 뒤 등록해주세요.</p>
+        </div>
+
+        <form id="builder-edit-form" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
+          <div class="form-group">
+            <label>프로필 이미지</label>
+            <div id="builder-avatar-container"></div>
+          </div>
+          <div class="form-group">
+            <label>이름 <span class="required">*</span></label>
+            <input type="text" id="be-name" required />
+          </div>
+          <div class="form-group">
+            <label>나이</label>
+            <input type="number" id="be-age" min="1" max="99" />
+          </div>
+          <div class="form-group">
+            <label>직업 / 역할</label>
+            <input type="text" id="be-occupation" />
+          </div>
+          <div class="form-group">
+            <label>한 줄 소개</label>
+            <input type="text" id="be-subtitle" />
+          </div>
+          <div class="form-group">
+            <label>외형</label>
+            <textarea id="be-appearance" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>성격 (행동 규칙)</label>
+            <textarea id="be-personality" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>말투</label>
+            <textarea id="be-speechStyle" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label>말투 예시 (한 줄씩)</label>
+            <textarea id="be-speechExamples" rows="4" placeholder="예시 1&#10;예시 2&#10;예시 3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>생성된 시스템 프롬프트</label>
+            <textarea id="be-systemPrompt" rows="10" style="font-size:12px;line-height:1.6;font-family:monospace;"></textarea>
+          </div>
+
+          <div class="builder-toggle-row">
+            <div>
+              <p class="builder-toggle-label">욕설 / 성인 표현 허용</p>
+              <p class="builder-toggle-desc">욕설, 공격적 표현, 성인 묘사 허용 여부</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="be-profanity-toggle" />
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
+
+          <button type="button" class="btn-primary" onclick="registerCharacter()">캐릭터 등록하기</button>
+          <button type="button" class="btn-ghost" onclick="rebuildCharacter()">↺ 프롬프트 다시 생성</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -210,13 +320,17 @@
     <span class="nav-tab-icon">⊞</span>
     <span class="nav-tab-label">캐릭터</span>
   </button>
+  <button class="nav-tab" data-label="대화" onclick="navigateTo('/history')">
+    <span class="nav-tab-icon">◷</span>
+    <span class="nav-tab-label">대화</span>
+  </button>
   <button class="nav-tab" data-label="탐색" onclick="showToast('준비 중인 기능입니다')">
     <span class="nav-tab-icon">◎</span>
     <span class="nav-tab-label">탐색</span>
   </button>
-  <button class="nav-tab" data-label="페르소나" onclick="showToast('준비 중인 기능입니다')">
-    <span class="nav-tab-icon">◈</span>
-    <span class="nav-tab-label">페르소나</span>
+  <button class="nav-tab" data-label="제작" onclick="openBuilder()">
+    <span class="nav-tab-icon">✦</span>
+    <span class="nav-tab-label">제작</span>
   </button>
   <button class="nav-tab" data-label="마이페이지" onclick="showToast('준비 중인 기능입니다')">
     <span class="nav-tab-icon">◉</span>
