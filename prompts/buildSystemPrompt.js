@@ -1,8 +1,17 @@
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
-function buildSystemPrompt(persona, note = '') {
-  const base = fs.readFileSync(path.join(__dirname, 'system.md'), 'utf-8');
+const PROMPTS_DIR = __dirname;
+
+function buildSystemPrompt(characterId, persona, note = '') {
+  const guardrails = fs.readFileSync(
+    path.join(PROMPTS_DIR, 'common', 'guardrails.md'),
+    'utf-8'
+  );
+  const charPrompt = fs.readFileSync(
+    path.join(PROMPTS_DIR, 'characters', characterId, 'system.md'),
+    'utf-8'
+  );
 
   const personaBlock = `
 ---
@@ -15,7 +24,7 @@ function buildSystemPrompt(persona, note = '') {
 - **Personality**: ${persona.personality || 'Not specified'}
 - **Notes**: ${persona.notes || 'None'}
 
-Ihwa knows this person. Address them by name or pet name as appropriate.
+Address them by name or pet name as appropriate.
 `;
 
   const noteBlock = note.trim() ? `
@@ -29,7 +38,7 @@ Treat these as established facts in the conversation:
 ${note.trim()}
 ` : '';
 
-  return base + personaBlock + noteBlock;
+  return charPrompt + '\n\n' + guardrails + personaBlock + noteBlock;
 }
 
 module.exports = { buildSystemPrompt };

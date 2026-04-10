@@ -13,6 +13,7 @@ app.post('/api/chat/regenerate', require('./routes/regenerate'));
 app.use('/api/chat',             require('./routes/chat'));
 app.use('/api/sessions',         require('./routes/sessions'));
 app.use('/api/sessions/:id/note', require('./routes/notes'));
+app.use('/api/characters',       require('./routes/characters'));
 
 // Fallback: serve index.html for all non-API routes
 app.get('/{*splat}', (_req, res) => {

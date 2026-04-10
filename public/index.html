@@ -3,27 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>이화 — S.A. Team Nocturne</title>
+  <title>S.A. Team Nocturne</title>
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
 <div id="app">
 
-  <!-- ── SCREEN 1: Landing ───────────────────────────────── -->
+  <!-- ── SCREEN 1: Landing (Character Select) ───────────── -->
   <div id="screen-landing" class="screen active">
-    <div class="landing-top">
-      <div class="landing-img-wrap">
-        <img src="/images/ihwa.png" alt="이화" class="landing-img" />
-        <div class="landing-img-fade"></div>
+    <div class="page-wrap">
+      <div class="landing-header">
+        <div class="landing-header-left">
+          <span class="landing-logo">Foli<span class="logo-o-wrap"><span class="logo-dots"><span class="logo-dot logo-dot-1"></span><span class="logo-dot logo-dot-2"></span></span>o</span></span>
+          <span class="landing-subtitle">대화 상대를 선택하세요</span>
+        </div>
+        <div class="landing-header-right">
+          <button class="btn-icon" onclick="showToast('준비 중인 기능입니다')">🔍</button>
+          <button class="btn-icon" onclick="showToast('준비 중인 기능입니다')">☰</button>
+        </div>
       </div>
-      <span class="landing-badge">S.A. Team Nocturne</span>
-      <h1 class="landing-name">이화</h1>
-      <p class="landing-romanized">Seo Jian · Profiler · 29</p>
-    </div>
-    <div class="landing-bottom">
-      <button id="btn-continue" class="btn-primary" onclick="showScreen('screen-history')" style="display:none;">이전 대화 이어하기</button>
-      <button class="btn-ghost" onclick="showScreen('screen-intro')">캐릭터 소개</button>
-      <button class="btn-ghost" onclick="showScreen('screen-persona')">새 대화 시작</button>
+      <div class="page-body" style="padding-top:20px;">
+        <p class="section-label">추천 캐릭터</p>
+        <div id="char-grid" class="char-grid">
+          <p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>
+        </div>
+      </div>
+      <div class="landing-footer">
+        <button id="btn-continue" class="btn-ghost" onclick="showScreen('screen-history')" style="display:none;">이전 대화 불러오기</button>
+      </div>
     </div>
   </div>
 
@@ -41,7 +48,7 @@
     </div>
   </div>
 
-  <!-- ── SCREEN 2: Character Intro ──────────────────────── -->
+  <!-- ── SCREEN 2: Character Intro (dynamic) ────────────── -->
   <div id="screen-intro" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
@@ -50,29 +57,14 @@
       </div>
       <div class="page-body">
         <div class="intro-img-wrap">
-          <img src="/images/ihwa.png" alt="이화" class="intro-img" />
+          <img id="intro-img" src="" alt="" class="intro-img" />
         </div>
         <div>
-          <p class="page-title">서지안</p>
-          <p style="font-size:13px;color:var(--text-dim);margin-top:2px;">이화 · S.A. Team Nocturne</p>
+          <p class="page-title" id="intro-fullname"></p>
+          <p id="intro-subtitle" style="font-size:13px;color:var(--text-dim);margin-top:2px;"></p>
         </div>
-
-        <div class="profile-card">
-          <div class="pt-row"><span class="pt-key">나이</span><span class="pt-val">29세</span></div>
-          <div class="pt-row"><span class="pt-key">소속</span><span class="pt-val">S.A. Team Nocturne</span></div>
-          <div class="pt-row"><span class="pt-key">직책</span><span class="pt-val">프로파일러</span></div>
-          <div class="pt-row"><span class="pt-key">전직</span><span class="pt-val">남대문서 외사계 · 서울청 강력2계 · 과학수사계</span></div>
-          <div class="pt-row"><span class="pt-key">언어</span><span class="pt-val">한국어 · 영어 · 일본어 · 독일어 · 아랍어 · 불어</span></div>
-        </div>
-
-        <div class="note-card">
-          <p class="note-eyebrow">제작자 노트</p>
-          <p>이화는 평소 무표정하고 차갑게 보입니다. 낯선 사람에게는 먼저 웃지 않고, 불필요한 감정 표현을 하지 않습니다. 하지만 당신과 단둘이 있을 때는 다릅니다.</p>
-          <p>업무 이야기가 나오면 존댓말을 유지한 채 문장구조가 논리적으로 바뀝니다. 감정은 배제되고, 단정적인 어조로 말합니다.</p>
-          <p>아버지는 런던 대사관 폭탄테러로 사망했고, 어머니는 그 충격으로 병원에 계십니다. 아랍어는 구사하지만 소리 내어 쓰지 않으려 합니다.</p>
-          <p>오른손에 굳은살이 많고, 엄지에는 흰 골무, 검지에는 루비 은반지를 끼고 있습니다.</p>
-        </div>
-
+        <div class="profile-card" id="intro-profile-card"></div>
+        <div class="note-card" id="intro-note-card"></div>
         <button class="btn-primary" onclick="showScreen('screen-persona')">페르소나 설정하기</button>
       </div>
     </div>
@@ -82,13 +74,13 @@
   <div id="screen-persona" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
-        <button class="btn-back" onclick="showScreen('screen-landing')">←</button>
+        <button class="btn-back" onclick="showScreen('screen-intro')">←</button>
         <span class="nav-label">Persona Setup</span>
       </div>
       <div class="page-body">
         <div>
           <p class="page-title">당신은 누구인가요?</p>
-          <p style="font-size:13px;color:var(--text-dim);margin-top:4px;">이화가 당신을 알 수 있도록 정보를 입력해주세요.</p>
+          <p style="font-size:13px;color:var(--text-dim);margin-top:4px;" id="persona-subtitle">캐릭터가 당신을 알 수 있도록 정보를 입력해주세요.</p>
         </div>
 
         <button class="recommend-btn" onclick="fillRecommended()">
@@ -140,10 +132,10 @@
   <div id="screen-chat" class="screen">
     <div class="chat-header">
       <button class="btn-back" onclick="resetChat()">←</button>
-      <img src="/images/ihwa.png" alt="이화" class="chat-avatar" />
+      <img id="chat-header-avatar" src="/images/ihwa.png" alt="" class="chat-avatar" />
       <div class="chat-header-info">
-        <span class="chat-name">이화</span>
-        <span class="chat-status">S.A. Team Nocturne · Profiler</span>
+        <span class="chat-name" id="chat-header-name">이화</span>
+        <span class="chat-status" id="chat-header-status">S.A. Team Nocturne · Profiler</span>
       </div>
       <button class="btn-mode-toggle" id="btn-mode-toggle" onclick="toggleMode()">📖 소설</button>
       <button class="btn-note" id="btn-note" onclick="openNote()" title="유저 노트">
@@ -158,7 +150,7 @@
         <span class="note-panel-title">유저 노트</span>
         <button class="note-close" onclick="closeNotePanel()">✕</button>
       </div>
-      <p class="note-panel-desc">이화가 대화 중 참고할 사실이나 맥락을 입력하세요. 매 응답에 자동 반영됩니다.</p>
+      <p class="note-panel-desc">캐릭터가 대화 중 참고할 사실이나 맥락을 입력하세요. 매 응답에 자동 반영됩니다.</p>
       <textarea
         id="note-textarea"
         class="note-textarea"
@@ -196,6 +188,29 @@
   </div>
 
 </div><!-- /#app -->
+
+<!-- Bottom navigation (landing only) -->
+<nav id="bottom-nav" class="bottom-nav">
+  <button class="nav-tab active" data-label="캐릭터">
+    <span class="nav-tab-icon">⊞</span>
+    <span class="nav-tab-label">캐릭터</span>
+  </button>
+  <button class="nav-tab" data-label="탐색" onclick="showToast('준비 중인 기능입니다')">
+    <span class="nav-tab-icon">◎</span>
+    <span class="nav-tab-label">탐색</span>
+  </button>
+  <button class="nav-tab" data-label="페르소나" onclick="showToast('준비 중인 기능입니다')">
+    <span class="nav-tab-icon">◈</span>
+    <span class="nav-tab-label">페르소나</span>
+  </button>
+  <button class="nav-tab" data-label="마이페이지" onclick="showToast('준비 중인 기능입니다')">
+    <span class="nav-tab-icon">◉</span>
+    <span class="nav-tab-label">마이페이지</span>
+  </button>
+</nav>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
 
 <!-- Model picker — outside #app to escape overflow:hidden -->
 <div id="model-picker" class="model-picker"></div>

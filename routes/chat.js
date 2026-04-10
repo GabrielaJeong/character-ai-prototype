@@ -11,17 +11,19 @@ const ALLOWED_MODELS = new Set([
   'claude-opus-4-6',
   'claude-haiku-4-5-20251001',
 ]);
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
+const DEFAULT_MODEL     = 'claude-sonnet-4-6';
+const DEFAULT_CHARACTER = 'ihwa';
 
 // POST /api/chat
 router.post('/', async (req, res) => {
-  const { sessionId, message, persona, model: rawModel } = req.body;
+  const { sessionId, message, persona, model: rawModel, characterId: rawCharId } = req.body;
 
   if (!sessionId || !message) {
     return res.status(400).json({ error: 'sessionId and message are required' });
   }
 
-  const model = ALLOWED_MODELS.has(rawModel) ? rawModel : DEFAULT_MODEL;
+  const model       = ALLOWED_MODELS.has(rawModel) ? rawModel : DEFAULT_MODEL;
+  const characterId = rawCharId || DEFAULT_CHARACTER;
 
   // Create session if new
   let session = stmt.getSession.get(sessionId);
@@ -29,16 +31,17 @@ router.post('/', async (req, res) => {
     if (!persona) {
       return res.status(400).json({ error: 'persona is required for new sessions' });
     }
-    stmt.createSession.run(sessionId, JSON.stringify(persona), model);
+    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId);
     session = stmt.getSession.get(sessionId);
   } else if (session.model !== model) {
-    // Update model if user switched mid-session
     stmt.updateSessionModel.run(model, sessionId);
   }
 
   const persona_data = typeof session.persona === 'string'
     ? JSON.parse(session.persona)
     : session.persona;
+
+  const charId = session.character_id || DEFAULT_CHARACTER;
 
   // Save user message
   stmt.addMessage.run(sessionId, 'user', message);
@@ -50,7 +53,7 @@ router.post('/', async (req, res) => {
   }));
 
   const noteRow      = stmt.getNote.get(sessionId);
-  const systemPrompt = buildSystemPrompt(persona_data, noteRow?.note || '');
+  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '');
 
   try {
     const response = await client.messages.create({
@@ -63,7 +66,7 @@ router.post('/', async (req, res) => {
     const reply = response.content[0].text;
     stmt.addMessage.run(sessionId, 'assistant', reply);
 
-    res.json({ reply, sessionId, model });
+    res.json({ reply, sessionId, model, characterId: charId });
   } catch (err) {
     console.error('Anthropic API error:', err.message);
     res.status(500).json({ error: 'Failed to get response from Claude' });

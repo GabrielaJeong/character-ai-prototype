@@ -1,10 +1,11 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
-const { stmt }  = require('../db');
+const { stmt } = require('../db');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
+const DEFAULT_MODEL     = 'claude-sonnet-4-6';
+const DEFAULT_CHARACTER = 'ihwa';
 
 // POST /api/chat/regenerate
 module.exports = async (req, res) => {
@@ -19,20 +20,17 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'No assistant message to regenerate' });
   }
 
-  // Remove last assistant message from DB
   stmt.deleteLastAssistantMessage.run(sessionId);
 
-  // Reload history (now ends with the user's last message)
   const history = stmt.getMessages.all(sessionId).map(m => ({
     role:    m.role,
     content: m.content,
   }));
 
-  // Always rebuild system prompt fresh from file (including latest note)
   const noteRow      = stmt.getNote.get(sessionId);
-  const systemPrompt = buildSystemPrompt(JSON.parse(session.persona), noteRow?.note || '');
-
-  const model = session.model || DEFAULT_MODEL;
+  const charId       = session.character_id || DEFAULT_CHARACTER;
+  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '');
+  const model        = session.model || DEFAULT_MODEL;
 
   try {
     const response = await client.messages.create({

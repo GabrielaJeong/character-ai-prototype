@@ -6,20 +6,23 @@ const MODELS = [
 ];
 
 // ─── State ───────────────────────────────────────────────
-let sessionId       = null;
-let userName        = '';
-let lastAssistantEl = null;
-let currentMode     = 'chat';   // 'chat' | 'novel'
-let messageLog      = [];        // [{ role, sender, text }]
-let userImageUrl    = null;      // base64 profile image
-let currentModel    = MODELS[0].id;
+let sessionId        = null;
+let userName         = '';
+let lastAssistantEl  = null;
+let currentMode      = 'chat';   // 'chat' | 'novel'
+let messageLog       = [];       // [{ role, sender, text }]
+let userImageUrl     = null;     // base64 profile image
+let currentModel     = MODELS[0].id;
+let characters       = [];       // loaded from /api/characters
+let currentCharacter = null;     // selected character config object
 
 // ─── Init ─────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   initModelPicker();
-  checkSavedSessions();
+  loadCharacters();
+  // Bottom nav visible on landing by default
+  document.getElementById('bottom-nav')?.classList.remove('hidden');
 
-  // Close picker on outside click
   document.addEventListener('click', (e) => {
     const picker = document.getElementById('model-picker');
     const btn    = document.getElementById('btn-model');
@@ -33,14 +36,200 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ─── Character Loading & Selection ───────────────────────
+async function loadCharacters() {
+  try {
+    const res  = await fetch('/api/characters');
+    characters = await res.json();
+    renderCharacterGrid(characters);
+    checkSavedSessions();
+  } catch (_) {
+    document.getElementById('char-grid').innerHTML =
+      '<p style="font-size:13px;color:var(--text-dim);">캐릭터를 불러오지 못했습니다.</p>';
+  }
+}
+
+function renderCharacterGrid(list) {
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+
+  list.forEach(char => {
+    const isComingSoon = char.status === 'coming_soon';
+    const card = document.createElement('div');
+    card.className = 'char-card' + (isComingSoon ? ' char-card-disabled' : '');
+    if (!isComingSoon) card.onclick = () => selectCharacter(char.id);
+
+    const imgHtml = char.image
+      ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
+      : `<div class="char-card-img-placeholder">${char.name[0]}</div>`;
+
+    card.innerHTML = `
+      ${imgHtml}
+      <div class="char-card-overlay">
+        <div class="char-card-name">${char.name}</div>
+        <div class="char-card-role">${char.role || char.team}</div>
+      </div>
+      ${isComingSoon ? `
+        <div class="char-card-coming-overlay"></div>
+        <span class="char-card-soon-badge">Coming Soon</span>
+      ` : ''}
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function selectCharacter(id) {
+  currentCharacter = characters.find(c => c.id === id) || null;
+  if (!currentCharacter) return;
+  populateIntroScreen(currentCharacter);
+  showScreen('screen-intro');
+}
+
+function populateIntroScreen(char) {
+  // Image
+  const img = document.getElementById('intro-img');
+  if (char.image) {
+    img.src   = char.image;
+    img.alt   = char.name;
+    img.style.display = '';
+  } else {
+    img.style.display = 'none';
+  }
+
+  // Name + subtitle
+  document.getElementById('intro-fullname').textContent = char.fullName || char.name;
+  document.getElementById('intro-subtitle').textContent = char.subtitle || char.team || '';
+
+  // Profile table
+  const profileCard = document.getElementById('intro-profile-card');
+  if (char.profile && Object.keys(char.profile).length > 0) {
+    profileCard.innerHTML = Object.entries(char.profile).map(([k, v]) =>
+      `<div class="pt-row"><span class="pt-key">${k}</span><span class="pt-val">${v}</span></div>`
+    ).join('');
+    profileCard.style.display = '';
+  } else {
+    profileCard.style.display = 'none';
+  }
+
+  // Creator's note
+  const noteCard = document.getElementById('intro-note-card');
+  if (char.description && char.description.length > 0) {
+    noteCard.innerHTML = `
+      <p class="note-eyebrow">제작자 노트</p>
+      ${char.description.map(p => `<p>${p}</p>`).join('')}
+    `;
+    noteCard.style.display = '';
+  } else {
+    noteCard.style.display = 'none';
+  }
+
+  // Persona subtitle hint
+  document.getElementById('persona-subtitle').textContent =
+    `${char.name}이(가) 당신을 알 수 있도록 정보를 입력해주세요.`;
+}
+
+function updateChatHeader(char) {
+  if (!char) return;
+  const avatar = document.getElementById('chat-header-avatar');
+  if (char.image) {
+    avatar.src   = char.image;
+    avatar.alt   = char.name;
+    avatar.style.display = '';
+  } else {
+    avatar.style.display = 'none';
+  }
+  document.getElementById('chat-header-name').textContent   = char.name;
+  document.getElementById('chat-header-status').textContent =
+    `${char.team}${char.role ? ' · ' + char.role : ''}`;
+}
+
+// ─── Session List ─────────────────────────────────────────
 async function checkSavedSessions() {
   try {
     const res  = await fetch('/api/sessions');
     const list = await res.json();
-    if (list.length > 0) {
-      document.getElementById('btn-continue').style.display = 'block';
-    }
+    document.getElementById('btn-continue').style.display = list.length > 0 ? 'block' : 'none';
   } catch (_) {}
+}
+
+async function loadSessionList() {
+  const container = document.getElementById('session-list');
+  container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>';
+
+  try {
+    const res  = await fetch('/api/sessions');
+    const list = await res.json();
+
+    if (list.length === 0) {
+      container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">저장된 대화가 없습니다.</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+    list.forEach(session => {
+      const card = document.createElement('div');
+      card.className = 'session-card';
+      card.onclick = () => loadSession(session.id);
+
+      const date    = new Date(session.created_at * 1000);
+      const dateStr = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
+      const charConf = characters.find(c => c.id === session.character_id);
+      const charName = charConf ? charConf.name : (session.character_id || '이화');
+
+      card.innerHTML = `
+        <div class="session-card-top">
+          <span class="session-persona-name">${session.persona.name || '알 수 없음'} <span style="color:var(--text-dim);font-weight:400;">→ ${charName}</span></span>
+          <span class="session-date">${dateStr}</span>
+        </div>
+        <p class="session-preview">${session.last_message ? escapeHtml(session.last_message) : '대화 없음'}</p>
+        <span class="session-meta">메시지 ${session.message_count}개</span>
+      `;
+      container.appendChild(card);
+    });
+  } catch (_) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">불러오기 실패</p>';
+  }
+}
+
+async function loadSession(id) {
+  try {
+    const res  = await fetch(`/api/sessions/${id}`);
+    const data = await res.json();
+
+    sessionId = data.id;
+    userName  = data.persona.name || '';
+
+    // Restore character
+    const charConf = characters.find(c => c.id === data.character_id) || characters[0] || null;
+    currentCharacter = charConf;
+    updateChatHeader(currentCharacter);
+
+    // Restore model
+    setModelUI(data.model || MODELS[0].id);
+
+    // Restore user image
+    userImageUrl = localStorage.getItem(`user-img:${id}`) || null;
+
+    messageLog = [];
+    document.getElementById('chat-messages').innerHTML = '';
+
+    const charName = currentCharacter?.name || '이화';
+    data.messages.forEach(m => {
+      appendMessage(m.role, m.role === 'user' ? userName : charName, m.content);
+    });
+
+    // Restore note dot
+    try {
+      const nr = await fetch(`/api/sessions/${id}/note`);
+      const nd = await nr.json();
+      document.getElementById('note-dot').style.display = nd.note?.trim() ? 'block' : 'none';
+    } catch (_) {}
+
+    showScreen('screen-chat');
+    scrollToBottom();
+  } catch (_) {
+    alert('대화를 불러오는 데 실패했습니다.');
+  }
 }
 
 // ─── Screen Navigation ───────────────────────────────────
@@ -50,6 +239,20 @@ function showScreen(id) {
   target.classList.add('active');
   if (id !== 'screen-chat') target.scrollTop = 0;
   if (id === 'screen-history') loadSessionList();
+
+  // Bottom nav: only visible on landing
+  const nav = document.getElementById('bottom-nav');
+  if (nav) nav.classList.toggle('hidden', id !== 'screen-landing');
+}
+
+// ─── Toast ────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
 // ─── Model Picker ────────────────────────────────────────
@@ -88,10 +291,7 @@ function toggleModelPicker() {
 function selectModel(id) {
   currentModel = id;
   const found = MODELS.find(m => m.id === id);
-  if (found) {
-    document.getElementById('model-label').textContent = found.label;
-  }
-  // Update active state in picker
+  if (found) document.getElementById('model-label').textContent = found.label;
   document.querySelectorAll('.model-option').forEach(opt => {
     opt.classList.toggle('active', opt.dataset.id === id);
   });
@@ -107,81 +307,6 @@ function setModelUI(id) {
   });
 }
 
-// ─── Session List ─────────────────────────────────────────
-async function loadSessionList() {
-  const container = document.getElementById('session-list');
-  container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>';
-
-  try {
-    const res  = await fetch('/api/sessions');
-    const list = await res.json();
-
-    if (list.length === 0) {
-      container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">저장된 대화가 없습니다.</p>';
-      return;
-    }
-
-    container.innerHTML = '';
-    list.forEach(session => {
-      const card = document.createElement('div');
-      card.className = 'session-card';
-      card.onclick = () => loadSession(session.id);
-
-      const date = new Date(session.created_at * 1000);
-      const dateStr = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
-
-      card.innerHTML = `
-        <div class="session-card-top">
-          <span class="session-persona-name">${session.persona.name || '알 수 없음'}</span>
-          <span class="session-date">${dateStr}</span>
-        </div>
-        <p class="session-preview">${session.last_message ? escapeHtml(session.last_message) : '대화 없음'}</p>
-        <span class="session-meta">메시지 ${session.message_count}개</span>
-      `;
-      container.appendChild(card);
-    });
-  } catch (err) {
-    container.innerHTML = '<p style="font-size:13px;color:var(--text-dim);">불러오기 실패</p>';
-  }
-}
-
-async function loadSession(id) {
-  try {
-    const res  = await fetch(`/api/sessions/${id}`);
-    const data = await res.json();
-
-    sessionId = data.id;
-    userName  = data.persona.name || '';
-
-    // Restore model for this session
-    setModelUI(data.model || MODELS[0].id);
-
-    const container = document.getElementById('chat-messages');
-    container.innerHTML = '';
-
-    // appendMessage handles regenerate btn automatically (removes from prev, adds to last assistant)
-    // Restore user image from localStorage
-    userImageUrl = localStorage.getItem(`user-img:${id}`) || null;
-
-    messageLog = [];
-    data.messages.forEach(m => {
-      appendMessage(m.role, m.role === 'user' ? userName : '이화', m.content);
-    });
-
-    // Restore note dot
-    try {
-      const nr = await fetch(`/api/sessions/${id}/note`);
-      const nd = await nr.json();
-      document.getElementById('note-dot').style.display = nd.note?.trim() ? 'block' : 'none';
-    } catch (_) {}
-
-    showScreen('screen-chat');
-    scrollToBottom();
-  } catch (err) {
-    alert('대화를 불러오는 데 실패했습니다.');
-  }
-}
-
 // ─── User Image Upload ───────────────────────────────────
 function handleUserImageUpload(event) {
   const file = event.target.files[0];
@@ -189,13 +314,12 @@ function handleUserImageUpload(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     userImageUrl = e.target.result;
-    document.getElementById('upload-avatar-preview').src          = userImageUrl;
+    document.getElementById('upload-avatar-preview').src           = userImageUrl;
     document.getElementById('upload-avatar-preview').style.display = 'block';
-    document.getElementById('upload-avatar-plus').style.display   = 'none';
-    document.getElementById('upload-remove').style.display        = 'inline';
+    document.getElementById('upload-avatar-plus').style.display    = 'none';
+    document.getElementById('upload-remove').style.display         = 'inline';
   };
   reader.readAsDataURL(file);
-  // reset input so same file can be re-selected
   event.target.value = '';
 }
 
@@ -213,28 +337,35 @@ function resolveUser(text, name) {
   return text.replace(/\{\{user\}\}/g, name || '{{user}}');
 }
 
-// Update placeholders in other fields as name is typed
 function syncUserPlaceholders(name) {
   const display = name.trim() || '{{user}}';
-  document.getElementById('p-notes').placeholder       = `이화의 남자친구. 같은 팀 프로파일러. (${display} 기준)`;
+  const charName = currentCharacter?.name || '캐릭터';
+  document.getElementById('p-notes').placeholder = `${charName}의 남자친구. 같은 팀. (${display} 기준)`;
 }
 
 // ─── Recommended Persona ─────────────────────────────────
 function fillRecommended() {
-  document.getElementById('p-name').value        = '강현';
-  document.getElementById('p-age').value         = '29';
-  document.getElementById('p-appearance').value  = '키가 크고 무표정한 인상. 말을 아끼는 편.';
-  document.getElementById('p-personality').value = '무뚝뚝하고 감정 표현이 거의 없지만 이화한테만 미세하게 신경을 쓴다. 거의 소시오패스에 가까운 성격.';
-  document.getElementById('p-notes').value       = '이화의 남자친구. S.A. Team Nocturne 소속 프로파일러로 이화와 같은 팀.';
+  const p = currentCharacter?.recommendedPersona;
+  if (!p) return;
+  document.getElementById('p-name').value        = p.name        || '';
+  document.getElementById('p-age').value         = p.age         || '';
+  document.getElementById('p-appearance').value  = p.appearance  || '';
+  document.getElementById('p-personality').value = p.personality || '';
+  document.getElementById('p-notes').value       = p.notes       || '';
+  syncUserPlaceholders(p.name || '');
 }
 
 // ─── Start Chat ───────────────────────────────────────────
 function startChat(event) {
   event.preventDefault();
 
-  userName = document.getElementById('p-name').value.trim();
+  if (!currentCharacter) {
+    alert('캐릭터를 먼저 선택해주세요.');
+    return;
+  }
 
-  const r = t => resolveUser(t, userName);
+  userName = document.getElementById('p-name').value.trim();
+  const r  = t => resolveUser(t, userName);
 
   window._persona = {
     name:        userName,
@@ -243,6 +374,7 @@ function startChat(event) {
     personality: r(document.getElementById('p-personality').value.trim()),
     notes:       r(document.getElementById('p-notes').value.trim()),
   };
+  window._characterId = currentCharacter.id;
 
   sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
 
@@ -250,7 +382,8 @@ function startChat(event) {
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('note-dot').style.display = 'none';
   setModelUI(MODELS[0].id);
-  // Persist user image to localStorage for this session
+  updateChatHeader(currentCharacter);
+
   if (userImageUrl) localStorage.setItem(`user-img:${sessionId}`, userImageUrl);
   showScreen('screen-chat');
 }
@@ -284,7 +417,7 @@ function closeNote(e) {
 }
 
 function updateNoteCount() {
-  const ta  = document.getElementById('note-textarea');
+  const ta = document.getElementById('note-textarea');
   document.getElementById('note-count').textContent = `${ta.value.length} / 1000`;
 }
 
@@ -297,7 +430,6 @@ async function saveNote() {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ note }),
     });
-    // Show/hide dot indicator
     document.getElementById('note-dot').style.display = note.trim() ? 'block' : 'none';
     closeNotePanel();
   } catch (_) {}
@@ -305,8 +437,9 @@ async function saveNote() {
 
 // ─── Send Message ─────────────────────────────────────────
 async function sendMessage() {
-  const input = document.getElementById('chat-input');
-  const text  = input.value.trim();
+  const input    = document.getElementById('chat-input');
+  const text     = input.value.trim();
+  const charName = currentCharacter?.name || '이화';
   if (!text || !sessionId) return;
 
   input.value = '';
@@ -314,12 +447,14 @@ async function sendMessage() {
   setInputDisabled(true);
 
   appendMessage('user', userName || '유저', text);
-  const typingEl = appendTyping();
+  const typingEl = appendTyping(charName);
 
   const body = { sessionId, message: text, model: currentModel };
   if (window._persona) {
-    body.persona    = window._persona;
-    window._persona = null;
+    body.persona     = window._persona;
+    body.characterId = window._characterId || currentCharacter?.id || 'ihwa';
+    window._persona     = null;
+    window._characterId = null;
   }
 
   try {
@@ -332,13 +467,13 @@ async function sendMessage() {
     typingEl.remove();
 
     if (data.error) {
-      appendMessage('assistant', '이화', '(오류가 발생했습니다. 잠시 후 다시 시도해주세요.)');
+      appendMessage('assistant', charName, '(오류가 발생했습니다. 잠시 후 다시 시도해주세요.)');
     } else {
-      appendMessage('assistant', '이화', data.reply);
+      appendMessage('assistant', charName, data.reply);
     }
   } catch (_) {
     typingEl.remove();
-    appendMessage('assistant', '이화', '(연결에 실패했습니다.)');
+    appendMessage('assistant', charName, '(연결에 실패했습니다.)');
   }
 
   setInputDisabled(false);
@@ -348,14 +483,10 @@ async function sendMessage() {
 // ─── Mode Toggle ─────────────────────────────────────────
 function toggleMode() {
   currentMode = currentMode === 'chat' ? 'novel' : 'chat';
-
-  const btn = document.getElementById('btn-mode-toggle');
-  btn.textContent = currentMode === 'novel' ? '💬 채팅' : '📖 소설';
-
+  document.getElementById('btn-mode-toggle').textContent =
+    currentMode === 'novel' ? '💬 채팅' : '📖 소설';
   const container = document.getElementById('chat-messages');
   container.classList.toggle('novel-mode', currentMode === 'novel');
-
-  // Re-render all messages with new mode
   lastAssistantEl = null;
   container.innerHTML = '';
   messageLog.forEach(m => renderMessage(m.role, m.sender, m.text, container));
@@ -365,12 +496,10 @@ function toggleMode() {
 // ─── DOM Helpers ─────────────────────────────────────────
 function appendMessage(role, sender, text) {
   messageLog.push({ role, sender, text });
-  const container = document.getElementById('chat-messages');
-  return renderMessage(role, sender, text, container);
+  return renderMessage(role, sender, text, document.getElementById('chat-messages'));
 }
 
 function renderMessage(role, sender, text, container) {
-  // Remove regenerate btn from previous last assistant message
   if (role === 'assistant' && lastAssistantEl) {
     const old = lastAssistantEl.querySelector('.btn-regenerate');
     if (old) old.remove();
@@ -379,45 +508,41 @@ function renderMessage(role, sender, text, container) {
   const wrap = document.createElement('div');
   wrap.className = 'msg ' + role;
 
-  // Ihwa avatar thumbnail (chat mode only)
   if (role === 'assistant') {
+    // Character avatar
     const avatar = document.createElement('img');
-    avatar.src       = '/images/ihwa.png';
-    avatar.alt       = '이화';
+    avatar.src       = currentCharacter?.image || '/images/ihwa.png';
+    avatar.alt       = sender;
     avatar.className = 'msg-avatar';
     wrap.appendChild(avatar);
-  }
 
-  const name = document.createElement('div');
-  name.className   = 'msg-sender';
-  name.textContent = sender;
-
-  const bubble = document.createElement('div');
-  bubble.className = 'msg-bubble';
-
-  if (role === 'assistant' && currentMode === 'novel') {
-    bubble.innerHTML = highlightDialogue(escapeHtml(text));
-  } else {
-    bubble.textContent = text;
-  }
-
-  if (role === 'assistant') {
-    // Wrap name + bubble + regen inside .msg-inner so avatar sits beside them
     const inner = document.createElement('div');
     inner.className = 'msg-inner';
-    inner.appendChild(name);
-    inner.appendChild(bubble);
+
+    const name = document.createElement('div');
+    name.className   = 'msg-sender';
+    name.textContent = sender;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    if (currentMode === 'novel') {
+      bubble.innerHTML = highlightDialogue(escapeHtml(text));
+    } else {
+      bubble.textContent = text;
+    }
 
     const regenBtn = document.createElement('button');
     regenBtn.className   = 'btn-regenerate';
     regenBtn.textContent = '↺ 다시 생성';
     regenBtn.onclick     = () => regenerateMessage(wrap, bubble, regenBtn);
-    inner.appendChild(regenBtn);
 
+    inner.appendChild(name);
+    inner.appendChild(bubble);
+    inner.appendChild(regenBtn);
     wrap.appendChild(inner);
     lastAssistantEl = wrap;
   } else {
-    // User message: optional avatar (chat mode only) + inner wrapper
+    // User message
     if (userImageUrl) {
       const avatar = document.createElement('img');
       avatar.src       = userImageUrl;
@@ -427,6 +552,15 @@ function renderMessage(role, sender, text, container) {
     }
     const inner = document.createElement('div');
     inner.className = 'msg-inner-user';
+
+    const name = document.createElement('div');
+    name.className   = 'msg-sender';
+    name.textContent = sender;
+
+    const bubble = document.createElement('div');
+    bubble.className   = 'msg-bubble';
+    bubble.textContent = text;
+
     inner.appendChild(name);
     inner.appendChild(bubble);
     wrap.appendChild(inner);
@@ -437,12 +571,9 @@ function renderMessage(role, sender, text, container) {
   return wrap;
 }
 
-// Wrap quoted dialogue in <span class="dialogue">
 function highlightDialogue(html) {
-  // Typographic double quotes " "
   html = html.replace(/\u201C([^\u201D\n]*)\u201D/g,
     '<span class="dialogue">\u201C$1\u201D</span>');
-  // Straight double quotes "..."
   html = html.replace(/"([^"\n]+)"/g,
     '<span class="dialogue">"$1"</span>');
   return html;
@@ -450,10 +581,8 @@ function highlightDialogue(html) {
 
 async function regenerateMessage(_wrapEl, bubbleEl, btnEl) {
   if (!sessionId) return;
-
-  btnEl.disabled    = true;
-  const prevText    = bubbleEl.textContent;
-  bubbleEl.textContent = '';
+  btnEl.disabled       = true;
+  const prevText       = bubbleEl.textContent;
   bubbleEl.className   = 'typing-bubble';
   bubbleEl.innerHTML   = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
 
@@ -464,7 +593,6 @@ async function regenerateMessage(_wrapEl, bubbleEl, btnEl) {
       body:    JSON.stringify({ sessionId }),
     });
     const data = await res.json();
-
     bubbleEl.className = 'msg-bubble';
     const newText = data.error ? '(재생성에 실패했습니다.)' : data.reply;
     if (currentMode === 'novel' && !data.error) {
@@ -472,33 +600,41 @@ async function regenerateMessage(_wrapEl, bubbleEl, btnEl) {
     } else {
       bubbleEl.textContent = newText;
     }
-    // Update stored log entry
     const last = messageLog.findLast(m => m.role === 'assistant');
     if (last) last.text = newText;
   } catch (_) {
     bubbleEl.className   = 'msg-bubble';
     bubbleEl.textContent = prevText;
   }
-
   btnEl.disabled = false;
   scrollToBottom();
 }
 
-function appendTyping() {
+function appendTyping(charName) {
   const container = document.getElementById('chat-messages');
-  const wrap   = document.createElement('div');
+  const wrap = document.createElement('div');
   wrap.className = 'msg assistant';
 
-  const name   = document.createElement('div');
+  const avatar = document.createElement('img');
+  avatar.src       = currentCharacter?.image || '/images/ihwa.png';
+  avatar.alt       = charName || '이화';
+  avatar.className = 'msg-avatar';
+
+  const inner = document.createElement('div');
+  inner.className = 'msg-inner';
+
+  const name = document.createElement('div');
   name.className   = 'msg-sender';
-  name.textContent = '이화';
+  name.textContent = charName || '이화';
 
   const bubble = document.createElement('div');
   bubble.className = 'typing-bubble';
   bubble.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
 
-  wrap.appendChild(name);
-  wrap.appendChild(bubble);
+  inner.appendChild(name);
+  inner.appendChild(bubble);
+  wrap.appendChild(avatar);
+  wrap.appendChild(inner);
   container.appendChild(wrap);
   scrollToBottom();
   return wrap;
@@ -518,7 +654,6 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ─── Input Helpers ────────────────────────────────────────
 function handleKey(event) {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();

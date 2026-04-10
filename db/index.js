@@ -7,16 +7,18 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 // Migrations
-try { db.exec(`ALTER TABLE sessions ADD COLUMN note  TEXT NOT NULL DEFAULT ''`); } catch (_) {}
-try { db.exec(`ALTER TABLE sessions ADD COLUMN model TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'`); } catch (_) {}
+try { db.exec(`ALTER TABLE sessions ADD COLUMN note         TEXT NOT NULL DEFAULT ''`);       } catch (_) {}
+try { db.exec(`ALTER TABLE sessions ADD COLUMN model        TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'`); } catch (_) {}
+try { db.exec(`ALTER TABLE sessions ADD COLUMN character_id TEXT NOT NULL DEFAULT 'ihwa'`);   } catch (_) {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
-    id          TEXT    PRIMARY KEY,
-    persona     TEXT    NOT NULL,
-    note        TEXT    NOT NULL DEFAULT '',
-    model       TEXT    NOT NULL DEFAULT 'claude-sonnet-4-6',
-    created_at  INTEGER DEFAULT (unixepoch())
+    id           TEXT    PRIMARY KEY,
+    persona      TEXT    NOT NULL,
+    note         TEXT    NOT NULL DEFAULT '',
+    model        TEXT    NOT NULL DEFAULT 'claude-sonnet-4-6',
+    character_id TEXT    NOT NULL DEFAULT 'ihwa',
+    created_at   INTEGER DEFAULT (unixepoch())
   );
 
   CREATE TABLE IF NOT EXISTS messages (
@@ -30,7 +32,7 @@ db.exec(`
 `);
 
 const stmt = {
-  createSession:      db.prepare('INSERT INTO sessions (id, persona, model) VALUES (?, ?, ?)'),
+  createSession:      db.prepare('INSERT INTO sessions (id, persona, model, character_id) VALUES (?, ?, ?, ?)'),
   getSession:         db.prepare('SELECT * FROM sessions WHERE id = ?'),
   deleteSession:      db.prepare('DELETE FROM sessions WHERE id = ?'),
   updateSessionModel: db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
@@ -40,6 +42,7 @@ const stmt = {
       s.id,
       s.persona,
       s.model,
+      s.character_id,
       s.created_at,
       COUNT(m.id)  AS message_count,
       (SELECT content FROM messages
