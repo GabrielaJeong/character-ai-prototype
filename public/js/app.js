@@ -301,6 +301,26 @@ function populateIntroScreen(char) {
     noteCard.style.display = 'none';
   }
 
+  // Worldbuilding accordion
+  const wbEl = document.getElementById('intro-worldbuilding');
+  if (char.worldbuilding) {
+    wbEl.style.display = '';
+    wbEl.innerHTML = `
+      <div class="wb-accordion">
+        <button class="wb-toggle" onclick="toggleWorldbuilding(this)" aria-expanded="false">
+          <span class="wb-title">세계관</span>
+          <span class="wb-caret">›</span>
+        </button>
+        <div class="wb-body" hidden>
+          <div class="wb-content">${simpleMarkdown(char.worldbuilding)}</div>
+        </div>
+      </div>
+    `;
+  } else {
+    wbEl.style.display = 'none';
+    wbEl.innerHTML = '';
+  }
+
   // Persona subtitle hint
   document.getElementById('persona-subtitle').textContent =
     `${char.name}이(가) 당신을 알 수 있도록 정보를 입력해주세요.`;
@@ -667,6 +687,29 @@ function renderRoute(path) {
   }
   // Unknown path → landing
   showScreen('screen-landing');
+}
+
+// ─── Worldbuilding Accordion ─────────────────────────────
+function toggleWorldbuilding(btn) {
+  const body = btn.nextElementSibling;
+  const expanded = btn.getAttribute('aria-expanded') === 'true';
+  if (expanded) {
+    btn.setAttribute('aria-expanded', 'false');
+    body.hidden = true;
+  } else {
+    btn.setAttribute('aria-expanded', 'true');
+    body.hidden = false;
+  }
+}
+
+function simpleMarkdown(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p>').replace(/$/, '</p>');
 }
 
 function navigateTo(path) {
@@ -1415,12 +1458,17 @@ async function registerCharacter() {
     });
     const data = await res.json();
 
-    if (data.error) { showToast('등록에 실패했습니다.'); return; }
+    if (data.error) {
+      console.error('Register error from server:', data.error);
+      showToast('등록에 실패했습니다: ' + data.error);
+      return;
+    }
 
     showToast('캐릭터가 등록되었습니다!');
     await loadCharacters();
     navigateTo('/');
-  } catch (_) {
+  } catch (err) {
+    console.error('Register fetch error:', err);
     showToast('등록에 실패했습니다.');
   }
 }

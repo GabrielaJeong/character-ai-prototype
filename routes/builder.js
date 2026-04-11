@@ -64,7 +64,9 @@ router.post('/generate', async (req, res) => {
       messages:   [{ role: 'user', content: prompt }],
     });
 
-    const systemPrompt = response.content[0].text;
+    const rawPrompt = response.content[0].text;
+    // Normalize any remaining "유저" references to the {{user}} token
+    const systemPrompt = rawPrompt.replace(/유저(?!들)/g, '{{user}}');
     res.json({ systemPrompt, characterData });
   } catch (err) {
     console.error('Builder generate error:', err.message);
@@ -97,7 +99,8 @@ Generate a complete, production-ready character system prompt based on the chara
    - At least 5 Korean dialogue example lines (use the speech examples provided)
    - One ✅ Good Example paragraph and one ❌ Bad Example paragraph showing correct vs incorrect writing style
 6. In Block 5, include any hard limits and sensitive topics to avoid.
-7. End the entire prompt with this line exactly:
+7. CRITICAL — {{user}} token: Whenever you refer to "the person chatting with this character" (the player / 유저 / 상대방), you MUST write the literal token {{user}} instead of any word like "유저", "상대방", "the user", "플레이어", etc. This token is replaced at runtime with the actual user's name. Apply this to ALL blocks, including dialogue examples.
+8. End the entire prompt with this line exactly:
    > Refer to common/guardrails.md for platform-level content rules.
 
 ## Character Data

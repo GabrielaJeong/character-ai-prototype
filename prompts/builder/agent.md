@@ -92,7 +92,10 @@ Ask about how the character talks:
 When all information is gathered:
 - Summarize the character back to the user in a clear, organized format
 - Ask: "이 내용으로 캐릭터를 만들어볼까요? 수정하고 싶은 부분이 있으면 말씀해주세요!"
-- If confirmed, respond with the CHARACTER_READY block.
+- If confirmed, write a short natural closing line first 
+  (e.g. "완성됐어요! 캐릭터 생성하러 가볼까요? 🎉"),
+  then immediately follow it in the SAME response with the CHARACTER_READY block.
+  The closing line will be shown to the user; the block is parsed separately.
   Output the JSON directly without any markdown code fences 
   or backticks. Just the [CHARACTER_READY] tag and raw JSON.
 

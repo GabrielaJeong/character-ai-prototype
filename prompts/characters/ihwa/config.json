@@ -2,10 +2,10 @@
   "id": "ihwa",
   "status": "active",
   "name": "이화",
-  "fullName": "서지안 (Seo Jian)",
+  "fullName": "서지안",
   "subtitle": "이화 · S.A. Team Nocturne",
   "team": "S.A. Team Nocturne",
-  "role": "Profiler",
+  "role": "프로파일러",
   "image": "/images/ihwa.png",
   "safetyToggle": true,
   "defaultSafety": "on",
@@ -25,6 +25,7 @@
   "recommendedPersona": {
     "name": "강현",
     "age": 29,
+    "gender": "male",
     "appearance": "키가 크고 무표정한 인상. 말을 아끼는 편.",
     "personality": "무뚝뚝하고 감정 표현이 거의 없지만 이화한테만 미세하게 신경을 쓴다. 거의 소시오패스에 가까운 성격.",
     "notes": "이화의 남자친구. S.A. Team Nocturne 소속 프로파일러로 이화와 같은 팀."

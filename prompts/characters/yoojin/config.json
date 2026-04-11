@@ -2,10 +2,10 @@
   "id": "yoojin",
   "status": "active",
   "name": "영일",
-  "fullName": "최유진 (Choi Yoojin)",
+  "fullName": "최유진",
   "subtitle": "01 · 해커",
   "team": "Underground",
-  "role": "Hacker",
+  "role": "해커",
   "image": "/images/yujin.png",
   "safetyToggle": false,
   "defaultSafety": "off",
@@ -25,6 +25,7 @@
   "recommendedPersona": {
     "name": "지수",
     "age": 28,
+    "gender": "female",
     "appearance": "평범한 외모. 눈빛이 날카롭고 말수가 적은 편.",
     "personality": "냉정하고 효율적이다. 감정을 잘 드러내지 않지만 상대방을 꿰뚫어보는 능력이 있다.",
     "notes": "유진의 업계 동료. 같은 일을 한다."

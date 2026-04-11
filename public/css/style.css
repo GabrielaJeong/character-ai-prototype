@@ -554,6 +554,66 @@ body {
 }
 .note-card p:last-child { margin-bottom: 0; }
 
+/* Worldbuilding accordion */
+.wb-accordion {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.wb-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.wb-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.wb-caret {
+  font-size: 16px;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.wb-toggle[aria-expanded="true"] .wb-caret {
+  transform: rotate(90deg);
+}
+
+.wb-body {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.wb-content {
+  padding: 16px 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+
+.wb-content p {
+  margin-bottom: 10px;
+}
+.wb-content p:last-child { margin-bottom: 0; }
+
+.wb-content strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* ══════════════════════════════════════════════════════════
    SCREEN 3 — PERSONA SETUP
 ══════════════════════════════════════════════════════════ */
@@ -978,14 +1038,15 @@ body {
 
 .btn-send {
   width: 42px;
-  align-self: stretch;
+  height: 42px;
+  align-self: flex-end;
+  flex-shrink: 0;
   background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-btn);
   font-size: 16px;
   cursor: pointer;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
