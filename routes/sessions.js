@@ -2,9 +2,13 @@ const express = require('express');
 const router  = express.Router();
 const { stmt } = require('../db');
 
-// GET /api/sessions — list all sessions
+// GET /api/sessions — list sessions (filtered by auth state)
 router.get('/', (req, res) => {
-  const sessions = stmt.listSessions.all().map(s => ({
+  const uid  = req.session?.userId || null;
+  const rows = uid
+    ? stmt.listSessionsByUser.all(uid)
+    : stmt.listSessionsGuest.all();
+  const sessions = rows.map(s => ({
     id:            s.id,
     character_id:  s.character_id,
     safety:        s.safety || 'on',

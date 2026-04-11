@@ -184,6 +184,7 @@ window.addEventListener('DOMContentLoaded', () => {
   createChatInput(document.getElementById('builder-input-container'), { inputId: 'builder-input', btnId: 'builder-btn-send', onSend: builderSend  });
 
   initModelPicker();
+  initAuth();
   loadCharacters();
   // Bottom nav visible on landing by default
   document.getElementById('bottom-nav')?.classList.remove('hidden');
@@ -379,7 +380,7 @@ function createSafetySegment(container, { canToggle, defaultSafety, onChange } =
 
 let _safetySegment = null;  // current mounted instance
 
-function setSafety(value) { /* kept for legacy inline calls — no-op, handled by component */ }
+function setSafety(_value) { /* kept for legacy inline calls — no-op, handled by component */ }
 
 function mountSafetySegment(char) {
   const canToggle     = char.safetyToggle !== false;
@@ -631,10 +632,11 @@ function showScreen(id) {
   if (id !== 'screen-chat') target.scrollTop = 0;
   if (id === 'screen-history') loadSessionList();
 
-  // Bottom nav: hidden only in chat screens
+  // Bottom nav: hidden in chat screens and login
   const nav = document.getElementById('bottom-nav');
-  const chatScreens = ['screen-chat', 'screen-builder-chat', 'screen-builder-loading'];
-  if (nav) nav.classList.toggle('hidden', chatScreens.includes(id));
+  const noNavScreens = ['screen-chat', 'screen-builder-chat', 'screen-builder-loading', 'screen-login'];
+  if (nav) nav.classList.toggle('hidden', noNavScreens.includes(id));
+  updateNavActiveTab(id);
 }
 
 // ─── Router ───────────────────────────────────────────────
@@ -646,15 +648,42 @@ function showScreen(id) {
 //   /persona                   → persona setup (requires currentCharacter)
 //   /builder                   → builder chat
 //   /builder/preview           → builder edit/preview
+//   /login                     → login / register
+//   /mypage                    → mypage (auth required)
 const ROUTES = [
   { pattern: /^\/character\/([^/]+)\/chat$/,    handler: (m) => _routeChat(m[1])       },
   { pattern: /^\/character\/([^/]+)$/,          handler: (m) => _routeIntro(m[1])      },
-  { pattern: /^\/history$/,                     handler: ()  => showScreen('screen-history')       },
+  { pattern: /^\/history$/,                     handler: ()  => _routeGated('screen-history')      },
   { pattern: /^\/persona$/,                     handler: ()  => showScreen('screen-persona')       },
-  { pattern: /^\/builder\/preview$/,            handler: ()  => showScreen('screen-builder-edit')  },
-  { pattern: /^\/builder$/,                     handler: ()  => showScreen('screen-builder-chat')  },
+  { pattern: /^\/builder\/preview$/,            handler: ()  => _routeGated('screen-builder-edit') },
+  { pattern: /^\/builder$/,                     handler: ()  => _routeGated('screen-builder-chat') },
+  { pattern: /^\/login$/,                       handler: ()  => _routeLogin()                      },
+  { pattern: /^\/mypage$/,                      handler: ()  => _routeMypage()                     },
   { pattern: /^\/$/,                            handler: ()  => showScreen('screen-landing')       },
 ];
+
+function _routeGated(screenId) {
+  if (!_currentUser) {
+    showAuthGate();
+    return;
+  }
+  showScreen(screenId);
+}
+
+function _routeLogin() {
+  if (_currentUser) { navigateTo('/'); return; }
+  showAuthView('login');
+  showScreen('screen-login');
+}
+
+function _routeMypage() {
+  if (!_currentUser) {
+    showAuthGate('마이페이지', '마이페이지를 이용하려면 로그인이 필요합니다.');
+    return;
+  }
+  loadMypage();
+  showScreen('screen-mypage');
+}
 
 function _routeIntro(id) {
   const char = characters.find(c => c.id === id);
@@ -713,8 +742,16 @@ function simpleMarkdown(text) {
 }
 
 function navigateTo(path) {
-  window.history.pushState(null, '', path);
+  window.history.pushState({ folio: true }, '', path);
   renderRoute(path);
+}
+
+function goBack(fallback = '/') {
+  if (window.history.state?.folio || window.history.length > 1) {
+    history.back();
+  } else {
+    navigateTo(fallback);
+  }
 }
 
 // Back/forward buttons
@@ -864,6 +901,15 @@ function startChat(event) {
 
   userImageUrl = personaAvatarUpload?.getUrl() || null;
   if (userImageUrl) localStorage.setItem(`user-img:${sessionId}`, userImageUrl);
+
+  // Save persona to user account if logged in
+  if (_currentUser) {
+    fetch('/api/personas', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: window._persona }),
+    }).catch(() => {});
+  }
+
   navigateTo(`/character/${currentCharacter.id}/chat`);
 }
 
@@ -1259,6 +1305,7 @@ let builderCharData  = null;
 let builderSystemMd  = null;
 
 function openBuilder() {
+  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
   // Reset builder state
   builderSessionId = null;
   builderCharData  = null;
@@ -1572,4 +1619,384 @@ function appendBuilderTyping() {
 function setBuilderInputDisabled(disabled) {
   document.getElementById('builder-input').disabled    = disabled;
   document.getElementById('builder-btn-send').disabled = disabled;
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════
+let _currentUser = null;
+
+async function initAuth() {
+  try {
+    const res  = await fetch('/api/auth/me');
+    const data = await res.json();
+    _currentUser = data.user || null;
+    updateAuthUI();
+  } catch (_) {}
+}
+
+function updateAuthUI() {
+  // Nav tab label stays fixed as "마이페이지"
+}
+
+function updateNavActiveTab(screenId) {
+  const map = {
+    'screen-landing':  '캐릭터',
+    'screen-history':  '대화',
+    'screen-mypage':   '마이페이지',
+  };
+  const label = map[screenId];
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.label === label);
+  });
+}
+
+// ── Auth gate modal ───────────────────────────────────────
+function showAuthGate(title = '로그인이 필요한 기능입니다', desc = '이 기능을 이용하려면 로그인해주세요.') {
+  document.getElementById('auth-gate-title').textContent = title;
+  document.getElementById('auth-gate-desc').textContent  = desc;
+  document.getElementById('auth-gate-overlay').classList.add('open');
+}
+function closeAuthGate(e) {
+  if (e && e.target !== document.getElementById('auth-gate-overlay')) return;
+  document.getElementById('auth-gate-overlay').classList.remove('open');
+}
+
+// ── Login / Register screens ──────────────────────────────
+function showAuthView(view) {
+  const isLogin = view === 'login';
+  document.getElementById('auth-login-view').style.display    = isLogin ? '' : 'none';
+  document.getElementById('auth-register-view').style.display = isLogin ? 'none' : '';
+  document.getElementById('auth-nav-label').textContent       = isLogin ? '로그인' : '회원가입';
+}
+
+// Inline validation
+const VALIDATORS = {
+  email:    { re: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, msg: '이메일 형식이 올바르지 않습니다' },
+  password: { re: /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/, msg: '비밀번호는 8자 이상, 영문과 숫자를 포함해야 합니다' },
+  nickname: { re: /^[^\s!@#$%^&*()+=[^\]{};':"\\|,.<>/?`~]{2,12}$/, msg: '닉네임은 2~12자, 특수문자 없이 입력해주세요' },
+};
+function validateField(inputId, errId, type) {
+  const val = document.getElementById(inputId).value;
+  const v   = VALIDATORS[type];
+  const err = v.re.test(val) ? '' : v.msg;
+  document.getElementById(errId).textContent = err;
+  return !err;
+}
+
+async function submitLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('login-pw').value;
+  document.getElementById('login-global-err').textContent = '';
+
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw }),
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('login-global-err').textContent = data.error; return; }
+    _currentUser = data.user;
+    updateAuthUI();
+    navigateTo('/');
+  } catch (_) {
+    document.getElementById('login-global-err').textContent = '로그인에 실패했습니다.';
+  }
+}
+
+async function submitRegister(e) {
+  e.preventDefault();
+  const emailOk = validateField('reg-email', 'reg-email-err', 'email');
+  const pwOk    = validateField('reg-pw',    'reg-pw-err',    'password');
+  const nickOk  = validateField('reg-nick',  'reg-nick-err',  'nickname');
+  if (!emailOk || !pwOk || !nickOk) return;
+
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pw').value;
+  const nickname = document.getElementById('reg-nick').value.trim();
+  document.getElementById('reg-global-err').textContent = '';
+
+  try {
+    const res  = await fetch('/api/auth/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, nickname }),
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('reg-global-err').textContent = data.error; return; }
+    _currentUser = data.user;
+    updateAuthUI();
+    navigateTo('/');
+  } catch (_) {
+    document.getElementById('reg-global-err').textContent = '회원가입에 실패했습니다.';
+  }
+}
+
+async function logoutUser() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  _currentUser = null;
+  updateAuthUI();
+  navigateTo('/');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MYPAGE
+// ═══════════════════════════════════════════════════════════
+async function loadMypage() {
+  if (!_currentUser) return;
+  document.getElementById('mypage-nickname').textContent      = _currentUser.nickname;
+  document.getElementById('mypage-email').textContent         = _currentUser.email;
+  document.getElementById('mypage-avatar-letter').textContent = _currentUser.nickname[0].toUpperCase();
+
+  const img     = document.getElementById('mypage-avatar-img');
+  const letterW = document.getElementById('mypage-avatar-letter-wrap');
+  if (_currentUser.avatar) {
+    img.src            = _currentUser.avatar + '?t=' + Date.now();
+    img.style.display  = 'block';
+    letterW.style.display = 'none';
+  } else {
+    img.style.display  = 'none';
+    letterW.style.display = 'flex';
+  }
+  loadMypagePersonas();
+  loadMypageChars();
+}
+
+function triggerAvatarUpload() {
+  document.getElementById('mypage-avatar-input').click();
+}
+
+async function handleAvatarChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const avatarData = ev.target.result;
+    const res  = await fetch('/api/auth/me', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avatarData }),
+    });
+    const data = await res.json();
+    if (res.ok) { _currentUser = data.user; loadMypage(); }
+    else showToast('사진 업로드에 실패했습니다.');
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+// ── Personas ─────────────────────────────────────────────
+async function loadMypagePersonas() {
+  const list = document.getElementById('mypage-personas-list');
+  try {
+    const res  = await fetch('/api/personas');
+    const rows = await res.json();
+    if (!rows.length) {
+      list.innerHTML = '<p class="mypage-empty">저장된 페르소나가 없습니다.</p>';
+      return;
+    }
+    const defaultId = _currentUser?.default_persona_id;
+    list.innerHTML = rows.map(p => {
+      const d = p.data;
+      const isDefault = p.id === defaultId;
+      return `
+        <div class="mypage-persona-card ${isDefault ? 'is-default' : ''}">
+          <div class="mypage-persona-info">
+            <span class="mypage-persona-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</span>
+            <span class="mypage-persona-meta">${d.age ? d.age + '세' : ''}${d.gender === 'male' ? ' · 남' : d.gender === 'female' ? ' · 여' : ''}</span>
+          </div>
+          <div class="mypage-persona-actions">
+            ${!isDefault ? `<button class="btn-text-link" onclick="setDefaultPersona(${p.id})">기본 설정</button>` : ''}
+            <button class="btn-text-link danger" onclick="deletePersona(${p.id})">삭제</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (_) {
+    list.innerHTML = '<p class="mypage-empty">불러오기 실패</p>';
+  }
+}
+
+function newPersonaFromMypage() {
+  showToast('캐릭터를 선택한 뒤 페르소나를 설정해주세요.');
+  navigateTo('/');
+}
+
+async function setDefaultPersona(id) {
+  await fetch(`/api/personas/${id}/set-default`, { method: 'PATCH' });
+  const res  = await fetch('/api/auth/me');
+  const data = await res.json();
+  _currentUser = data.user;
+  loadMypagePersonas();
+}
+
+async function deletePersona(id) {
+  if (!confirm('이 페르소나를 삭제하시겠습니까?')) return;
+  await fetch(`/api/personas/${id}`, { method: 'DELETE' });
+  const res  = await fetch('/api/auth/me');
+  const data = await res.json();
+  _currentUser = data.user;
+  loadMypagePersonas();
+}
+
+// ── My characters ─────────────────────────────────────────
+function loadMypageChars() {
+  const list = document.getElementById('mypage-chars-list');
+  const mine = characters.filter(c => c.id.startsWith('char_'));
+  if (!mine.length) {
+    list.innerHTML = '<p class="mypage-empty">제작한 캐릭터가 없습니다.</p>';
+    return;
+  }
+  list.innerHTML = mine.map(c => `
+    <div class="mypage-char-row">
+      <button class="mypage-char-info mypage-char-link" onclick="navigateTo('/character/${c.id}')">
+        ${c.image ? `<img src="${c.image}" class="mypage-char-thumb" alt="">` : '<div class="mypage-char-thumb mypage-char-thumb-empty">✦</div>'}
+        <span>${c.name}</span>
+      </button>
+      <div class="mypage-char-actions">
+        <button class="mypage-char-action-btn" onclick="editMypageChar('${c.id}')">수정</button>
+        <button class="mypage-char-action-btn danger" onclick="deleteMypageChar('${c.id}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+async function editMypageChar(id) {
+  try {
+    const [cfgRes, sysRes] = await Promise.all([
+      fetch(`/api/characters/${id}`),
+      fetch(`/api/characters/${id}/system`),
+    ]);
+    const cfg = await cfgRes.json();
+    const sys = await sysRes.json();
+    const bd  = cfg._builderData || {};
+
+    builderCharData = {
+      name:          cfg.name,
+      age:           parseInt(cfg.profile?.['나이']) || '',
+      occupation:    cfg.role || '',
+      subtitle:      cfg.subtitle || '',
+      hasProfanity:  cfg.defaultSafety === 'off',
+      appearance:    bd.appearance    || '',
+      personality:   bd.personality   || '',
+      speechStyle:   bd.speechStyle   || '',
+      speechExamples: bd.speechExamples || [],
+      background:    bd.background    || '',
+      relationship:  bd.relationship  || '',
+      boundaries:    bd.boundaries    || '',
+    };
+    builderSystemMd     = sys.systemPrompt || '';
+    builderEditTargetId = id;
+
+    showBuilderEdit();
+  } catch (_) { showToast('불러오기에 실패했습니다.'); }
+}
+
+let builderEditTargetId = null;
+
+async function deleteMypageChar(id) {
+  if (!confirm('이 캐릭터를 삭제하시겠습니까?')) return;
+  try {
+    await fetch(`/api/characters/${id}`, { method: 'DELETE' });
+    await loadCharacters();
+    loadMypageChars();
+    showToast('캐릭터가 삭제되었습니다.');
+  } catch (_) { showToast('삭제에 실패했습니다.'); }
+}
+
+// ── Mypage settings modal ─────────────────────────────────
+function openMypageModal(type) {
+  const overlay = document.getElementById('mypage-modal-overlay');
+  const body    = document.getElementById('mypage-modal-body');
+
+  const inputStyle = 'padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-btn);color:var(--text);font-size:14px;font-family:var(--font);width:100%;box-sizing:border-box;';
+
+  if (type === 'info') {
+    body.innerHTML = `
+      <p class="delete-modal-title" style="margin-bottom:16px;">내 정보 수정</p>
+
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="form-group">
+          <label style="font-size:12px;color:var(--text-muted);">닉네임</label>
+          <input type="text" id="modal-nickname" value="${_currentUser.nickname}" placeholder="2~12자"
+            style="${inputStyle}" oninput="validateField('modal-nickname','modal-nick-err','nickname')" />
+          <p class="field-error" id="modal-nick-err"></p>
+        </div>
+        <div class="form-group">
+          <label style="font-size:12px;color:var(--text-muted);">이메일</label>
+          <input type="email" id="modal-email" value="${_currentUser.email}"
+            style="${inputStyle}" oninput="validateField('modal-email','modal-email-err','email')" />
+          <p class="field-error" id="modal-email-err"></p>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:2px 0;">
+        <div class="form-group">
+          <label style="font-size:12px;color:var(--text-muted);">현재 비밀번호</label>
+          <input type="password" id="modal-cur-pw" placeholder="비밀번호 변경 시 입력" style="${inputStyle}" />
+        </div>
+        <div class="form-group">
+          <label style="font-size:12px;color:var(--text-muted);">새 비밀번호</label>
+          <input type="password" id="modal-new-pw" placeholder="영문+숫자 8자 이상 (변경 시에만)"
+            style="${inputStyle}" oninput="validateField('modal-new-pw','modal-pw-err','password')" />
+          <p class="field-error" id="modal-pw-err"></p>
+        </div>
+        <p class="field-error" id="modal-info-global-err"></p>
+      </div>
+      <div class="delete-modal-actions" style="margin-top:20px;">
+        <button class="btn-ghost" onclick="closeMypageModal()">취소</button>
+        <button class="btn-primary" style="flex:1;" onclick="saveInfo()">저장</button>
+      </div>`;
+  }
+  overlay.classList.add('open');
+}
+function closeMypageModal(e) {
+  if (e && e.target !== document.getElementById('mypage-modal-overlay')) return;
+  document.getElementById('mypage-modal-overlay').classList.remove('open');
+}
+
+async function saveInfo() {
+  const nickOk  = validateField('modal-nickname', 'modal-nick-err',   'nickname');
+  const emailOk = validateField('modal-email',    'modal-email-err',  'email');
+  if (!nickOk || !emailOk) return;
+
+  const nickname        = document.getElementById('modal-nickname').value.trim();
+  const email           = document.getElementById('modal-email').value.trim();
+  const currentPassword = document.getElementById('modal-cur-pw').value;
+  const newPassword     = document.getElementById('modal-new-pw').value;
+  const globalErr       = document.getElementById('modal-info-global-err');
+  globalErr.textContent = '';
+
+  if (newPassword) {
+    if (!validateField('modal-new-pw', 'modal-pw-err', 'password')) return;
+    if (!currentPassword) { globalErr.textContent = '현재 비밀번호를 입력해주세요'; return; }
+  }
+
+  const payload = { nickname, email };
+  if (newPassword) { payload.currentPassword = currentPassword; payload.newPassword = newPassword; }
+
+  const res  = await fetch('/api/auth/me', {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) { globalErr.textContent = data.error; return; }
+  _currentUser = data.user;
+  loadMypage();
+  closeMypageModal();
+  showToast('정보가 저장되었습니다.');
+}
+
+// ── Delete account ────────────────────────────────────────
+function startDeleteAccount() {
+  document.getElementById('delete-account-overlay').classList.add('open');
+}
+function closeDeleteAccount(e) {
+  if (e && e.target !== document.getElementById('delete-account-overlay')) return;
+  document.getElementById('delete-account-overlay').classList.remove('open');
+}
+async function confirmDeleteAccount() {
+  try {
+    await fetch('/api/auth/me', { method: 'DELETE' });
+    _currentUser = null;
+    updateAuthUI();
+    closeDeleteAccount();
+    navigateTo('/');
+    showToast('탈퇴가 완료되었습니다.');
+  } catch (_) { showToast('오류가 발생했습니다.'); }
 }

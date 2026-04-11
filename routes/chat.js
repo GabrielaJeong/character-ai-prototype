@@ -49,7 +49,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'persona is required for new sessions' });
     }
     const safety = rawSafety === 'off' ? 'off' : 'on';
-    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId, safety);
+    const userId = req.session?.userId || null;
+    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId, safety, userId);
     session = stmt.getSession.get(sessionId);
   } else if (session.model !== model) {
     stmt.updateSessionModel.run(model, sessionId);

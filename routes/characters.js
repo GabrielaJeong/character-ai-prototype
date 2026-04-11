@@ -94,6 +94,15 @@ router.post('/create', (req, res) => {
       },
       description:        [characterData.background || ''].filter(Boolean),
       recommendedPersona: null,
+      _builderData: {
+        appearance:    characterData.appearance    || '',
+        personality:   characterData.personality   || '',
+        speechStyle:   characterData.speechStyle   || '',
+        speechExamples: Array.isArray(characterData.speechExamples) ? characterData.speechExamples : [],
+        background:    characterData.background    || '',
+        relationship:  characterData.relationship  || '',
+        boundaries:    characterData.boundaries    || '',
+      },
     };
 
     fs.writeFileSync(path.join(charDir, 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
@@ -102,6 +111,27 @@ router.post('/create', (req, res) => {
   } catch (err) {
     console.error('Create character error:', err.message);
     res.status(500).json({ error: 'Failed to create character' });
+  }
+});
+
+// GET /api/characters/:id/system — return system.md for editing
+router.get('/:id/system', (req, res) => {
+  const sysPath = path.join(CHARS_DIR, req.params.id, 'system.md');
+  if (!fs.existsSync(sysPath)) return res.status(404).json({ error: 'Not found' });
+  res.json({ systemPrompt: fs.readFileSync(sysPath, 'utf-8') });
+});
+
+// DELETE /api/characters/:id
+router.delete('/:id', (req, res) => {
+  const id      = req.params.id;
+  const charDir = path.join(CHARS_DIR, id);
+  if (!fs.existsSync(charDir)) return res.status(404).json({ error: 'Not found' });
+  try {
+    fs.rmSync(charDir, { recursive: true, force: true });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Delete character error:', err.message);
+    res.status(500).json({ error: 'Failed to delete character' });
   }
 });
 
