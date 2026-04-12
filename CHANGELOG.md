@@ -1,24 +1,10 @@
-<!-- changelog-last-commit: e265f2f43a556871fb60f63bb31a9353c3e3ef1e -->
-<!-- changelog-last-version: 0.10 -->
-
-
+<!-- changelog-last-commit: 113acc65e189be5bb0ff7f6183aa9fe588e3500e -->
+<!-- changelog-last-version: 0.9 -->
 
 # Folio — 업데이트 로그
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
-
----
-
-## v0.10 — 2026-04-13
-**탐색 페이지, 마이페이지 탭 리디자인, 책갈피·페르소나 상세 기능 추가**
-- /explore 탐색 페이지: 텍스트 검색 + AND 태그 필터 (초성 검색 지원)
-- 마이페이지 언더라인 탭 구조 (내 페르소나 / 내 캐릭터 / 책갈피)
-- 책갈피 기능: bookmarks DB 테이블, API, 캐릭터 프로필 북마크 토글
-- 페르소나 상세 페이지 (/persona/:id): 외형·성격·특이사항 프로필 뷰
-- 캐릭터 태그 시스템, 공지 캐러셀, 준비중 카드, 빌더 모델 선택
-- 히스토리 삭제 UI 개선, 메인 검색 제거 (탐색 페이지로 통합)
-- prompts/ 구조 리팩토링: safety on/off 분리, 모델별 보정 파일
 
 ---
 
