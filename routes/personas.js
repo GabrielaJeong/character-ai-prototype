@@ -30,6 +30,12 @@ router.patch('/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// DELETE /api/personas/default — 기본 페르소나 해제
+router.delete('/default', requireAuth, (req, res) => {
+  stmt.updateDefaultPersona.run(null, req.session.userId);
+  res.json({ ok: true });
+});
+
 // DELETE /api/personas/:id
 router.delete('/:id', requireAuth, (req, res) => {
   const uid = req.session.userId;

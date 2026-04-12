@@ -7,6 +7,7 @@
   "team": "S.A. Team Nocturne",
   "role": "프로파일러",
   "image": "/images/ihwa.png",
+  "rating": "toggleable",
   "safetyToggle": true,
   "defaultSafety": "on",
   "profile": {

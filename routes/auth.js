@@ -148,6 +148,29 @@ router.patch('/me', async (req, res) => {
   res.json({ user });
 });
 
+// ── POST /api/auth/adult-verify ───────────────────────────
+// 최초 성인 인증 (adult_verified + adult_content_enabled = 1)
+router.post('/adult-verify', (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
+  stmt.setAdultVerified.run(req.session.userId);
+  const user = stmt.getUserById.get(req.session.userId);
+  res.json({ user });
+});
+
+// ── PATCH /api/auth/adult-content ─────────────────────────
+// 이미 인증된 유저의 ON/OFF 전환
+router.patch('/adult-content', (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
+  const user = stmt.getUserById.get(req.session.userId);
+  if (!user) return res.status(404).json({ error: '유저를 찾을 수 없습니다' });
+  if (!user.adult_verified) return res.status(403).json({ error: '성인 인증이 필요합니다' });
+
+  const { enabled } = req.body;
+  stmt.updateAdultContent.run(enabled ? 1 : 0, req.session.userId);
+  const updated = stmt.getUserById.get(req.session.userId);
+  res.json({ user: updated });
+});
+
 // ── DELETE /api/auth/me ───────────────────────────────────
 router.delete('/me', async (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });

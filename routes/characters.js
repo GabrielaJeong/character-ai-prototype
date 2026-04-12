@@ -1,14 +1,23 @@
-const express = require('express');
-const router  = express.Router();
-const fs      = require('fs');
-const path    = require('path');
+const express  = require('express');
+const router   = express.Router();
+const fs       = require('fs');
+const path     = require('path');
+const { stmt } = require('../db');
 
 const CHARS_DIR  = path.join(__dirname, '..', 'prompts', 'characters');
 const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
 
 // GET /api/characters — list all characters from config.json files
+// Filters adult_only characters unless user has adult_content_enabled
 router.get('/', (req, res) => {
   try {
+    // Determine adult access from session
+    let adultEnabled = false;
+    if (req.session?.userId) {
+      const user = stmt.getUserById.get(req.session.userId);
+      adultEnabled = !!(user?.adult_content_enabled);
+    }
+
     const dirs = fs.readdirSync(CHARS_DIR, { withFileTypes: true })
       .filter(d => d.isDirectory())
       .map(d => d.name);
@@ -23,7 +32,12 @@ router.get('/', (req, res) => {
           return null;
         }
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(c => {
+        // adult_only 캐릭터는 성인 인증된 유저만 접근 가능
+        if (c.rating === 'adult_only' && !adultEnabled) return false;
+        return true;
+      });
 
     res.json(characters);
   } catch (err) {
@@ -77,6 +91,7 @@ router.post('/create', (req, res) => {
     }
 
     // Build config.json from characterData
+    const rating = characterData.rating || (characterData.hasProfanity ? 'adult_only' : 'all_ages');
     const config = {
       id,
       status:       'active',
@@ -86,8 +101,9 @@ router.post('/create', (req, res) => {
       team:         characterData.occupation || '',
       role:         characterData.occupation || '',
       image:        imagePath,
-      safetyToggle: !characterData.hasProfanity,
-      defaultSafety: characterData.hasProfanity ? 'off' : 'on',
+      rating,
+      safetyToggle: rating === 'toggleable',
+      defaultSafety: rating === 'adult_only' ? 'off' : 'on',
       profile: {
         '나이':  `${characterData.age}세`,
         '직업':  characterData.occupation || '',

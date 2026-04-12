@@ -66,6 +66,8 @@ try { db.exec(`ALTER TABLE sessions ADD COLUMN character_id TEXT NOT NULL DEFAUL
 try { db.exec(`ALTER TABLE sessions ADD COLUMN safety       TEXT NOT NULL DEFAULT 'on'`);     } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN user_id      INTEGER REFERENCES users(id) ON DELETE SET NULL`); } catch (_) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT`); } catch (_) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN adult_content_enabled INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN adult_verified        INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
 
 const stmt = {
   // ── Chat sessions ────────────────────────────────────────
@@ -114,13 +116,15 @@ const stmt = {
   // ── Users ────────────────────────────────────────────────
   createUser:          db.prepare('INSERT INTO users (email, password_hash, nickname) VALUES (?, ?, ?)'),
   getUserByEmail:      db.prepare('SELECT * FROM users WHERE email = ?'),
-  getUserById:         db.prepare('SELECT id, email, nickname, avatar, default_persona_id, created_at FROM users WHERE id = ?'),
+  getUserById:         db.prepare('SELECT id, email, nickname, avatar, default_persona_id, adult_content_enabled, adult_verified, created_at FROM users WHERE id = ?'),
   updateAvatar:        db.prepare('UPDATE users SET avatar = ? WHERE id = ?'),
   updateNickname:      db.prepare('UPDATE users SET nickname = ? WHERE id = ?'),
   updateEmail:         db.prepare('UPDATE users SET email = ? WHERE id = ?'),
   updatePassword:      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?'),
-  updateDefaultPersona:db.prepare('UPDATE users SET default_persona_id = ? WHERE id = ?'),
-  deleteUser:          db.prepare('DELETE FROM users WHERE id = ?'),
+  updateDefaultPersona:   db.prepare('UPDATE users SET default_persona_id = ? WHERE id = ?'),
+  updateAdultContent:     db.prepare('UPDATE users SET adult_content_enabled = ? WHERE id = ?'),
+  setAdultVerified:       db.prepare('UPDATE users SET adult_verified = 1, adult_content_enabled = 1 WHERE id = ?'),
+  deleteUser:             db.prepare('DELETE FROM users WHERE id = ?'),
 
   deleteUserSessions:  db.prepare('DELETE FROM sessions WHERE user_id = ?'),
 
