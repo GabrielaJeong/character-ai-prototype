@@ -4,7 +4,7 @@ const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 
 const anthropic         = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro']);
+const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 
@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
   const noteRow      = stmt.getNote.get(sessionId);
   const charId       = session.character_id || DEFAULT_CHARACTER;
   const safety       = session.safety || 'on';
-  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety);
+  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety, model);
   const model        = session.model || DEFAULT_MODEL;
 
   try {

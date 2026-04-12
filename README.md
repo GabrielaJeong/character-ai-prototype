@@ -84,6 +84,7 @@ routes/
 
 ## 문서
 
-- [PRD v4](docs/Character_AI_Prototype_PRD_v4.docx)
-- [프롬프트 테스트 리포트](docs/Prompt_Test_Report.docx)
-- [모델 비교 리포트](docs/Model_Comparison_Report.docx)
+- [PRD v5](노션 링크)
+- [프롬프트 테스트 리포트](노션 링크)
+- [모델 비교 리포트](노션 링크)
+- [기능 회고 (Bug Retrospective)](노션 링크)

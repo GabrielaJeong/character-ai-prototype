@@ -92,6 +92,7 @@ router.post('/create', (req, res) => {
         '나이':  `${characterData.age}세`,
         '직업':  characterData.occupation || '',
       },
+      tags:               Array.isArray(characterData.tags) ? characterData.tags.slice(0, 8) : [],
       description:        [characterData.background || ''].filter(Boolean),
       recommendedPersona: null,
       _builderData: {

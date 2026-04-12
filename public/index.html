@@ -39,12 +39,6 @@
           <span class="landing-logo">Foli<span class="logo-o-wrap"><span class="logo-dots"><span class="logo-dot logo-dot-1"></span><span class="logo-dot logo-dot-2"></span></span>o</span></span>
         </div>
         <div class="landing-header-right">
-          <button class="btn-icon" onclick="showToast('준비 중인 기능입니다')">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <circle cx="7.5" cy="7.5" r="5"/>
-              <line x1="11.5" y1="11.5" x2="16" y2="16"/>
-            </svg>
-          </button>
           <button class="btn-icon" onclick="navigateTo('/mypage')">
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
               <line x1="2" y1="5" x2="16" y2="5"/>
@@ -54,10 +48,58 @@
           </button>
         </div>
       </div>
+
       <div class="page-body" style="padding-top:20px;">
         <p class="section-label">추천 캐릭터</p>
         <div id="char-grid" class="char-grid">
           <p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>
+        </div>
+
+        <!-- ── 공지 캐러셀 ── -->
+        <div class="notice-carousel-wrap" style="margin-top:28px;">
+          <div class="notice-carousel" id="notice-carousel">
+            <div class="notice-slide"><a href="https://drive.google.com/file/d/11p9oWB9VQk1lVP9JDXXDQNHWhYaBhqYH/view?usp=drive_link" target="_blank" rel="noopener noreferrer" style="display:block;width:100%;height:100%;"><img src="/images/banner.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></a></div>
+            <div class="notice-slide"></div>
+            <div class="notice-slide"></div>
+          </div>
+          <div class="notice-pagination" id="notice-pagination">1 / 3</div>
+        </div>
+
+        <!-- ── 준비중 캐릭터 ── -->
+        <p class="section-label" style="margin-top:28px;">다가오는 캐릭터</p>
+        <div class="char-grid" style="margin-top:10px;">
+          <div class="char-card char-card-disabled">
+            <img class="char-card-img" src="/images/coming1.jpg" alt="">
+            <div class="char-card-overlay">
+              <div class="char-card-name">강도윤</div>
+              <div class="char-card-role">로스쿨 학생</div>
+            </div>
+            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+          </div>
+          <div class="char-card char-card-disabled">
+            <img class="char-card-img" src="/images/coming2.jpg" alt="">
+            <div class="char-card-overlay">
+              <div class="char-card-name">이준혁</div>
+              <div class="char-card-role">인디 뮤지션</div>
+            </div>
+            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+          </div>
+          <div class="char-card char-card-disabled">
+            <img class="char-card-img" src="/images/coming3.jpg" alt="">
+            <div class="char-card-overlay">
+              <div class="char-card-name">최시원</div>
+              <div class="char-card-role">프리랜서 사진작가</div>
+            </div>
+            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+          </div>
+          <div class="char-card char-card-disabled">
+            <img class="char-card-img" src="/images/coming4.jpg" alt="">
+            <div class="char-card-overlay">
+              <div class="char-card-name">한세아</div>
+              <div class="char-card-role">소설가</div>
+            </div>
+            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -69,10 +111,19 @@
       <div class="page-nav">
         <button class="btn-back" onclick="goBack('/')">←</button>
         <span class="nav-label">Previous Conversations</span>
-        <button class="btn-select-delete" id="btn-select-delete" onclick="_selectMode ? handleDeleteClick() : enterSelectMode()">선택 삭제</button>
       </div>
       <div class="page-body">
-        <p class="page-title">대화</p>
+        <div class="history-subheader">
+          <span class="page-title">대화</span>
+          <div id="history-default-actions" class="history-actions">
+            <button class="history-action-btn" onclick="handleDeleteAll()">전체삭제</button>
+            <button class="history-action-btn" onclick="enterSelectMode()">선택삭제</button>
+          </div>
+          <div id="history-select-actions" class="history-actions" style="display:none">
+            <button class="history-action-btn" onclick="exitSelectMode()">취소</button>
+            <button class="history-action-btn history-action-btn--delete" id="btn-confirm-delete" onclick="handleDeleteClick()" disabled>삭제</button>
+          </div>
+        </div>
         <div id="session-list" style="display:flex;flex-direction:column;gap:10px;margin-top:4px;"></div>
       </div>
     </div>
@@ -96,6 +147,11 @@
       <div class="page-nav">
         <button class="btn-back" onclick="goBack('/')">←</button>
         <span class="nav-label">Character Profile</span>
+        <button class="btn-icon btn-bookmark" id="btn-bookmark" onclick="toggleBookmark()" style="display:none;">
+          <svg id="bookmark-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 2h10a1 1 0 0 1 1 1v13l-6-3.5L3 16V3a1 1 0 0 1 1-1z"/>
+          </svg>
+        </button>
       </div>
       <div class="page-body">
         <div id="safety-segment-container"></div>
@@ -105,6 +161,7 @@
         <div>
           <p class="page-title" id="intro-fullname"></p>
           <p id="intro-subtitle" style="font-size:13px;color:var(--text-dim);margin-top:2px;"></p>
+          <div id="intro-tags" class="intro-tags"></div>
         </div>
         <div class="profile-card" id="intro-profile-card"></div>
         <div class="note-card" id="intro-note-card"></div>
@@ -242,6 +299,12 @@
       </div>
     </div>
     <div id="builder-messages" class="chat-messages"></div>
+    <div class="model-bar">
+      <button class="btn-model" id="btn-builder-model" onclick="toggleBuilderModelPicker()">
+        <span id="builder-model-label">Sonnet 4.6</span>
+        <span class="model-caret">⌃</span>
+      </button>
+    </div>
     <div id="builder-input-container"></div>
   </div>
 
@@ -308,6 +371,29 @@
             <textarea id="be-speechExamples" rows="4" placeholder="예시 1&#10;예시 2&#10;예시 3"></textarea>
           </div>
           <div class="form-group">
+            <label>태그 <span class="label-hint">최소 1개 · 최대 8개</span></label>
+            <div class="tag-input-wrap" id="be-tag-wrap">
+              <div class="tag-chips" id="be-tag-chips"></div>
+              <input type="text" id="be-tag-input" class="tag-text-input" placeholder="태그 입력 후 Enter 또는 , " maxlength="12" />
+            </div>
+            <div class="tag-suggestions">
+              <span class="tag-suggest-label">추천</span>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('현실')">현실</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('판타지')">판타지</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('초자연')">초자연</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('로맨스')">로맨스</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('액션')">액션</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('일상')">일상</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('다정')">다정</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('차가운')">차가운</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('다혈질')">다혈질</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('과묵')">과묵</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('밝은')">밝은</button>
+              <button type="button" class="tag-suggest-btn" onclick="addBuilderTagSuggest('어두운')">어두운</button>
+            </div>
+          </div>
+
+          <div class="form-group">
             <label>생성된 시스템 프롬프트</label>
             <textarea id="be-systemPrompt" rows="10" style="font-size:12px;line-height:1.6;font-family:monospace;"></textarea>
           </div>
@@ -330,7 +416,28 @@
     </div>
   </div>
 
-  <!-- ── SCREEN 9: Login / Register ──────────────────────── -->
+  <!-- ── SCREEN 9: Explore ────────────────────────────────── -->
+  <div id="screen-explore" class="screen">
+    <div class="page-wrap">
+      <div class="explore-header">
+        <span class="explore-title">탐색</span>
+      </div>
+      <div class="explore-search-wrap">
+        <div class="search-input-row">
+          <svg class="search-icon-inline" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="7.5" cy="7.5" r="5"/><line x1="11.5" y1="11.5" x2="16" y2="16"/>
+          </svg>
+          <input type="text" id="explore-search-input" class="search-input" placeholder="이름, 태그, 설명 검색" autocomplete="off" />
+        </div>
+      </div>
+      <div class="explore-tag-bar" id="explore-tag-bar"></div>
+      <div class="explore-body">
+        <div id="explore-grid" class="char-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 10: Login / Register ──────────────────────── -->
   <div id="screen-login" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
@@ -387,7 +494,28 @@
     </div>
   </div>
 
-  <!-- ── SCREEN 10: Mypage ─────────────────────────────────── -->
+  <!-- ── SCREEN 10: Persona Detail ───────────────────────���─ -->
+  <div id="screen-persona-detail" class="screen">
+    <div class="page-wrap">
+      <div class="page-nav">
+        <button class="btn-back" id="persona-detail-back" onclick="goBack('/mypage')">←</button>
+        <span class="nav-label">페르소나</span>
+      </div>
+      <div class="page-body">
+        <div class="pd-avatar-wrap">
+          <div class="pd-avatar" id="pd-avatar-letter"></div>
+        </div>
+        <div>
+          <p class="page-title" id="pd-name"></p>
+          <p class="pd-meta" id="pd-meta"></p>
+        </div>
+        <div class="profile-card" id="pd-profile-card"></div>
+        <div class="pd-actions" id="pd-actions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 11: Mypage ─────────────────────────────────── -->
   <div id="screen-mypage" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
@@ -418,22 +546,29 @@
           </button>
         </div>
 
-        <!-- 내 페르소나 -->
-        <p class="section-label" style="margin-top:24px;">내 페르소나</p>
-        <div class="mypage-section">
-          <div id="mypage-personas-list"></div>
-          <button class="mypage-row" onclick="newPersonaFromMypage()">
-            <span style="color:var(--accent);">+ 새 페르소나 만들기</span>
-          </button>
+        <!-- 탭 바 -->
+        <div class="mypage-tab-bar" style="margin-top:28px;">
+          <button class="mypage-tab active" id="mypage-tab-persona"   onclick="switchMypageTab('persona')">내 페르소나</button>
+          <button class="mypage-tab"        id="mypage-tab-chars"     onclick="switchMypageTab('chars')">내 캐릭터</button>
+          <button class="mypage-tab"        id="mypage-tab-bookmark"  onclick="switchMypageTab('bookmark')">책갈피</button>
+          <div class="mypage-tab-indicator" id="mypage-tab-indicator"></div>
         </div>
 
-        <!-- 내 캐릭터 -->
-        <p class="section-label" style="margin-top:24px;">내 캐릭터</p>
-        <div class="mypage-section">
-          <div id="mypage-chars-list"></div>
-          <button class="mypage-row" onclick="openBuilder()">
-            <span style="color:var(--accent);">+ 새 캐릭터 만들기</span>
-          </button>
+        <!-- 탭 패널: 내 페르소나 -->
+        <div class="mypage-tab-panel active" id="mypage-panel-persona">
+          <div id="mypage-personas-list" class="mypage-card-grid"></div>
+          <button class="mypage-add-btn" onclick="newPersonaFromMypage()">+ 새 페르소나 만들기</button>
+        </div>
+
+        <!-- 탭 패널: 내 캐릭터 -->
+        <div class="mypage-tab-panel" id="mypage-panel-chars">
+          <div id="mypage-chars-list" class="mypage-card-grid"></div>
+          <button class="mypage-add-btn" onclick="openBuilder()">+ 새 캐릭터 만들기</button>
+        </div>
+
+        <!-- 탭 패널: 책갈피 -->
+        <div class="mypage-tab-panel" id="mypage-panel-bookmark">
+          <p class="mypage-empty" style="padding:48px 0;text-align:center;">아직 책갈피한 캐릭터가 없습니다.</p>
         </div>
 
         <!-- 하단 텍스트 액션 -->
@@ -486,7 +621,7 @@
       <span class="nav-tab-icon">◷</span>
       <span class="nav-tab-label">대화</span>
     </button>
-    <button class="nav-tab" data-label="탐색" onclick="showToast('준비 중인 기능입니다')">
+    <button class="nav-tab" data-label="탐색" onclick="navigateTo('/explore')">
       <span class="nav-tab-icon">◎</span>
       <span class="nav-tab-label">탐색</span>
     </button>
@@ -506,6 +641,7 @@
 
 <!-- Model picker — outside #app to escape overflow:hidden -->
 <div id="model-picker" class="model-picker"></div>
+<div id="builder-model-picker" class="model-picker"></div>
 <script src="/js/app.js"></script>
 </body>
 </html>

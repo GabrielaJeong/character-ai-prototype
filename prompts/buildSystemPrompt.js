@@ -3,7 +3,7 @@ const path = require('path');
 
 const PROMPTS_DIR = __dirname;
 
-function buildSystemPrompt(characterId, persona, note = '', safety = 'on') {
+function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model = '') {
   const guardrails = fs.readFileSync(
     path.join(PROMPTS_DIR, 'common', 'guardrails.md'),
     'utf-8'
@@ -12,6 +12,27 @@ function buildSystemPrompt(characterId, persona, note = '', safety = 'on') {
     path.join(PROMPTS_DIR, 'characters', characterId, 'system.md'),
     'utf-8'
   );
+
+  // Model-specific corrections (skip if file doesn't exist)
+  let modelCorrections = '';
+  if (model) {
+    const modelFile = path.join(PROMPTS_DIR, 'models', `${model}.md`);
+    if (fs.existsSync(modelFile)) {
+      const raw = fs.readFileSync(modelFile, 'utf-8').trim();
+      // Only include if there's actual content beyond the header
+      if (raw && raw !== '## MODEL-SPECIFIC CORRECTIONS') {
+        modelCorrections = `\n\n---\n\n${raw}`;
+      }
+    }
+  }
+
+  // Safety block from dedicated files
+  const safetyFile = safety === 'off' ? 'off.md' : 'on.md';
+  const safetyContent = fs.readFileSync(
+    path.join(PROMPTS_DIR, 'common', 'safety', safetyFile),
+    'utf-8'
+  );
+  const safetyBlock = `\n\n---\n\n${safetyContent}`;
 
   const personaBlock = `
 ---
@@ -38,19 +59,7 @@ Treat these as established facts in the conversation:
 ${note.trim()}
 ` : '';
 
-  const safetyBlock = `
----
-
-## Content Rating (Safety Toggle)
-
-Current setting: **${safety === 'off' ? 'Safety OFF (19+)' : 'Safety ON (All Ages)'}**
-
-${safety === 'off'
-  ? 'Sexual and explicit content is permitted. Follow the Safety OFF rules defined in the guardrails.'
-  : 'Safety ON is active. Follow the Safety ON rules defined in the guardrails. No sexual or explicit content.'}
-`;
-
-  return charPrompt + '\n\n' + guardrails + safetyBlock + personaBlock + noteBlock;
+  return charPrompt + '\n\n' + guardrails + modelCorrections + safetyBlock + personaBlock + noteBlock;
 }
 
 module.exports = { buildSystemPrompt };

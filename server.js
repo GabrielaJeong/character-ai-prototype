@@ -56,6 +56,7 @@ app.use('/api/characters',       require('./routes/characters'));
 app.use('/api/builder',          require('./routes/builder'));
 app.use('/api/auth',             require('./routes/auth'));
 app.use('/api/personas',         require('./routes/personas'));
+app.use('/api/bookmarks',        require('./routes/bookmarks'));
 
 // Fallback: serve index.html for all non-API routes
 app.get('/{*splat}', (_req, res) => {

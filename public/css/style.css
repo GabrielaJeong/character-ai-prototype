@@ -136,6 +136,108 @@ body {
   flex-shrink: 0;
 }
 
+/* ── 탐색 화면 ───────────────────────────────────────────── */
+.explore-header {
+  padding: 40px 20px 12px 20px;
+  flex-shrink: 0;
+}
+.explore-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.explore-search-wrap {
+  padding: 0 20px 12px;
+  flex-shrink: 0;
+}
+.explore-tag-bar {
+  display: flex;
+  gap: 7px;
+  padding: 0 20px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.explore-tag-bar::-webkit-scrollbar { display: none; }
+.explore-tag-chip {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.explore-tag-chip:hover {
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+.explore-tag-chip.active {
+  color: #5B8FB9;
+  background: rgba(91, 143, 185, 0.12);
+  border-color: rgba(91, 143, 185, 0.4);
+}
+.explore-body {
+  padding: 0 20px 40px;
+  flex: 1;
+}
+.explore-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 40px 0;
+}
+
+.search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input, 10px);
+  padding: 0 12px;
+  height: 42px;
+  transition: border-color 0.15s;
+}
+.search-input-row:focus-within {
+  border-color: var(--accent-dim);
+}
+.search-icon-inline {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text);
+}
+.search-input::placeholder { color: var(--text-dim); }
+.search-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.search-close-btn:hover { color: var(--text); }
+.search-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 32px 0;
+}
+
 .landing-header-left {
   display: flex;
   flex-direction: column;
@@ -327,6 +429,16 @@ body {
   object-position: top center;
   display: block;
 }
+.char-card-img-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  font-size: 28px;
+  color: var(--text-dim);
+}
 
 .char-card-img-placeholder {
   width: 100%;
@@ -357,6 +469,24 @@ body {
   line-height: 1.2;
 }
 
+.char-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 7px;
+}
+.char-card-tag {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 20px;
+  padding: 2px 7px;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(2px);
+}
+
 .char-card-role {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.62);
@@ -383,6 +513,172 @@ body {
   border-radius: 20px;
   padding: 4px 10px;
   backdrop-filter: blur(4px);
+}
+
+/* ── 태그 시스템 ─────────────────────────────────────────── */
+
+/* 인트로 화면 태그 */
+.intro-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.intro-tag-chip {
+  font-size: 11px;
+  font-weight: 500;
+  color: #5B8FB9;
+  background: rgba(91, 143, 185, 0.13);
+  border: 1px solid rgba(91, 143, 185, 0.28);
+  border-radius: 20px;
+  padding: 3px 10px;
+  letter-spacing: 0.02em;
+}
+
+/* 빌더 편집 태그 입력 */
+.label-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+.tag-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  cursor: text;
+}
+.tag-input-wrap:focus-within {
+  border-color: var(--accent-dim);
+}
+.tag-chips {
+  display: contents;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5B8FB9;
+  background: rgba(91, 143, 185, 0.15);
+  border: 1px solid rgba(91, 143, 185, 0.3);
+  border-radius: 20px;
+  padding: 3px 8px 3px 10px;
+  white-space: nowrap;
+}
+.tag-chip-x {
+  background: none;
+  border: none;
+  color: rgba(91, 143, 185, 0.7);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+}
+.tag-chip-x:hover { color: #e05c5c; }
+.tag-text-input {
+  flex: 1;
+  min-width: 80px;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+  padding: 0;
+}
+.tag-text-input::placeholder { color: var(--text-dim); }
+
+/* 추천 태그 */
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tag-suggest-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-right: 2px;
+}
+.tag-suggest-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-raised, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tag-suggest-btn:hover {
+  color: #5B8FB9;
+  border-color: rgba(91, 143, 185, 0.4);
+}
+
+/* ── 준비중 카드 오버레이 ────────────────────────────────── */
+.char-card-pending-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.char-card-pending-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 5px 14px;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ── 공지 캐러셀 ─────────────────────────────────────────── */
+.notice-carousel-wrap {
+  position: relative;
+  overflow: hidden;
+  margin-left: -20px;
+  margin-right: -20px;
+}
+.notice-carousel {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.notice-carousel::-webkit-scrollbar { display: none; }
+
+.notice-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  height: 140px;
+  background: #000;
+}
+.notice-pagination {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.04em;
+  pointer-events: none;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -482,7 +778,11 @@ body {
   letter-spacing: 0.2em;
   color: var(--accent);
   text-transform: uppercase;
+  flex: 1;
 }
+
+.btn-bookmark { color: var(--text-dim); }
+.btn-bookmark.active { color: var(--accent); }
 
 .page-body {
   padding: 24px 20px;
@@ -862,7 +1162,7 @@ body {
 .model-bar {
   display: flex;
   align-items: center;
-  padding: 6px 16px 2px;
+  padding: 10px 16px 6px;
   background: var(--bg);
   flex-shrink: 0;
 }
@@ -1162,32 +1462,42 @@ body {
   display: block;
 }
 
-/* ── Select-Delete UI ────────────────────────────────────── */
-.btn-select-delete {
-  margin-left: auto;
+/* ── History Subheader ───────────────────────────────────── */
+.history-subheader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.history-subheader .page-title {
+  margin: 0;
+}
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.history-action-btn {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
   background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-btn);
-  padding: 5px 12px;
+  border: none;
+  padding: 4px 2px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition: color 0.15s;
 }
-.btn-select-delete:hover { border-color: var(--accent-dim); color: var(--text); }
+.history-action-btn:hover { color: var(--text); }
 
-/* Active state: "삭제" — dim until selection exists */
-.btn-select-delete.btn-select-delete-active {
-  color: var(--text-dim);
-  border-color: var(--border);
-  cursor: pointer;
-}
-/* Ready: selection exists → red/coral */
-.btn-select-delete.btn-select-delete-active.btn-select-delete-ready {
+/* 선택삭제 모드의 "삭제" 버튼 */
+.history-action-btn--delete {
   color: #e05c5c;
-  border-color: #e05c5c;
-  background: rgba(224, 92, 92, 0.08);
+}
+.history-action-btn--delete:hover { color: #f07070; }
+.history-action-btn--delete:disabled {
+  color: var(--text-dim);
+  cursor: default;
+  opacity: 0.45;
 }
 
 .session-card-body {
@@ -1218,7 +1528,8 @@ body {
 .session-card.select-mode .session-checkbox {
   width: 18px;
   margin-right: 12px;
-  border-color: var(--border);
+  border-color: var(--text-muted);
+  border-width: 2px;
 }
 
 /* Checked state */
@@ -2296,6 +2607,200 @@ body {
 }
 .mypage-char-action-btn.danger { color: #e06c75; }
 .mypage-char-action-btn:hover { opacity: 0.7; }
+
+/* ── Mypage underline tabs ───────────────────────────────── */
+.mypage-tab-bar {
+  position: relative;
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+
+.mypage-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: var(--font);
+  padding: 11px 0 13px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.mypage-tab.active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mypage-tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 33.333%;
+  height: 2px;
+  background: var(--accent);
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Tab panels ──────────────────────────────────────────── */
+.mypage-tab-panel {
+  display: none;
+  padding-top: 16px;
+}
+.mypage-tab-panel.active {
+  display: block;
+  animation: mpFadeIn 0.18s ease;
+}
+@keyframes mpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Shared card grid (persona + char) ───────────────────── */
+.mypage-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.mypage-card-grid > p {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+/* ── Persona card ────────────────────────────────────────── */
+.mypage-p-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #1c2135 0%, #252b40 100%);
+  border: 1px solid var(--border);
+  cursor: default;
+}
+.mypage-p-card.is-default {
+  border-color: var(--accent);
+}
+.mypage-p-initial {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  font-size: 56px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.07);
+  letter-spacing: -2px;
+  pointer-events: none;
+  user-select: none;
+}
+.mypage-p-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 12px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 100%);
+}
+.mypage-p-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.mypage-p-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.mypage-p-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Char card wrapper ───────────────────────────────────── */
+.mypage-char-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mypage-char-card-wrap .char-card {
+  cursor: pointer;
+}
+.mypage-char-card-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* ── Shared card action buttons ──────────────────────────── */
+.mypage-card-action-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-family: var(--font);
+  color: rgba(255,255,255,0.45);
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.mypage-card-action-btn.danger { color: rgba(224,108,117,0.7); }
+.mypage-card-action-btn:hover { opacity: 0.8; }
+
+/* ── Persona detail screen ───────────────────────────────── */
+.pd-avatar-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+.pd-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #1c2135 0%, #2a3050 100%);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: -1px;
+}
+.pd-meta {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.pd-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.pd-default-label {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+}
+
+/* ── Add button ──────────────────────────────────────────── */
+.mypage-add-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--accent);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+.mypage-add-btn:hover { background: rgba(255,255,255,0.03); }
 
 /* ── Logout / delete text buttons ───────────────────────── */
 .mypage-text-actions {

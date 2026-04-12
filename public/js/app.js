@@ -1,11 +1,15 @@
 // ─── Model Config ────────────────────────────────────────
 const MODELS = [
-  { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6',       desc: '균형 잡힌 성능 · 기본값', provider: 'claude'  },
+  { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6',       desc: '균형 잡힌 성능',          provider: 'claude'  },
   { id: 'claude-opus-4-6',           label: 'Opus 4.6',         desc: '최고 성능',               provider: 'claude'  },
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',        desc: '빠른 응답',               provider: 'claude'  },
   { id: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash', desc: '빠르고 효율적 · Google',  provider: 'gemini'  },
   { id: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro',   desc: '최고 성능 · Google',      provider: 'gemini'  },
+  { id: 'gemini-3.1-pro-preview',    label: 'Gemini 3.1 Pro',   desc: '최신 모델 · Google · 기본값', provider: 'gemini'  },
 ];
+
+const CHAT_DEFAULT_MODEL    = 'gemini-3.1-pro-preview'; // 새 채팅 기본 모델
+const BUILDER_DEFAULT_MODEL = 'claude-sonnet-4-6';      // 빌더 기본 모델
 
 // ─── State ───────────────────────────────────────────────
 let sessionId        = null;
@@ -14,7 +18,7 @@ let lastAssistantEl  = null;
 let currentMode      = 'chat';   // 'chat' | 'novel'
 let messageLog       = [];       // [{ role, sender, text }]
 let userImageUrl     = null;     // base64 profile image
-let currentModel     = MODELS[0].id;
+let currentModel     = CHAT_DEFAULT_MODEL;
 let characters       = [];       // loaded from /api/characters
 let currentCharacter = null;     // selected character config object
 let currentSafety    = 'on';     // 'on' | 'off'
@@ -184,6 +188,8 @@ window.addEventListener('DOMContentLoaded', () => {
   createChatInput(document.getElementById('builder-input-container'), { inputId: 'builder-input', btnId: 'builder-btn-send', onSend: builderSend  });
 
   initModelPicker();
+  initBuilderModelPicker();
+  initNoticeCarousel();
   initAuth();
   loadCharacters();
   // Bottom nav visible on landing by default
@@ -199,16 +205,17 @@ window.addEventListener('DOMContentLoaded', () => {
     ) {
       picker.classList.remove('open');
     }
+    const bPicker = document.getElementById('builder-model-picker');
+    const bBtn    = document.getElementById('btn-builder-model');
+    if (
+      bPicker.classList.contains('open') &&
+      !bPicker.contains(e.target) &&
+      !bBtn.contains(e.target)
+    ) {
+      bPicker.classList.remove('open');
+    }
   });
 
-  // Select-delete button: hover → "취소" when no selection
-  const selectBtn = document.getElementById('btn-select-delete');
-  selectBtn.addEventListener('mouseenter', () => {
-    if (_selectMode && _selectedIds.size === 0) selectBtn.textContent = '취소';
-  });
-  selectBtn.addEventListener('mouseleave', () => {
-    if (_selectMode) selectBtn.textContent = '삭제';
-  });
 });
 
 // ─── Character Loading & Selection ───────────────────────
@@ -242,9 +249,15 @@ function renderCharacterGrid(list) {
       ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
       : `<div class="char-card-img-placeholder">${char.name[0]}</div>`;
 
+    const visibleTags = Array.isArray(char.tags) ? char.tags.slice(0, 3) : [];
+    const tagsHtml = visibleTags.length
+      ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${t}</span>`).join('')}</div>`
+      : '';
+
     card.innerHTML = `
       ${imgHtml}
       <div class="char-card-overlay">
+        ${tagsHtml}
         <div class="char-card-name">${char.name}</div>
         <div class="char-card-role">${char.role || char.team}</div>
       </div>
@@ -278,6 +291,17 @@ function populateIntroScreen(char) {
   // Name + subtitle
   document.getElementById('intro-fullname').textContent = char.fullName || char.name;
   document.getElementById('intro-subtitle').textContent = char.subtitle || char.team || '';
+
+  // Tags
+  const tagsEl = document.getElementById('intro-tags');
+  if (tagsEl) {
+    if (Array.isArray(char.tags) && char.tags.length > 0) {
+      tagsEl.innerHTML = char.tags.map(t => `<span class="intro-tag-chip">#${t}</span>`).join('');
+      tagsEl.style.display = '';
+    } else {
+      tagsEl.style.display = 'none';
+    }
+  }
 
   // Profile table
   const profileCard = document.getElementById('intro-profile-card');
@@ -328,6 +352,9 @@ function populateIntroScreen(char) {
 
   // Safety segment control
   mountSafetySegment(char);
+
+  // Bookmark button
+  updateBookmarkBtn();
 }
 
 // ─── SafetySegment Component ─────────────────────────────
@@ -425,10 +452,9 @@ function enterSelectMode() {
   _selectMode  = true;
   _selectedIds = new Set();
 
-  const btn = document.getElementById('btn-select-delete');
-  btn.textContent = '삭제';
-  btn.classList.add('btn-select-delete-active');
-  btn.classList.remove('btn-select-delete-ready');
+  document.getElementById('history-default-actions').style.display = 'none';
+  document.getElementById('history-select-actions').style.display  = '';
+  document.getElementById('btn-confirm-delete').disabled = true;
 
   document.querySelectorAll('.session-card').forEach(card => {
     card.classList.add('select-mode');
@@ -439,9 +465,8 @@ function exitSelectMode() {
   _selectMode  = false;
   _selectedIds = new Set();
 
-  const btn = document.getElementById('btn-select-delete');
-  btn.textContent = '선택 삭제';
-  btn.classList.remove('btn-select-delete-active', 'btn-select-delete-ready');
+  document.getElementById('history-default-actions').style.display = '';
+  document.getElementById('history-select-actions').style.display  = 'none';
 
   document.querySelectorAll('.session-card').forEach(card => {
     card.classList.remove('select-mode', 'selected');
@@ -451,9 +476,9 @@ function exitSelectMode() {
 }
 
 function _updateDeleteBtn() {
-  const btn = document.getElementById('btn-select-delete');
+  const btn = document.getElementById('btn-confirm-delete');
   if (!btn) return;
-  btn.classList.toggle('btn-select-delete-ready', _selectedIds.size > 0);
+  btn.disabled = _selectedIds.size === 0;
 }
 
 function _toggleCardSelection(card, id) {
@@ -549,12 +574,20 @@ async function loadSessionList() {
   }
 }
 
-// Called when "삭제" btn clicked in active state
 function handleDeleteClick() {
-  if (!_selectMode) return;
-  if (_selectedIds.size === 0) { exitSelectMode(); return; }
+  if (!_selectMode || _selectedIds.size === 0) return;
   document.getElementById('delete-modal-title').textContent =
     `선택한 ${_selectedIds.size}개의 대화를 삭제하시겠습니까?`;
+  document.getElementById('delete-modal-overlay').classList.add('open');
+}
+
+function handleDeleteAll() {
+  const cards = document.querySelectorAll('.session-card');
+  if (!cards.length) return;
+  document.getElementById('delete-modal-title').textContent =
+    `대화 ${cards.length}개를 모두 삭제하시겠습니까?`;
+  // 전체 ID를 _selectedIds에 임시 세팅
+  _selectedIds = new Set([...cards].map(c => c.dataset.id));
   document.getElementById('delete-modal-overlay').classList.add('open');
 }
 
@@ -595,7 +628,7 @@ async function loadSession(id) {
     updateChatHeader(currentCharacter);
 
     // Restore model
-    setModelUI(data.model || MODELS[0].id);
+    setModelUI(data.model || CHAT_DEFAULT_MODEL);
 
     // Restore user image
     userImageUrl = localStorage.getItem(`user-img:${id}`) || null;
@@ -631,6 +664,7 @@ function showScreen(id) {
   target.classList.add('active');
   if (id !== 'screen-chat') target.scrollTop = 0;
   if (id === 'screen-history') loadSessionList();
+  if (id === 'screen-explore') loadExplore();
 
   // Bottom nav: hidden in chat screens and login
   const nav = document.getElementById('bottom-nav');
@@ -646,13 +680,16 @@ function showScreen(id) {
 //   /character/:id             → character intro
 //   /character/:id/chat        → chat
 //   /persona                   → persona setup (requires currentCharacter)
+//   /persona/:id               → persona detail (auth required)
 //   /builder                   → builder chat
 //   /builder/preview           → builder edit/preview
 //   /login                     → login / register
 //   /mypage                    → mypage (auth required)
 const ROUTES = [
-  { pattern: /^\/character\/([^/]+)\/chat$/,    handler: (m) => _routeChat(m[1])       },
-  { pattern: /^\/character\/([^/]+)$/,          handler: (m) => _routeIntro(m[1])      },
+  { pattern: /^\/character\/([^/]+)\/chat$/,    handler: (m) => _routeChat(m[1])           },
+  { pattern: /^\/character\/([^/]+)$/,          handler: (m) => _routeIntro(m[1])          },
+  { pattern: /^\/persona\/(\d+)$/,              handler: (m) => _routePersonaDetail(m[1])  },
+  { pattern: /^\/explore$/,                     handler: ()  => _routeExplore()            },
   { pattern: /^\/history$/,                     handler: ()  => _routeGated('screen-history')      },
   { pattern: /^\/persona$/,                     handler: ()  => showScreen('screen-persona')       },
   { pattern: /^\/builder\/preview$/,            handler: ()  => _routeGated('screen-builder-edit') },
@@ -662,9 +699,14 @@ const ROUTES = [
   { pattern: /^\/$/,                            handler: ()  => showScreen('screen-landing')       },
 ];
 
+function _routeExplore() {
+  showScreen('screen-explore');
+  loadExplore();
+}
+
 function _routeGated(screenId) {
   if (!_currentUser) {
-    showAuthGate();
+    showAuthGate('로그인이 필요한 기능입니다', '이 기능을 이용하려면 로그인해주세요.', window.location.pathname);
     return;
   }
   showScreen(screenId);
@@ -678,11 +720,60 @@ function _routeLogin() {
 
 function _routeMypage() {
   if (!_currentUser) {
-    showAuthGate('마이페이지', '마이페이지를 이용하려면 로그인이 필요합니다.');
+    showAuthGate('마이페이지', '마이페이지를 이용하려면 로그인이 필요합니다.', window.location.pathname);
     return;
   }
   loadMypage();
   showScreen('screen-mypage');
+}
+
+async function _routePersonaDetail(id) {
+  if (!_currentUser) {
+    showAuthGate('페르소나', '페르소나를 보려면 로그인이 필요합니다.', window.location.pathname);
+    return;
+  }
+  try {
+    const res  = await fetch('/api/personas');
+    const rows = await res.json();
+    const p    = rows.find(r => r.id === Number(id));
+    if (!p) { navigateTo('/mypage'); return; }
+    _populatePersonaDetail(p);
+    showScreen('screen-persona-detail');
+  } catch (_) { navigateTo('/mypage'); }
+}
+
+function _populatePersonaDetail(p) {
+  const d         = p.data;
+  const isDefault = p.id === _currentUser?.default_persona_id;
+  const genderTxt = d.gender === 'male' ? '남성' : d.gender === 'female' ? '여성' : '';
+  const metaParts = [d.age ? d.age + '세' : '', genderTxt].filter(Boolean);
+
+  document.getElementById('pd-avatar-letter').textContent = (d.name || '?')[0].toUpperCase();
+  document.getElementById('pd-name').textContent          = d.name || '이름 없음';
+  document.getElementById('pd-meta').textContent          = metaParts.join(' · ');
+
+  const fields = [
+    d.appearance  && ['외형',   d.appearance],
+    d.personality && ['성격',   d.personality],
+    d.notes       && ['특이사항', d.notes],
+  ].filter(Boolean);
+
+  const profileCard = document.getElementById('pd-profile-card');
+  if (fields.length) {
+    profileCard.innerHTML = fields.map(([k, v]) =>
+      `<div class="pt-row"><span class="pt-key">${k}</span><span class="pt-val">${v}</span></div>`
+    ).join('');
+    profileCard.style.display = '';
+  } else {
+    profileCard.style.display = 'none';
+  }
+
+  document.getElementById('pd-actions').innerHTML = `
+    ${!isDefault
+      ? `<button class="btn-ghost" onclick="setDefaultPersona(${p.id});goBack('/mypage')">기본 설정</button>`
+      : `<p class="pd-default-label">현재 기본 페르소나</p>`}
+    <button class="btn-delete-confirm" onclick="deletePersona(${p.id});navigateTo('/mypage')">삭제</button>
+  `;
 }
 
 function _routeIntro(id) {
@@ -767,6 +858,183 @@ function showToast(msg) {
   _toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+// ─── Character Search ─────────────────────────────────────
+const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+function getChosung(str) {
+  return [...str].map(ch => {
+    const code = ch.charCodeAt(0) - 0xAC00;
+    if (code < 0 || code > 11171) return ch;
+    return CHOSUNG[Math.floor(code / 28 / 21)];
+  }).join('');
+}
+
+function matchesQuery(char, q) {
+  if (!q) return true;
+  const lower = q.toLowerCase();
+  const isChosung = /^[ㄱ-ㅎ]+$/.test(q);
+
+  const targets = [
+    char.name || '',
+    char.fullName || '',
+    char.subtitle || '',
+    char.role || '',
+    char.team || '',
+    ...(Array.isArray(char.tags) ? char.tags : []),
+    ...(Array.isArray(char.description) ? char.description : []),
+  ];
+
+  return targets.some(t => {
+    const s = String(t);
+    if (isChosung) return getChosung(s).includes(q);
+    return s.toLowerCase().includes(lower);
+  });
+}
+
+// ─── Explore Screen ──────────────────────────────────────
+const EXPLORE_SUGGESTED_TAGS = ['현실', '판타지', '초자연', '로맨스', '액션', '일상', '다정', '차가운', '다혈질', '과묵', '밝은', '어두운'];
+
+let _exploreQuery    = '';
+let _exploreActiveTags = new Set();
+let _exploreDebounce = null;
+
+function loadExplore() {
+  _exploreQuery = '';
+  _exploreActiveTags = new Set();
+
+  const input = document.getElementById('explore-search-input');
+  if (input) input.value = '';
+
+  _buildExploreTagBar();
+  _applyExploreFilter();
+
+  // init search input listener (idempotent via flag)
+  if (!input?._exploreInited) {
+    input?.addEventListener('input', () => {
+      clearTimeout(_exploreDebounce);
+      _exploreDebounce = setTimeout(() => {
+        _exploreQuery = input.value;
+        _applyExploreFilter();
+      }, 300);
+    });
+    input?.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { input.value = ''; _exploreQuery = ''; _applyExploreFilter(); }
+    });
+    if (input) input._exploreInited = true;
+  }
+}
+
+function _buildExploreTagBar() {
+  const bar = document.getElementById('explore-tag-bar');
+  if (!bar) return;
+
+  // Gather all unique tags from loaded characters
+  const charTags = new Set();
+  characters.forEach(c => (c.tags || []).forEach(t => charTags.add(t)));
+
+  // Merge: suggested first, then any extras from characters
+  const allTags = [...EXPLORE_SUGGESTED_TAGS];
+  charTags.forEach(t => { if (!allTags.includes(t)) allTags.push(t); });
+
+  bar.innerHTML = '';
+
+  // 전체 chip
+  const allChip = document.createElement('button');
+  allChip.className = 'explore-tag-chip' + (_exploreActiveTags.size === 0 ? ' active' : '');
+  allChip.textContent = '전체';
+  allChip.onclick = () => { _exploreActiveTags.clear(); _updateExploreTagBar(); _applyExploreFilter(); };
+  bar.appendChild(allChip);
+
+  allTags.forEach(tag => {
+    const chip = document.createElement('button');
+    chip.className = 'explore-tag-chip' + (_exploreActiveTags.has(tag) ? ' active' : '');
+    chip.textContent = '#' + tag;
+    chip.dataset.tag = tag;
+    chip.onclick = () => {
+      if (_exploreActiveTags.has(tag)) _exploreActiveTags.delete(tag);
+      else _exploreActiveTags.add(tag);
+      _updateExploreTagBar();
+      _applyExploreFilter();
+    };
+    bar.appendChild(chip);
+  });
+}
+
+function _updateExploreTagBar() {
+  const bar = document.getElementById('explore-tag-bar');
+  if (!bar) return;
+  bar.querySelectorAll('.explore-tag-chip').forEach(chip => {
+    if (!chip.dataset.tag) {
+      chip.classList.toggle('active', _exploreActiveTags.size === 0);
+    } else {
+      chip.classList.toggle('active', _exploreActiveTags.has(chip.dataset.tag));
+    }
+  });
+}
+
+function _applyExploreFilter() {
+  const results = characters.filter(c => {
+    const matchesSearch = matchesQuery(c, _exploreQuery.trim());
+    const matchesTags   = _exploreActiveTags.size === 0 ||
+      [..._exploreActiveTags].every(tag => (c.tags || []).includes(tag));
+    return matchesSearch && matchesTags;
+  });
+
+  const grid = document.getElementById('explore-grid');
+  if (!grid) return;
+
+  if (results.length === 0) {
+    grid.innerHTML = '<p class="explore-empty">검색 결과가 없습니다.</p>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  results.forEach(char => {
+    const isComingSoon = char.status === 'coming_soon';
+    const card = document.createElement('div');
+    card.className = 'char-card' + (isComingSoon ? ' char-card-disabled' : '');
+    if (!isComingSoon) card.onclick = () => selectCharacter(char.id);
+
+    const imgHtml = char.image
+      ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
+      : `<div class="char-card-img-placeholder">${char.name[0]}</div>`;
+
+    const visibleTags = Array.isArray(char.tags) ? char.tags.slice(0, 3) : [];
+    const tagsHtml = visibleTags.length
+      ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${t}</span>`).join('')}</div>`
+      : '';
+
+    card.innerHTML = `
+      ${imgHtml}
+      <div class="char-card-overlay">
+        ${tagsHtml}
+        <div class="char-card-name">${char.name}</div>
+        <div class="char-card-role">${char.role || char.team}</div>
+      </div>
+      ${isComingSoon ? `<div class="char-card-coming-overlay"></div><span class="char-card-soon-badge">Coming Soon</span>` : ''}
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── Notice Carousel ─────────────────────────────────────
+function initNoticeCarousel() {
+  const carousel   = document.getElementById('notice-carousel');
+  const pagination = document.getElementById('notice-pagination');
+  if (!carousel || !pagination) return;
+
+  const slides = carousel.querySelectorAll('.notice-slide');
+  const total  = slides.length;
+
+  function updatePage() {
+    const idx  = Math.round(carousel.scrollLeft / carousel.clientWidth);
+    pagination.textContent = `${idx + 1} / ${total}`;
+  }
+
+  carousel.addEventListener('scroll', updatePage, { passive: true });
+  updatePage();
+}
+
 // ─── Model Picker ────────────────────────────────────────
 function initModelPicker() {
   const picker = document.getElementById('model-picker');
@@ -832,6 +1100,70 @@ function setModelUI(id) {
   });
 }
 
+// ─── Builder Model Picker ─────────────────────────────────
+function initBuilderModelPicker() {
+  const picker = document.getElementById('builder-model-picker');
+  picker.innerHTML = '';
+
+  let lastProvider = null;
+  MODELS.forEach(m => {
+    if (lastProvider && m.provider !== lastProvider) {
+      const divider = document.createElement('div');
+      divider.className = 'model-divider';
+      picker.appendChild(divider);
+    }
+    lastProvider = m.provider;
+
+    const opt = document.createElement('div');
+    opt.className  = 'model-option' + (m.id === builderModel ? ' active' : '');
+    opt.dataset.id = m.id;
+    opt.innerHTML  = `
+      <div class="model-option-left">
+        <span class="model-option-name">
+          ${m.label}
+          <span class="model-provider-badge model-provider-${m.provider}">${m.provider === 'gemini' ? 'Google' : 'Anthropic'}</span>
+        </span>
+        <span class="model-option-desc">${m.desc}</span>
+      </div>
+      <span class="model-option-check">✓</span>
+    `;
+    opt.onclick = () => selectBuilderModel(m.id);
+    picker.appendChild(opt);
+  });
+}
+
+function toggleBuilderModelPicker() {
+  const picker = document.getElementById('builder-model-picker');
+  if (picker.classList.contains('open')) {
+    picker.classList.remove('open');
+    return;
+  }
+  const btn  = document.getElementById('btn-builder-model');
+  const rect = btn.getBoundingClientRect();
+  picker.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+  picker.style.left   = rect.left + 'px';
+  picker.classList.add('open');
+}
+
+function selectBuilderModel(id) {
+  builderModel = id;
+  const found = MODELS.find(m => m.id === id);
+  if (found) document.getElementById('builder-model-label').textContent = found.label;
+  document.getElementById('builder-model-picker')
+    .querySelectorAll('.model-option')
+    .forEach(opt => opt.classList.toggle('active', opt.dataset.id === id));
+  document.getElementById('builder-model-picker').classList.remove('open');
+}
+
+function setBuilderModelUI(id) {
+  const found = MODELS.find(m => m.id === id) || MODELS[0];
+  builderModel = found.id;
+  document.getElementById('builder-model-label').textContent = found.label;
+  document.getElementById('builder-model-picker')
+    .querySelectorAll('.model-option')
+    .forEach(opt => opt.classList.toggle('active', opt.dataset.id === found.id));
+}
+
 
 // ─── {{user}} Token ───────────────────────────────────────
 function resolveUser(text, name) {
@@ -854,7 +1186,8 @@ function fillRecommended() {
   document.getElementById('p-appearance').value  = p.appearance  || '';
   document.getElementById('p-personality').value = p.personality || '';
   document.getElementById('p-notes').value       = p.notes       || '';
-  if (p.gender) selectGender(p.gender); else { _selectedGender = null; document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active')); }
+  _selectedGender = p.gender || null;
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.toggle('active', b.dataset.value === _selectedGender));
   syncUserPlaceholders(p.name || '');
 }
 
@@ -896,7 +1229,7 @@ function startChat(event) {
   messageLog = [];
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('note-dot').style.display = 'none';
-  setModelUI(MODELS[0].id);
+  setModelUI(CHAT_DEFAULT_MODEL);
   updateChatHeader(currentCharacter);
 
   userImageUrl = personaAvatarUpload?.getUrl() || null;
@@ -1303,6 +1636,56 @@ function autoResize(el) {
 let builderSessionId = null;
 let builderCharData  = null;
 let builderSystemMd  = null;
+let _builderTags     = [];   // 태그 편집 중 상태
+
+// ── Tag input logic ───────────────────────────────────────
+function _initTagInput() {
+  const input = document.getElementById('be-tag-input');
+  if (!input) return;
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      _addBuilderTag(input.value);
+      input.value = '';
+    } else if (e.key === 'Backspace' && input.value === '' && _builderTags.length) {
+      _builderTags.pop();
+      _renderBuilderTags();
+    }
+  });
+  input.addEventListener('input', () => {
+    // 쉼표가 붙어 타이핑된 경우 처리
+    if (input.value.includes(',')) {
+      input.value.split(',').forEach(t => _addBuilderTag(t));
+      input.value = '';
+    }
+  });
+}
+
+function _addBuilderTag(raw) {
+  const tag = raw.trim().replace(/^#/, '');
+  if (!tag || _builderTags.includes(tag) || _builderTags.length >= 8) return;
+  _builderTags.push(tag);
+  _renderBuilderTags();
+}
+
+function addBuilderTagSuggest(tag) {
+  _addBuilderTag(tag);
+  document.getElementById('be-tag-input')?.focus();
+}
+
+function _removeBuilderTag(idx) {
+  _builderTags.splice(idx, 1);
+  _renderBuilderTags();
+}
+
+function _renderBuilderTags() {
+  const wrap = document.getElementById('be-tag-chips');
+  if (!wrap) return;
+  wrap.innerHTML = _builderTags.map((t, i) =>
+    `<span class="tag-chip">#${t}<button type="button" class="tag-chip-x" onclick="_removeBuilderTag(${i})">×</button></span>`
+  ).join('');
+}
+let builderModel     = BUILDER_DEFAULT_MODEL;
 
 function openBuilder() {
   if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
@@ -1310,6 +1693,8 @@ function openBuilder() {
   builderSessionId = null;
   builderCharData  = null;
   builderSystemMd  = null;
+  builderModel     = BUILDER_DEFAULT_MODEL;
+  setBuilderModelUI(BUILDER_DEFAULT_MODEL);
   document.getElementById('builder-messages').innerHTML = '';
   document.getElementById('builder-input').value = '';
 
@@ -1328,7 +1713,7 @@ async function initBuilderConversation() {
     const res  = await fetch('/api/builder/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ message: '시작해줘', builderSessionId: null }),
+      body:    JSON.stringify({ message: '시작해줘', builderSessionId: null, model: builderModel }),
     });
     const data = await res.json();
     typingEl.remove();
@@ -1360,7 +1745,7 @@ async function builderSend() {
     const res  = await fetch('/api/builder/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ message: text, builderSessionId }),
+      body:    JSON.stringify({ message: text, builderSessionId, model: builderModel }),
     });
     const data = await res.json();
     typingEl.remove();
@@ -1470,6 +1855,11 @@ function showBuilderEdit() {
   document.getElementById('be-systemPrompt').value  = builderSystemMd || '';
   document.getElementById('be-profanity-toggle').checked = !!d.hasProfanity;
 
+  // Tags
+  _builderTags = Array.isArray(d.tags) ? [...d.tags] : [];
+  _renderBuilderTags();
+  _initTagInput();
+
   navigateTo('/builder/preview');
 }
 
@@ -1489,6 +1879,7 @@ async function registerCharacter() {
     speechExamples: document.getElementById('be-speechExamples').value
       .split('\n').map(l => l.trim()).filter(Boolean),
     hasProfanity:  document.getElementById('be-profanity-toggle').checked,
+    tags:          [..._builderTags],
   };
 
   const systemPrompt = document.getElementById('be-systemPrompt').value.trim();
@@ -1632,7 +2023,49 @@ async function initAuth() {
     const data = await res.json();
     _currentUser = data.user || null;
     updateAuthUI();
+    if (_currentUser) loadBookmarks();
   } catch (_) {}
+}
+
+// ── Bookmarks ─────────────────────────────────────────────
+let _bookmarkedIds = new Set();
+
+async function loadBookmarks() {
+  try {
+    const res = await fetch('/api/bookmarks');
+    if (!res.ok) return;
+    const ids = await res.json();
+    _bookmarkedIds = new Set(ids);
+    updateBookmarkBtn();
+  } catch (_) {}
+}
+
+function updateBookmarkBtn() {
+  const btn  = document.getElementById('btn-bookmark');
+  const icon = document.getElementById('bookmark-icon');
+  if (!btn || !currentCharacter) return;
+
+  if (!_currentUser) { btn.style.display = 'none'; return; }
+
+  btn.style.display = '';
+  const active = _bookmarkedIds.has(currentCharacter.id);
+  icon.setAttribute('fill', active ? 'currentColor' : 'none');
+  btn.classList.toggle('active', active);
+}
+
+async function toggleBookmark() {
+  if (!_currentUser) { showToast('로그인이 필요합니다.'); return; }
+  if (!currentCharacter) return;
+  const id = currentCharacter.id;
+  const isBookmarked = _bookmarkedIds.has(id);
+  const method = isBookmarked ? 'DELETE' : 'POST';
+  try {
+    await fetch(`/api/bookmarks/${id}`, { method });
+    if (isBookmarked) _bookmarkedIds.delete(id);
+    else              _bookmarkedIds.add(id);
+    updateBookmarkBtn();
+    showToast(isBookmarked ? '책갈피를 해제했습니다.' : '책갈피에 추가했습니다.');
+  } catch (_) { showToast('오류가 발생했습니다.'); }
 }
 
 function updateAuthUI() {
@@ -1642,6 +2075,7 @@ function updateAuthUI() {
 function updateNavActiveTab(screenId) {
   const map = {
     'screen-landing':  '캐릭터',
+    'screen-explore':  '탐색',
     'screen-history':  '대화',
     'screen-mypage':   '마이페이지',
   };
@@ -1652,14 +2086,21 @@ function updateNavActiveTab(screenId) {
 }
 
 // ── Auth gate modal ───────────────────────────────────────
-function showAuthGate(title = '로그인이 필요한 기능입니다', desc = '이 기능을 이용하려면 로그인해주세요.') {
+let _authGateIntendedPath = null;
+
+function showAuthGate(title = '로그인이 필요한 기능입니다', desc = '이 기능을 이용하려면 로그인해주세요.', intendedPath = null) {
   document.getElementById('auth-gate-title').textContent = title;
   document.getElementById('auth-gate-desc').textContent  = desc;
   document.getElementById('auth-gate-overlay').classList.add('open');
+  _authGateIntendedPath = intendedPath;
 }
 function closeAuthGate(e) {
   if (e && e.target !== document.getElementById('auth-gate-overlay')) return;
   document.getElementById('auth-gate-overlay').classList.remove('open');
+  if (_authGateIntendedPath) {
+    _authGateIntendedPath = null;
+    navigateTo('/');
+  }
 }
 
 // ── Login / Register screens ──────────────────────────────
@@ -1699,7 +2140,9 @@ async function submitLogin(e) {
     if (!res.ok) { document.getElementById('login-global-err').textContent = data.error; return; }
     _currentUser = data.user;
     updateAuthUI();
-    navigateTo('/');
+    const dest = _authGateIntendedPath || '/';
+    _authGateIntendedPath = null;
+    navigateTo(dest);
   } catch (_) {
     document.getElementById('login-global-err').textContent = '로그인에 실패했습니다.';
   }
@@ -1726,7 +2169,9 @@ async function submitRegister(e) {
     if (!res.ok) { document.getElementById('reg-global-err').textContent = data.error; return; }
     _currentUser = data.user;
     updateAuthUI();
-    navigateTo('/');
+    const dest = _authGateIntendedPath || '/';
+    _authGateIntendedPath = null;
+    navigateTo(dest);
   } catch (_) {
     document.getElementById('reg-global-err').textContent = '회원가입에 실패했습니다.';
   }
@@ -1758,8 +2203,10 @@ async function loadMypage() {
     img.style.display  = 'none';
     letterW.style.display = 'flex';
   }
+  switchMypageTab('persona');
   loadMypagePersonas();
   loadMypageChars();
+  loadMypageBookmarks();
 }
 
 function triggerAvatarUpload() {
@@ -1784,6 +2231,21 @@ async function handleAvatarChange(input) {
   input.value = '';
 }
 
+// ── Tab switching ─────────────────────────────────────────
+let _mypageActiveTab = 'persona';
+const _MYPAGE_TABS = ['persona', 'chars', 'bookmark'];
+
+function switchMypageTab(tab) {
+  _mypageActiveTab = tab;
+  const idx = _MYPAGE_TABS.indexOf(tab);
+  _MYPAGE_TABS.forEach(t => {
+    document.getElementById(`mypage-tab-${t}`)?.classList.toggle('active', t === tab);
+    document.getElementById(`mypage-panel-${t}`)?.classList.toggle('active', t === tab);
+  });
+  const indicator = document.getElementById('mypage-tab-indicator');
+  if (indicator) indicator.style.left = `${idx * 33.333}%`;
+}
+
 // ── Personas ─────────────────────────────────────────────
 async function loadMypagePersonas() {
   const list = document.getElementById('mypage-personas-list');
@@ -1791,28 +2253,35 @@ async function loadMypagePersonas() {
     const res  = await fetch('/api/personas');
     const rows = await res.json();
     if (!rows.length) {
-      list.innerHTML = '<p class="mypage-empty">저장된 페르소나가 없습니다.</p>';
+      list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">저장된 페르소나가 없습니다.</p>';
       return;
     }
     const defaultId = _currentUser?.default_persona_id;
     list.innerHTML = rows.map(p => {
       const d = p.data;
       const isDefault = p.id === defaultId;
+      const initial = (d.name || '?')[0].toUpperCase();
+      const meta = [d.age ? d.age + '세' : '', d.gender === 'male' ? '남' : d.gender === 'female' ? '여' : ''].filter(Boolean).join(' · ');
       return `
-        <div class="mypage-persona-card ${isDefault ? 'is-default' : ''}">
-          <div class="mypage-persona-info">
-            <span class="mypage-persona-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</span>
-            <span class="mypage-persona-meta">${d.age ? d.age + '세' : ''}${d.gender === 'male' ? ' · 남' : d.gender === 'female' ? ' · 여' : ''}</span>
-          </div>
-          <div class="mypage-persona-actions">
-            ${!isDefault ? `<button class="btn-text-link" onclick="setDefaultPersona(${p.id})">기본 설정</button>` : ''}
-            <button class="btn-text-link danger" onclick="deletePersona(${p.id})">삭제</button>
+        <div class="mypage-p-card${isDefault ? ' is-default' : ''}" onclick="openPersonaDetail(${p.id})">
+          <div class="mypage-p-initial">${initial}</div>
+          <div class="mypage-p-overlay">
+            <div class="mypage-p-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</div>
+            ${meta ? `<div class="mypage-p-meta">${meta}</div>` : ''}
+            <div class="mypage-p-actions">
+              ${!isDefault ? `<button class="mypage-card-action-btn" onclick="event.stopPropagation();setDefaultPersona(${p.id})">기본 설정</button>` : ''}
+              <button class="mypage-card-action-btn danger" onclick="event.stopPropagation();deletePersona(${p.id})">삭제</button>
+            </div>
           </div>
         </div>`;
     }).join('');
   } catch (_) {
-    list.innerHTML = '<p class="mypage-empty">불러오기 실패</p>';
+    list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">불러오기 실패</p>';
   }
+}
+
+function openPersonaDetail(id) {
+  navigateTo(`/persona/${id}`);
 }
 
 function newPersonaFromMypage() {
@@ -1842,20 +2311,51 @@ function loadMypageChars() {
   const list = document.getElementById('mypage-chars-list');
   const mine = characters.filter(c => c.id.startsWith('char_'));
   if (!mine.length) {
-    list.innerHTML = '<p class="mypage-empty">제작한 캐릭터가 없습니다.</p>';
+    list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">제작한 캐릭터가 없습니다.</p>';
     return;
   }
   list.innerHTML = mine.map(c => `
-    <div class="mypage-char-row">
-      <button class="mypage-char-info mypage-char-link" onclick="navigateTo('/character/${c.id}')">
-        ${c.image ? `<img src="${c.image}" class="mypage-char-thumb" alt="">` : '<div class="mypage-char-thumb mypage-char-thumb-empty">✦</div>'}
-        <span>${c.name}</span>
-      </button>
-      <div class="mypage-char-actions">
-        <button class="mypage-char-action-btn" onclick="editMypageChar('${c.id}')">수정</button>
-        <button class="mypage-char-action-btn danger" onclick="deleteMypageChar('${c.id}')">삭제</button>
+    <div class="mypage-char-card-wrap">
+      <div class="char-card" onclick="navigateTo('/character/${c.id}')">
+        ${c.image ? `<img class="char-card-img" src="${c.image}" alt="">` : '<div class="char-card-img char-card-img-empty">✦</div>'}
+        <div class="char-card-overlay">
+          <div class="char-card-name">${c.name}</div>
+          ${c.role ? `<div class="char-card-role">${c.role}</div>` : ''}
+        </div>
+      </div>
+      <div class="mypage-char-card-actions">
+        <button class="mypage-card-action-btn" onclick="event.stopPropagation();editMypageChar('${c.id}')">편집</button>
+        <button class="mypage-card-action-btn danger" onclick="event.stopPropagation();deleteMypageChar('${c.id}')">삭제</button>
       </div>
     </div>`).join('');
+}
+
+// ── Bookmarked characters ─────────────────────────────────
+async function loadMypageBookmarks() {
+  const panel = document.getElementById('mypage-panel-bookmark');
+  if (!panel) return;
+  try {
+    const res = await fetch('/api/bookmarks');
+    if (!res.ok) throw new Error();
+    const ids = await res.json();
+    if (!ids.length) {
+      panel.innerHTML = '<p class="mypage-empty" style="padding:48px 0;text-align:center;">아직 책갈피한 캐릭터가 없습니다.</p>';
+      return;
+    }
+    const bookmarked = ids.map(id => characters.find(c => c.id === id)).filter(Boolean);
+    if (!bookmarked.length) {
+      panel.innerHTML = '<p class="mypage-empty" style="padding:48px 0;text-align:center;">아직 책갈피한 캐릭터가 없습니다.</p>';
+      return;
+    }
+    panel.innerHTML = `<div class="mypage-card-grid">${bookmarked.map(c => `
+      <div class="char-card" onclick="navigateTo('/character/${c.id}')">
+        ${c.image ? `<img class="char-card-img" src="${c.image}" alt="">` : '<div class="char-card-img char-card-img-empty">✦</div>'}
+        <div class="char-card-overlay">
+          <div class="char-card-name">${c.name}</div>
+          ${c.role ? `<div class="char-card-role">${c.role}</div>` : ''}
+        </div>
+      </div>`).join('')}</div>`;
+  } catch (_) {}
 }
 
 async function editMypageChar(id) {
@@ -1874,6 +2374,7 @@ async function editMypageChar(id) {
       occupation:    cfg.role || '',
       subtitle:      cfg.subtitle || '',
       hasProfanity:  cfg.defaultSafety === 'off',
+      tags:          Array.isArray(cfg.tags) ? cfg.tags : [],
       appearance:    bd.appearance    || '',
       personality:   bd.personality   || '',
       speechStyle:   bd.speechStyle   || '',

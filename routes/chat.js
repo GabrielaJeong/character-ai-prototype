@@ -13,8 +13,9 @@ const ALLOWED_MODELS = new Set([
   'claude-haiku-4-5-20251001',
   'gemini-2.5-flash',
   'gemini-2.5-pro',
+  'gemini-3.1-pro-preview',
 ]);
-const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro']);
+const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 
@@ -73,7 +74,7 @@ router.post('/', async (req, res) => {
 
   const noteRow      = stmt.getNote.get(sessionId);
   const safety       = session.safety || 'on';
-  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '', safety);
+  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '', safety, model);
 
   try {
     const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });

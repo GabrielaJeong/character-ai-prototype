@@ -49,6 +49,14 @@ db.exec(`
     sess    TEXT    NOT NULL,
     expired INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS bookmarks (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    character_id TEXT    NOT NULL,
+    created_at   INTEGER DEFAULT (unixepoch()),
+    UNIQUE(user_id, character_id)
+  );
 `);
 
 // ── Migrations (idempotent) ───────────────────────────────
@@ -122,6 +130,12 @@ const stmt = {
   getPersonaById:      db.prepare('SELECT * FROM personas WHERE id = ? AND user_id = ?'),
   updatePersona:       db.prepare('UPDATE personas SET data = ? WHERE id = ? AND user_id = ?'),
   deletePersona:       db.prepare('DELETE FROM personas WHERE id = ? AND user_id = ?'),
+
+  // ── Bookmarks ────────────────────────────────────────────
+  addBookmark:          db.prepare('INSERT OR IGNORE INTO bookmarks (user_id, character_id) VALUES (?, ?)'),
+  removeBookmark:       db.prepare('DELETE FROM bookmarks WHERE user_id = ? AND character_id = ?'),
+  getBookmarksByUser:   db.prepare('SELECT character_id, created_at FROM bookmarks WHERE user_id = ? ORDER BY created_at DESC'),
+  getBookmark:          db.prepare('SELECT id FROM bookmarks WHERE user_id = ? AND character_id = ?'),
 
   // ── Auth sessions (SQLite session store) ─────────────────
   sessionGet:     db.prepare('SELECT sess FROM auth_sessions WHERE sid = ? AND expired > ?'),

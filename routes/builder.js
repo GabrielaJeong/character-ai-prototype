@@ -3,8 +3,16 @@ const router    = express.Router();
 const fs        = require('fs');
 const path      = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
+const { callGemini } = require('../lib/gemini');
 
 const client = new Anthropic();
+
+const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
+const ALLOWED_MODELS    = new Set([
+  'claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001',
+  'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview',
+]);
+const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 
 const AGENT_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'builder', 'agent.md');
 
@@ -13,13 +21,14 @@ const AGENT_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'builder', 'agen
 const builderSessions = new Map();
 
 // POST /api/builder/chat
-// Body: { builderSessionId?, message }
+// Body: { builderSessionId?, message, model? }
 // Returns: { reply, builderSessionId, isReady }
 router.post('/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
 
-  const sid = req.body.builderSessionId ||
+  const model = ALLOWED_MODELS.has(req.body.model) ? req.body.model : DEFAULT_MODEL;
+  const sid   = req.body.builderSessionId ||
     ('b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5));
 
   const history = builderSessions.get(sid) || [];
@@ -28,14 +37,19 @@ router.post('/chat', async (req, res) => {
   try {
     const agentPrompt = fs.readFileSync(AGENT_PROMPT_PATH, 'utf-8');
 
-    const response = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 2048,
-      system:     agentPrompt,
-      messages:   history,
-    });
+    let reply;
+    if (GEMINI_MODELS.has(model)) {
+      reply = await callGemini({ model, systemInstruction: agentPrompt, history, maxTokens: 2048 });
+    } else {
+      const response = await client.messages.create({
+        model,
+        max_tokens: 2048,
+        system:     agentPrompt,
+        messages:   history,
+      });
+      reply = response.content[0].text;
+    }
 
-    const reply = response.content[0].text;
     history.push({ role: 'assistant', content: reply });
     builderSessions.set(sid, history);
 
