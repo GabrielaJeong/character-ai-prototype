@@ -1,11 +1,23 @@
-<!-- changelog-last-commit: 6b9f55e75297aa1cb42b2d6e2f6be27e9c9bd39b -->
-<!-- changelog-last-version: 0.10 -->
+<!-- changelog-last-commit: df291ac25945a93c8656611c263012ff311b097f -->
+<!-- changelog-last-version: 0.11 -->
+
 
 
 # Folio — 업데이트 로그
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.11 — 2026-04-13
+**adult content system, character config updates, README refresh**
+- db: add adult_content_enabled / adult_verified columns + prepared stmts
+- auth: POST /adult-verify and PATCH /adult-content endpoints
+- characters: filter adult_only by user adult_content_enabled flag
+- personas: minor route fixes
+- prompts: update character config.json files
+- README: update live URL, model list, feature list, tech stack
 
 ---
 
