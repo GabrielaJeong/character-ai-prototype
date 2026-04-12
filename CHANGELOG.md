@@ -1,10 +1,21 @@
-<!-- changelog-last-commit: 113acc65e189be5bb0ff7f6183aa9fe588e3500e -->
-<!-- changelog-last-version: 0.9 -->
+<!-- changelog-last-commit: 6b9f55e75297aa1cb42b2d6e2f6be27e9c9bd39b -->
+<!-- changelog-last-version: 0.10 -->
+
 
 # Folio — 업데이트 로그
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.10 — 2026-04-13
+**componentize UI — content-header, select-card, tab-header-with-subtitle**
+- Add .content-header / .content-header-title / .content-header-desc component
+- Add .tab-header-with-subtitle + .tab-header-title-row modifier for builder home
+- Reduce .select-card-icon from 44×44 to 40×40px for better emoji/SVG proportion
+- Fix _routePersonaNew(): reset persona-subtitle and p-notes placeholder to
+- Fix syncUserPlaceholders(): guard with _personaMode === 'standalone' and
 
 ---
 
