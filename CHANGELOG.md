@@ -11,23 +11,22 @@
 ---
 
 ## v0.11 — 2026-04-13
-**adult content system, character config updates, README refresh**
-- db: add adult_content_enabled / adult_verified columns + prepared stmts
-- auth: POST /adult-verify and PATCH /adult-content endpoints
-- characters: filter adult_only by user adult_content_enabled flag
-- personas: minor route fixes
-- prompts: update character config.json files
-- README: update live URL, model list, feature list, tech stack
+**성인 콘텐츠 등급 시스템 및 캐릭터 설정 업데이트**
+- users 테이블에 `adult_content_enabled` / `adult_verified` 컬럼 추가
+- 성인 최초 인증 API (POST /adult-verify) 및 ON/OFF 토글 API (PATCH /adult-content) 추가
+- 캐릭터 목록 조회 시 유저의 성인 인증 여부에 따라 `adult_only` 캐릭터 필터링
+- 캐릭터 config.json 파일 업데이트 (rating 필드 정비)
+- README 업데이트: 배포 URL, 지원 모델 목록, 기능 목록, 기술 스택
 
 ---
 
 ## v0.10 — 2026-04-13
-**componentize UI — content-header, select-card, tab-header-with-subtitle**
-- Add .content-header / .content-header-title / .content-header-desc component
-- Add .tab-header-with-subtitle + .tab-header-title-row modifier for builder home
-- Reduce .select-card-icon from 44×44 to 40×40px for better emoji/SVG proportion
-- Fix _routePersonaNew(): reset persona-subtitle and p-notes placeholder to
-- Fix syncUserPlaceholders(): guard with _personaMode === 'standalone' and
+**UI 컴포넌트화 및 페르소나 플로우 버그 수정**
+- `.content-header` / `.content-header-title` / `.content-header-desc` 컴포넌트 추가 — 인라인 스타일로 중복 작성되던 섹션 제목·서브텍스트 패턴 통일
+- 빌더 홈 화면에 `.tab-header-with-subtitle` 적용 — 서브텍스트가 탭 제목과 시각적으로 묶이도록 구조 개선
+- `.select-card-icon` 크기 44×44 → 40×40px 조정 (이모지·SVG 비율 개선)
+- 마이페이지 → 새 페르소나 플로우 진입 시 이전 캐릭터 정보가 subtitle·placeholder에 잔존하던 버그 수정
+- `syncUserPlaceholders()` standalone 모드 가드 추가 및 하드코딩 예시 텍스트 제거
 
 ---
 
