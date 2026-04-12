@@ -39,17 +39,21 @@
           <span class="landing-logo">Foli<span class="logo-o-wrap"><span class="logo-dots"><span class="logo-dot logo-dot-1"></span><span class="logo-dot logo-dot-2"></span></span>o</span></span>
         </div>
         <div class="landing-header-right">
+          <div class="adult-segment" id="adult-segment">
+            <button class="adult-seg-btn active" id="adult-seg-all" onclick="setAdultToggle(false)">전연령</button>
+            <button class="adult-seg-btn"        id="adult-seg-18"  onclick="setAdultToggle(true)">성인</button>
+          </div>
           <button class="btn-icon" onclick="navigateTo('/mypage')">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <line x1="2" y1="5" x2="16" y2="5"/>
-              <line x1="2" y1="9" x2="16" y2="9"/>
-              <line x1="2" y1="13" x2="16" y2="13"/>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+              <circle cx="3.5" cy="9" r="1.6"/>
+              <circle cx="9"   cy="9" r="1.6"/>
+              <circle cx="14.5" cy="9" r="1.6"/>
             </svg>
           </button>
         </div>
       </div>
 
-      <div class="page-body" style="padding-top:20px;">
+      <div class="page-body">
         <p class="section-label">추천 캐릭터</p>
         <div id="char-grid" class="char-grid">
           <p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>
@@ -108,23 +112,28 @@
   <!-- ── SCREEN 5: History ─────────────────────────────────── -->
   <div id="screen-history" class="screen">
     <div class="page-wrap">
-      <div class="page-nav">
-        <button class="btn-back" onclick="goBack('/')">←</button>
-        <span class="nav-label">Previous Conversations</span>
+      <div class="tab-header">
+        <span class="tab-title">대화</span>
+        <button class="btn-icon" onclick="navigateTo('/mypage')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+            <circle cx="3.5" cy="9" r="1.6"/>
+            <circle cx="9"   cy="9" r="1.6"/>
+            <circle cx="14.5" cy="9" r="1.6"/>
+          </svg>
+        </button>
       </div>
-      <div class="page-body">
-        <div class="history-subheader">
-          <span class="page-title">대화</span>
-          <div id="history-default-actions" class="history-actions">
-            <button class="history-action-btn" onclick="handleDeleteAll()">전체삭제</button>
-            <button class="history-action-btn" onclick="enterSelectMode()">선택삭제</button>
-          </div>
-          <div id="history-select-actions" class="history-actions" style="display:none">
-            <button class="history-action-btn" onclick="exitSelectMode()">취소</button>
-            <button class="history-action-btn history-action-btn--delete" id="btn-confirm-delete" onclick="handleDeleteClick()" disabled>삭제</button>
-          </div>
+      <div class="history-action-bar">
+        <div id="history-default-actions" class="history-actions">
+          <button class="history-action-btn" onclick="handleDeleteAll()">전체삭제</button>
+          <button class="history-action-btn" onclick="enterSelectMode()">선택삭제</button>
         </div>
-        <div id="session-list" style="display:flex;flex-direction:column;gap:10px;margin-top:4px;"></div>
+        <div id="history-select-actions" class="history-actions" style="display:none">
+          <button class="history-action-btn" onclick="exitSelectMode()">취소</button>
+          <button class="history-action-btn history-action-btn--delete" id="btn-confirm-delete" onclick="handleDeleteClick()" disabled>삭제</button>
+        </div>
+      </div>
+      <div class="tab-body">
+        <div id="session-list" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
     </div>
   </div>
@@ -158,15 +167,15 @@
         <div class="intro-img-wrap">
           <img id="intro-img" src="" alt="" class="intro-img" />
         </div>
-        <div>
-          <p class="page-title" id="intro-fullname"></p>
-          <p id="intro-subtitle" style="font-size:13px;color:var(--text-dim);margin-top:2px;"></p>
-          <div id="intro-tags" class="intro-tags"></div>
+        <div class="content-header" style="margin-bottom:0;">
+          <p class="content-header-title" id="intro-fullname"></p>
+          <p class="content-header-desc" id="intro-subtitle"></p>
+          <div id="intro-tags" class="intro-tags" style="margin-top:4px;"></div>
         </div>
         <div class="profile-card" id="intro-profile-card"></div>
         <div class="note-card" id="intro-note-card"></div>
         <div id="intro-worldbuilding"></div>
-        <button class="btn-primary" onclick="navigateTo('/persona')">페르소나 설정하기</button>
+        <button class="btn-primary" onclick="openPersonaSetup()">페르소나 설정하기</button>
       </div>
     </div>
   </div>
@@ -175,52 +184,141 @@
   <div id="screen-persona" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
-        <button class="btn-back" onclick="goBack(`/character/${currentCharacter?.id}`)">←</button>
-        <span class="nav-label">Persona Setup</span>
+        <button class="btn-back" id="persona-back-btn" onclick="personaGoBack()">←</button>
+        <span class="nav-label" id="persona-nav-label">Persona Setup</span>
       </div>
       <div class="page-body">
-        <div>
-          <p class="page-title">당신은 누구인가요?</p>
-          <p style="font-size:13px;color:var(--text-dim);margin-top:4px;" id="persona-subtitle">캐릭터가 당신을 알 수 있도록 정보를 입력해주세요.</p>
+
+        <!-- 선택지 (로그인 + 기존 페르소나 있을 때) -->
+        <div id="persona-choice-wrap" style="display:none;">
+          <div class="content-header">
+            <p class="content-header-title">페르소나 설정</p>
+            <p class="content-header-desc">어떻게 시작하시겠습니까?</p>
+          </div>
+          <div class="select-card-list">
+            <button class="select-card" onclick="showPersonaNewForm()">
+              <span class="select-card-icon">✦</span>
+              <div class="select-card-body">
+                <p class="select-card-title">새로 만들기</p>
+                <p class="select-card-desc">처음부터 페르소나를 작성합니다</p>
+              </div>
+              <span class="select-card-arrow">›</span>
+            </button>
+            <button class="select-card" onclick="navigateTo('/persona/select')">
+              <span class="select-card-icon">◎</span>
+              <div class="select-card-body">
+                <p class="select-card-title">기존 페르소나 선택</p>
+                <p class="select-card-desc">저장된 페르소나를 가져옵니다</p>
+              </div>
+              <span class="select-card-arrow">›</span>
+            </button>
+          </div>
         </div>
 
-        <button class="recommend-btn" onclick="fillRecommended()">
-          ✦ 추천 페르소나 채우기
-        </button>
-
-        <form id="persona-form" onsubmit="startChat(event)" style="display:flex;flex-direction:column;gap:14px;">
-          <div class="form-group">
-            <label>프로필 이미지</label>
-            <div id="persona-avatar-container"></div>
+        <!-- 페르소나 입력 폼 -->
+        <div id="persona-form-wrap">
+          <div class="content-header">
+            <p class="content-header-title">당신은 누구인가요?</p>
+            <p class="content-header-desc" id="persona-subtitle">캐릭터가 당신을 알 수 있도록 정보를 입력해주세요.</p>
           </div>
+          <button class="recommend-btn" id="persona-recommend-btn" onclick="fillRecommended()">
+            ✦ 추천 페르소나 채우기
+          </button>
+          <form id="persona-form" onsubmit="startChat(event)" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="form-group">
+              <label>프로필 이미지</label>
+              <div id="persona-avatar-container"></div>
+            </div>
+            <div class="form-group">
+              <label>이름 <span class="required">*</span></label>
+              <input type="text" id="p-name" placeholder="{{user}}" required oninput="syncUserPlaceholders(this.value)" />
+            </div>
+            <div class="form-group">
+              <label>나이 <span class="required">*</span></label>
+              <input type="number" id="p-age" placeholder="29" min="1" max="99" required />
+            </div>
+            <div class="form-group">
+              <label>성별</label>
+              <div class="gender-btn-group">
+                <button type="button" class="gender-btn" data-value="male" onclick="selectGender('male')">남</button>
+                <button type="button" class="gender-btn" data-value="female" onclick="selectGender('female')">여</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>외형</label>
+              <input type="text" id="p-appearance" placeholder="외모나 스타일을 입력해주세요" />
+            </div>
+            <div class="form-group">
+              <label>성격</label>
+              <textarea id="p-personality" rows="2" placeholder="성격이나 말투를 입력해주세요"></textarea>
+            </div>
+            <div class="form-group">
+              <label>특이사항</label>
+              <textarea id="p-notes" rows="2" placeholder="캐릭터와의 관계 등 특이사항을 입력해주세요"></textarea>
+            </div>
+            <button type="submit" class="btn-primary" id="persona-submit-btn" style="margin-top:4px;">대화 시작</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 3b: Persona Select (목록) ─────────────────── -->
+  <div id="screen-persona-select" class="screen">
+    <div class="page-wrap">
+      <div class="page-nav">
+        <button class="btn-back" onclick="goBack('/persona')">←</button>
+        <span class="nav-label">페르소나 선택</span>
+      </div>
+      <div class="page-body">
+        <p class="content-header-desc">사용할 페르소나를 선택하세요.</p>
+        <div id="persona-select-list" class="mypage-card-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 3c: Persona Select Edit (수정 후 대화) ──────── -->
+  <div id="screen-persona-select-edit" class="screen">
+    <div class="page-wrap">
+      <div class="page-nav">
+        <button class="btn-back" onclick="goBack('/persona/select')">←</button>
+        <span class="nav-label">페르소나 확인</span>
+      </div>
+      <div class="page-body">
+        <div class="content-header">
+          <p class="content-header-title">페르소나 정보</p>
+          <p class="content-header-desc">내용을 수정한 뒤 대화를 시작할 수 있습니다.</p>
+        </div>
+        <form id="pse-form" onsubmit="startChatFromSelected(event)" style="display:flex;flex-direction:column;gap:14px;">
           <div class="form-group">
             <label>이름 <span class="required">*</span></label>
-            <input type="text" id="p-name" placeholder="{{user}}" required oninput="syncUserPlaceholders(this.value)" />
+            <input type="text" id="pse-name" placeholder="{{user}}" required />
           </div>
           <div class="form-group">
             <label>나이 <span class="required">*</span></label>
-            <input type="number" id="p-age" placeholder="29" min="1" max="99" required />
+            <input type="number" id="pse-age" placeholder="29" min="1" max="99" required />
           </div>
           <div class="form-group">
             <label>성별</label>
             <div class="gender-btn-group">
-              <button type="button" class="gender-btn" data-value="male" onclick="selectGender('male')">남</button>
-              <button type="button" class="gender-btn" data-value="female" onclick="selectGender('female')">여</button>
+              <button type="button" class="gender-btn pse-gender-btn" data-value="male"   onclick="selectPseGender('male')">남</button>
+              <button type="button" class="gender-btn pse-gender-btn" data-value="female" onclick="selectPseGender('female')">여</button>
             </div>
           </div>
           <div class="form-group">
             <label>외형</label>
-            <input type="text" id="p-appearance" placeholder="키가 크고 무표정한 인상" />
+            <input type="text" id="pse-appearance" placeholder="키가 크고 무표정한 인상" />
           </div>
           <div class="form-group">
             <label>성격</label>
-            <textarea id="p-personality" rows="2" placeholder="무뚝뚝하고 말이 없는 편"></textarea>
+            <textarea id="pse-personality" rows="2" placeholder="무뚝뚝하고 말이 없는 편"></textarea>
           </div>
           <div class="form-group">
             <label>특이사항</label>
-            <textarea id="p-notes" rows="2" placeholder="이화의 남자친구. 같은 팀 프로파일러."></textarea>
+            <textarea id="pse-notes" rows="2"></textarea>
           </div>
-          <button type="submit" class="btn-primary" style="margin-top:4px;">대화 시작</button>
+          <button type="submit" class="btn-primary" style="margin-top:4px;">캐릭터와 대화하기</button>
         </form>
       </div>
     </div>
@@ -288,10 +386,154 @@
   </div>
 
 
-  <!-- ── SCREEN 6: Builder Chat ────────────────────────────── -->
+  <!-- ── SCREEN 6: Builder Home (제작 방식 선택) ─────────────── -->
+  <div id="screen-builder" class="screen">
+    <div class="page-wrap">
+      <div class="tab-header tab-header-with-subtitle">
+        <div class="tab-header-title-row">
+          <span class="tab-title">캐릭터 제작</span>
+          <span class="btn-icon" style="visibility:hidden;pointer-events:none;" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 18 18"><rect width="18" height="18" fill="none"/></svg>
+          </span>
+        </div>
+        <p class="content-header-desc">어떤 방식으로 만들까요?</p>
+      </div>
+      <div class="tab-body">
+        <div class="select-card-list">
+
+          <button class="select-card" onclick="openBuilderChat()">
+            <div class="select-card-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 2C6.03 2 2 5.58 2 10c0 2.1.9 4 2.36 5.44L3.5 19.5l4.3-1.3A9.3 9.3 0 0 0 11 18.5c4.97 0 9-3.58 9-8s-4.03-8-9-8Z"/>
+                <path d="M8 10h.01M11 10h.01M14 10h.01"/>
+              </svg>
+            </div>
+            <div class="select-card-body">
+              <p class="select-card-title">AI 빌더로 만들기</p>
+              <p class="select-card-desc">AI와 대화하며 캐릭터를 만들어보세요.<br>질문에 답하다 보면 캐릭터가 완성됩니다.</p>
+            </div>
+            <span class="select-card-arrow">›</span>
+          </button>
+
+          <button class="select-card" onclick="openBuilderManual()">
+            <div class="select-card-icon">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h14M4 10h10M4 14h7"/>
+                <path d="M17 14l2 2-4 4-2-2"/>
+              </svg>
+            </div>
+            <div class="select-card-body">
+              <p class="select-card-title">직접 만들기</p>
+              <p class="select-card-desc">캐릭터 설정을 직접 입력해서 만들 수 있습니다.</p>
+            </div>
+            <span class="select-card-arrow">›</span>
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 6b: Builder Manual Form ───────────────────────── -->
+  <div id="screen-builder-manual" class="screen">
+    <div class="page-wrap">
+      <div class="page-nav">
+        <button class="btn-back" onclick="goBack('/builder')">←</button>
+        <span class="nav-label">직접 만들기</span>
+      </div>
+      <div class="page-body">
+        <div class="content-header">
+          <p class="content-header-title">캐릭터 설정</p>
+          <p class="content-header-desc">정보를 직접 입력해 캐릭터를 만들어보세요.</p>
+        </div>
+
+        <form id="builder-manual-form" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
+          <div class="form-group">
+            <label>프로필 이미지</label>
+            <div id="bm-avatar-container"></div>
+          </div>
+          <div class="form-group">
+            <label>캐릭터 이름 <span class="required">*</span></label>
+            <input type="text" id="bm-name" placeholder="이름을 입력하세요" required />
+          </div>
+          <div class="form-group">
+            <label>직업 / 역할</label>
+            <input type="text" id="bm-occupation" placeholder="예) 형사, 마법사, 카페 사장" />
+          </div>
+          <div class="form-group">
+            <label>나이</label>
+            <input type="number" id="bm-age" min="1" max="999" placeholder="숫자 입력" />
+          </div>
+          <div class="form-group">
+            <label>한 줄 소개</label>
+            <input type="text" id="bm-subtitle" placeholder="예) 냉철한 형사이자 팀의 리더" />
+          </div>
+          <div class="form-group">
+            <label>외형 묘사</label>
+            <textarea id="bm-appearance" rows="2" placeholder="키, 체형, 헤어, 눈빛 등"></textarea>
+          </div>
+          <div class="form-group">
+            <label>성격</label>
+            <textarea id="bm-personality" rows="3" placeholder="성격, 가치관, 행동 패턴 등"></textarea>
+          </div>
+          <div class="form-group">
+            <label>말투 / 문체</label>
+            <textarea id="bm-speechStyle" rows="2" placeholder="예) 무뚝뚝하고 짧게 말함. 존댓말 사용하지 않음"></textarea>
+          </div>
+          <div class="form-group">
+            <label>대사 예시 <span class="label-hint">한 줄씩 입력</span></label>
+            <textarea id="bm-speechExamples" rows="4" placeholder="예시 대사 1&#10;예시 대사 2&#10;예시 대사 3"></textarea>
+          </div>
+          <div class="form-group">
+            <label>배경 스토리</label>
+            <textarea id="bm-background" rows="3" placeholder="캐릭터의 과거나 배경을 입력하세요"></textarea>
+          </div>
+          <div class="form-group">
+            <label>세계관 <span class="label-hint">선택</span></label>
+            <textarea id="bm-worldbuilding" rows="2" placeholder="캐릭터가 사는 세계나 시대적 배경"></textarea>
+          </div>
+          <div class="form-group">
+            <label>유저와의 관계 <span class="label-hint">선택</span></label>
+            <textarea id="bm-relationship" rows="2" placeholder="예) 같은 팀 동료, 오랜 친구, 처음 만난 사이"></textarea>
+          </div>
+          <div class="form-group">
+            <label>태그 <span class="label-hint">최소 1개 · 최대 8개</span></label>
+            <div class="tag-input-wrap" id="bm-tag-wrap">
+              <div class="tag-chips" id="bm-tag-chips"></div>
+              <input type="text" id="bm-tag-input" class="tag-text-input" placeholder="태그 입력 후 Enter 또는 ," maxlength="12" />
+            </div>
+            <div class="tag-suggestions">
+              <span class="tag-suggest-label">추천</span>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('현실')">현실</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('판타지')">판타지</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('초자연')">초자연</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('로맨스')">로맨스</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('액션')">액션</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('일상')">일상</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('다정')">다정</button>
+              <button type="button" class="tag-suggest-btn" onclick="addManualTag('차가운')">차가운</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>콘텐츠 등급</label>
+            <div class="rating-select-group" id="bm-rating-group">
+              <button type="button" class="rating-select-btn active" data-value="all_ages"   onclick="selectManualRating('all_ages')">전연령</button>
+              <button type="button" class="rating-select-btn"        data-value="toggleable" onclick="selectManualRating('toggleable')">전연령 / 성인 전환</button>
+              <button type="button" class="rating-select-btn"        data-value="adult_only" onclick="selectManualRating('adult_only')">성인 전용</button>
+            </div>
+            <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">성인 전환: 유저가 Safety 토글로 전환 가능 · 성인 전용: 성인 인증 유저만 접근</p>
+          </div>
+
+          <button type="button" class="btn-primary" style="margin-top:8px;" onclick="registerManualCharacter()">캐릭터 만들기</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 6c: Builder Chat ───────────────────────────────── -->
   <div id="screen-builder-chat" class="screen">
     <div class="chat-header">
-      <button class="btn-back" onclick="goBack('/')">←</button>
+      <button class="btn-back" onclick="goBack('/builder')">←</button>
       <div class="builder-header-avatar">✦</div>
       <div class="chat-header-info">
         <span class="chat-name">Folio Builder</span>
@@ -324,13 +566,13 @@
   <div id="screen-builder-edit" class="screen">
     <div class="page-wrap">
       <div class="page-nav">
-        <button class="btn-back" onclick="goBack('/builder')">←</button>
+        <button class="btn-back" onclick="goBack('/builder/chat')">←</button>
         <span class="nav-label">캐릭터 검토</span>
       </div>
       <div class="page-body">
-        <div>
-          <p class="page-title">캐릭터 검토</p>
-          <p style="font-size:13px;color:var(--text-dim);margin-top:-4px;">내용을 확인하고 수정한 뒤 등록해주세요.</p>
+        <div class="content-header">
+          <p class="content-header-title">캐릭터 검토</p>
+          <p class="content-header-desc">내용을 확인하고 수정한 뒤 등록해주세요.</p>
         </div>
 
         <form id="builder-edit-form" style="display:flex;flex-direction:column;gap:14px;" onsubmit="return false;">
@@ -398,15 +640,14 @@
             <textarea id="be-systemPrompt" rows="10" style="font-size:12px;line-height:1.6;font-family:monospace;"></textarea>
           </div>
 
-          <div class="builder-toggle-row">
-            <div>
-              <p class="builder-toggle-label">욕설 / 성인 표현 허용</p>
-              <p class="builder-toggle-desc">욕설, 공격적 표현, 성인 묘사 허용 여부</p>
+          <div class="form-group">
+            <label>콘텐츠 등급</label>
+            <div class="rating-select-group" id="be-rating-group">
+              <button type="button" class="rating-select-btn active" data-value="all_ages"   onclick="selectBuilderRating('all_ages')">전연령</button>
+              <button type="button" class="rating-select-btn"        data-value="toggleable" onclick="selectBuilderRating('toggleable')">전연령 / 성인 전환</button>
+              <button type="button" class="rating-select-btn"        data-value="adult_only" onclick="selectBuilderRating('adult_only')">성인 전용</button>
             </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="be-profanity-toggle" />
-              <span class="toggle-thumb"></span>
-            </label>
+            <p style="font-size:11px;color:var(--text-dim);margin-top:6px;">성인 전환: 유저가 Safety 토글로 전환 가능 · 성인 전용: 성인 인증 유저만 접근</p>
           </div>
 
           <button type="button" class="btn-primary" onclick="registerCharacter()">캐릭터 등록하기</button>
@@ -419,8 +660,15 @@
   <!-- ── SCREEN 9: Explore ────────────────────────────────── -->
   <div id="screen-explore" class="screen">
     <div class="page-wrap">
-      <div class="explore-header">
-        <span class="explore-title">탐색</span>
+      <div class="tab-header">
+        <span class="tab-title">탐색</span>
+        <button class="btn-icon" onclick="navigateTo('/mypage')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+            <circle cx="3.5" cy="9" r="1.6"/>
+            <circle cx="9"   cy="9" r="1.6"/>
+            <circle cx="14.5" cy="9" r="1.6"/>
+          </svg>
+        </button>
       </div>
       <div class="explore-search-wrap">
         <div class="search-input-row">
@@ -431,7 +679,7 @@
         </div>
       </div>
       <div class="explore-tag-bar" id="explore-tag-bar"></div>
-      <div class="explore-body">
+      <div class="tab-body">
         <div id="explore-grid" class="char-grid"></div>
       </div>
     </div>
@@ -446,8 +694,8 @@
       </div>
       <div class="page-body">
         <div id="auth-login-view">
-          <p class="page-title">로그인</p>
-          <form id="login-form" onsubmit="submitLogin(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:24px;">
+          <p class="content-header-title">로그인</p>
+          <form id="login-form" onsubmit="submitLogin(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
             <div class="form-group">
               <label>이메일</label>
               <input type="email" id="login-email" placeholder="hello@example.com" autocomplete="email" />
@@ -465,8 +713,8 @@
         </div>
 
         <div id="auth-register-view" style="display:none;">
-          <p class="page-title">회원가입</p>
-          <form id="register-form" onsubmit="submitRegister(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:24px;">
+          <p class="content-header-title">회원가입</p>
+          <form id="register-form" onsubmit="submitRegister(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
             <div class="form-group">
               <label>이메일</label>
               <input type="email" id="reg-email" placeholder="hello@example.com" autocomplete="email"
@@ -502,12 +750,13 @@
         <span class="nav-label">페르소나</span>
       </div>
       <div class="page-body">
-        <div class="pd-avatar-wrap">
-          <div class="pd-avatar" id="pd-avatar-letter"></div>
-        </div>
-        <div>
-          <p class="page-title" id="pd-name"></p>
-          <p class="pd-meta" id="pd-meta"></p>
+        <!-- 숨김 파일 input -->
+        <input type="file" id="pd-img-input" accept="image/*" style="display:none;" onchange="onPdImgSelected(this)">
+        <!-- 프로필 카드 (3:4) — 클릭 시 이미지 등록 -->
+        <div class="pd-card-wrap">
+          <div class="pd-card" id="pd-card" onclick="document.getElementById('pd-img-input').click()">
+            <!-- JS로 채움: 이미지 or 노이미지 -->
+          </div>
         </div>
         <div class="profile-card" id="pd-profile-card"></div>
         <div class="pd-actions" id="pd-actions"></div>
@@ -518,11 +767,13 @@
   <!-- ── SCREEN 11: Mypage ─────────────────────────────────── -->
   <div id="screen-mypage" class="screen">
     <div class="page-wrap">
-      <div class="page-nav">
-        <button class="btn-back" onclick="goBack('/')">←</button>
-        <span class="nav-label">마이페이지</span>
+      <div class="tab-header">
+        <span class="tab-title">마이페이지</span>
+        <span class="btn-icon" style="visibility:hidden;pointer-events:none;" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 18 18"><rect width="18" height="18" fill="none"/></svg>
+        </span>
       </div>
-      <div class="page-body">
+      <div class="tab-body">
         <!-- 프로필 -->
         <div class="mypage-profile">
           <div class="mypage-avatar-wrap" onclick="triggerAvatarUpload()">
@@ -544,6 +795,16 @@
           <button class="mypage-row" onclick="openMypageModal('info')">
             <span>내 정보 수정하기</span><span class="mypage-row-arrow">›</span>
           </button>
+          <div class="mypage-row mypage-row-toggle">
+            <div>
+              <span>성인 콘텐츠 허용</span>
+              <p class="mypage-row-sub" id="adult-mypage-sub">성인 인증 후 이용 가능</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="adult-mypage-toggle" onchange="onMypageAdultToggle(this)" />
+              <span class="toggle-thumb"></span>
+            </label>
+          </div>
         </div>
 
         <!-- 탭 바 -->
@@ -556,6 +817,9 @@
 
         <!-- 탭 패널: 내 페르소나 -->
         <div class="mypage-tab-panel active" id="mypage-panel-persona">
+          <div class="mypage-panel-topbar">
+            <button class="mypage-card-action-btn danger" id="btn-delete-all-personas" onclick="deleteAllPersonas()" style="display:none;">전체삭제</button>
+          </div>
           <div id="mypage-personas-list" class="mypage-card-grid"></div>
           <button class="mypage-add-btn" onclick="newPersonaFromMypage()">+ 새 페르소나 만들기</button>
         </div>
@@ -597,6 +861,22 @@
   <div id="mypage-modal-overlay" class="delete-modal-overlay" onclick="closeMypageModal(event)">
     <div class="delete-modal" style="gap:0;">
       <div id="mypage-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ── Adult verification modal ────────────────────────── -->
+  <div id="adult-verify-overlay" class="delete-modal-overlay" onclick="closeAdultVerify(event)">
+    <div class="delete-modal">
+      <p class="delete-modal-title">성인 콘텐츠 이용 인증</p>
+      <p class="delete-modal-desc" style="margin-bottom:18px;">성인 콘텐츠에는 폭력적이거나 선정적인 내용이 포함될 수 있습니다. 만 19세 미만은 이용이 제한됩니다.</p>
+      <label class="adult-verify-check-row" id="adult-verify-label">
+        <input type="checkbox" id="adult-verify-check" onchange="document.getElementById('adult-verify-confirm').disabled=!this.checked" />
+        <span>본인은 만 19세 이상임을 확인합니다.</span>
+      </label>
+      <div class="delete-modal-actions" style="margin-top:20px;">
+        <button class="btn-ghost" onclick="closeAdultVerify()">취소</button>
+        <button class="btn-primary" id="adult-verify-confirm" disabled onclick="confirmAdultVerify()" style="flex:1;">확인</button>
+      </div>
     </div>
   </div>
 

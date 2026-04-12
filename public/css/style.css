@@ -112,6 +112,7 @@ body {
   flex: 1;
   height: 100%;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 .screen.active { display: flex; }
 
@@ -132,29 +133,54 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 36px 20px 20px 28px;
+  padding: 40px 20px 0;
   flex-shrink: 0;
 }
 
 /* ── 탐색 화면 ───────────────────────────────────────────── */
-.explore-header {
-  padding: 40px 20px 12px 20px;
+/* ── 탭 페이지 공통 헤더 컴포넌트 ──────────────────────── */
+.tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 20px 0;
   flex-shrink: 0;
 }
-.explore-title {
+.tab-header-with-subtitle {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.tab-header-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.tab-title {
   font-size: 22px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.01em;
 }
+.tab-body {
+  padding: 20px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* ── 탐색 전용 검색/태그 ──────────────────────────────── */
 .explore-search-wrap {
-  padding: 0 20px 12px;
+  padding: 20px 20px 0;
   flex-shrink: 0;
 }
 .explore-tag-bar {
   display: flex;
   gap: 7px;
-  padding: 0 20px 14px;
+  padding: 14px 20px 0;
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
@@ -181,10 +207,6 @@ body {
   color: #5B8FB9;
   background: rgba(91, 143, 185, 0.12);
   border-color: rgba(91, 143, 185, 0.4);
-}
-.explore-body {
-  padding: 0 20px 40px;
-  flex: 1;
 }
 .explore-empty {
   font-size: 13px;
@@ -240,14 +262,13 @@ body {
 
 .landing-header-left {
   display: flex;
-  flex-direction: column;
+  align-items: center;
 }
 
 .landing-header-right {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: -8px; /* align with logo visually */
+  gap: 10px;
 }
 
 .btn-icon {
@@ -796,6 +817,25 @@ body {
   font-weight: 400;
   color: var(--text);
   margin-bottom: 4px;
+}
+
+/* ── Content Header component (section title + subtitle) ─── */
+.content-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.content-header-title {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.content-header-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
 }
 
 /* Profile table */
@@ -1463,19 +1503,18 @@ body {
 }
 
 /* ── History Subheader ───────────────────────────────────── */
-.history-subheader {
+.history-action-bar {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-.history-subheader .page-title {
-  margin: 0;
+  gap: 12px;
+  padding: 12px 20px 0;
+  flex-shrink: 0;
 }
 .history-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 .history-action-btn {
   font-size: 12px;
@@ -1483,7 +1522,7 @@ body {
   color: var(--text-muted);
   background: none;
   border: none;
-  padding: 4px 2px;
+  padding: 0;
   cursor: pointer;
   transition: color 0.15s;
 }
@@ -2163,6 +2202,66 @@ body {
 #screen-builder-chat { overflow: hidden; }
 
 /* Header avatar — ✦ symbol circle */
+/* ── Builder 방식 선택 ───────────────────────────────────── */
+/* ── 공통 선택 카드 컴포넌트 ─────────────────────────────── */
+.select-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.select-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+}
+.select-card:hover {
+  border-color: var(--accent-dim);
+  background: rgba(91,143,185,0.05);
+}
+.select-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(91,143,185,0.1);
+  border: 1px solid rgba(91,143,185,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.select-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.select-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.select-card-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.select-card-arrow {
+  font-size: 20px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── Builder 헤더 아바타 ─────────────────────────────────── */
 .builder-header-avatar {
   width:           34px;
   height:          34px;
@@ -2416,33 +2515,33 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 20px 0 4px;
+  padding: 8px 0 4px;
 }
 
 .mypage-avatar {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: var(--accent-dim);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
 }
 
 .mypage-nickname {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text);
 }
 
 .mypage-email {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-dim);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .mypage-section {
@@ -2470,6 +2569,9 @@ body {
 .mypage-row:last-child { border-bottom: none; }
 .mypage-row:hover { background: rgba(255,255,255,0.03); }
 .mypage-row-arrow { color: var(--text-dim); font-size: 18px; }
+.mypage-row-toggle { cursor: default; }
+.mypage-row-toggle:hover { background: none; }
+.mypage-row-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
 
 .mypage-empty {
   font-size: 13px;
@@ -2554,8 +2656,8 @@ body {
   flex-shrink: 0;
 }
 .mypage-avatar-img {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -2652,6 +2754,14 @@ body {
 }
 @keyframes mpFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+/* ── Tab panel topbar ────────────────────────────────────── */
+.mypage-panel-topbar {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 20px;
+  margin-bottom: 10px;
+}
+
 /* ── Shared card grid (persona + char) ───────────────────── */
 .mypage-card-grid {
   display: grid;
@@ -2671,10 +2781,37 @@ body {
   overflow: hidden;
   background: linear-gradient(160deg, #1c2135 0%, #252b40 100%);
   border: 1px solid var(--border);
-  cursor: default;
+  cursor: pointer;
 }
 .mypage-p-card.is-default {
   border-color: var(--accent);
+}
+/* 이미지 있는 카드 */
+.mypage-p-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* 이미지 없는 카드 — 중앙 아이콘 영역 */
+.mypage-p-no-img {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mypage-p-add-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.35);
 }
 .mypage-p-initial {
   position: absolute;
@@ -2694,7 +2831,11 @@ body {
   left: 0;
   right: 0;
   padding: 12px 12px 14px;
-  background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%);
+}
+/* 이미지 없는 카드는 오버레이 더 연하게 */
+.mypage-p-card:not(.has-image) .mypage-p-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0) 100%);
 }
 .mypage-p-name {
   font-size: 13px;
@@ -2746,43 +2887,121 @@ body {
 .mypage-card-action-btn.danger { color: rgba(224,108,117,0.7); }
 .mypage-card-action-btn:hover { opacity: 0.8; }
 
-/* ── Persona detail screen ───────────────────────────────── */
-.pd-avatar-wrap {
+/* ── Persona form/choice wrappers ───────────────────────── */
+#persona-form-wrap,
+#persona-choice-wrap {
   display: flex;
-  justify-content: center;
-  padding: 8px 0 4px;
+  flex-direction: column;
+  gap: 16px;
 }
-.pd-avatar {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: linear-gradient(160deg, #1c2135 0%, #2a3050 100%);
+#persona-choice-wrap { display: none; } /* JS로 제어, 기본 숨김 */
+
+/* ── Persona choice cards ────────────────────────────────── */
+/* persona-choice → select-card 컴포넌트로 통합 */
+
+/* ── Persona detail screen ───────────────────────────────── */
+.pd-card-wrap {
+  padding: 4px 0 0;
+}
+.pd-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: linear-gradient(160deg, #1c2135 0%, #252b40 100%);
   border: 1px solid var(--border);
+  cursor: pointer;
+}
+/* 이미지 업로드 호버 힌트 */
+.pd-card::after {
+  content: '사진 변경';
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.55);
-  letter-spacing: -1px;
-}
-.pd-meta {
+  background: rgba(0,0,0,0.45);
+  color: rgba(255,255,255,0.85);
   font-size: 13px;
-  color: var(--text-dim);
-  margin-top: 4px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.pd-card:hover::after { opacity: 1; }
+/* 이미지 있는 경우 */
+.pd-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* 이미지 없는 경우 — 중앙 아이콘 */
+.pd-card-no-img {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pd-card-no-img-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.3);
+}
+/* 하단 오버레이 — 이름/나이/성별 */
+.pd-card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 28px 14px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+}
+.pd-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 3px;
+}
+.pd-card-meta {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
 }
 .pd-actions {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   margin-top: 4px;
+  width: 100%;
 }
 .pd-default-label {
-  flex: 1;
-  font-size: 12px;
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
+  font-size: 13px;
+  color: var(--accent);
+  text-align: center;
+  padding: 10px 0;
 }
+.pd-delete-link {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-family: var(--font);
+  color: #e05555;
+  cursor: pointer;
+  padding: 4px 0;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+}
+.pd-delete-link:hover { opacity: 1; }
 
 /* ── Add button ──────────────────────────────────────────── */
 .mypage-add-btn {
@@ -2827,4 +3046,92 @@ body {
   color: var(--text-dim);
   font-size: 12px;
   pointer-events: none;
+}
+
+/* ── Adult content toggle (main landing) ─────────────────── */
+.adult-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  margin-bottom: 4px;
+}
+.adult-toggle-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.adult-segment {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.adult-seg-btn {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-family: var(--font);
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.adult-seg-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.adult-seg-btn:last-child.active {
+  background: #c94f4f;
+  color: #fff;
+}
+
+/* ── Adult verify modal check row ────────────────────────── */
+.adult-verify-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.adult-verify-check-row input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ── Builder rating select ────────────────────────────────── */
+.rating-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rating-select-btn {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+.rating-select-btn.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.rating-select-btn[data-value="adult_only"].active {
+  border-color: #c94f4f;
 }

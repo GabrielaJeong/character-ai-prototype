@@ -154,6 +154,7 @@ function createChatInput(container, { inputId, btnId, onSend, placeholder = '메
 // ─── Avatar upload state (populated by components) ───────
 let personaAvatarUpload = null;  // persona setup screen
 let builderAvatarUpload = null;  // builder edit screen
+let manualAvatarUpload  = null;  // manual builder screen
 
 // ─── Splash ───────────────────────────────────────────────
 let _splashDone  = false;
@@ -180,6 +181,10 @@ window.addEventListener('DOMContentLoaded', () => {
   );
   builderAvatarUpload = createAvatarUpload(
     document.getElementById('builder-avatar-container'),
+    { hint: '캐릭터 프로필 이미지 (선택)' }
+  );
+  manualAvatarUpload = createAvatarUpload(
+    document.getElementById('bm-avatar-container'),
     { hint: '캐릭터 프로필 이미지 (선택)' }
   );
 
@@ -346,10 +351,6 @@ function populateIntroScreen(char) {
     wbEl.innerHTML = '';
   }
 
-  // Persona subtitle hint
-  document.getElementById('persona-subtitle').textContent =
-    `${char.name}이(가) 당신을 알 수 있도록 정보를 입력해주세요.`;
-
   // Safety segment control
   mountSafetySegment(char);
 
@@ -410,15 +411,19 @@ let _safetySegment = null;  // current mounted instance
 function setSafety(_value) { /* kept for legacy inline calls — no-op, handled by component */ }
 
 function mountSafetySegment(char) {
-  const canToggle     = char.safetyToggle !== false;
+  // toggleable 캐릭터라도 성인 인증 없으면 전연령 고정
+  const adultEnabled  = !!_currentUser?.adult_content_enabled;
+  const ratingLocked  = char.rating === 'toggleable' && !adultEnabled;
+  const canToggle     = char.safetyToggle !== false && !ratingLocked;
   const defaultSafety = char.defaultSafety === 'off' ? 'off' : 'on';
-  currentSafety = defaultSafety;
+  // 잠긴 경우 전연령 강제
+  currentSafety = ratingLocked ? 'on' : defaultSafety;
 
   _safetySegment = createSafetySegment(
     document.getElementById('safety-segment-container'),
     {
       canToggle,
-      defaultSafety,
+      defaultSafety: currentSafety,
       onChange: (value) => { currentSafety = value; },
     }
   );
@@ -668,7 +673,7 @@ function showScreen(id) {
 
   // Bottom nav: hidden in chat screens and login
   const nav = document.getElementById('bottom-nav');
-  const noNavScreens = ['screen-chat', 'screen-builder-chat', 'screen-builder-loading', 'screen-login'];
+  const noNavScreens = ['screen-chat', 'screen-builder-chat', 'screen-builder-loading', 'screen-builder-manual', 'screen-login', 'screen-persona-select', 'screen-persona-select-edit'];
   if (nav) nav.classList.toggle('hidden', noNavScreens.includes(id));
   updateNavActiveTab(id);
 }
@@ -679,21 +684,29 @@ function showScreen(id) {
 //   /history                   → session history list
 //   /character/:id             → character intro
 //   /character/:id/chat        → chat
-//   /persona                   → persona setup (requires currentCharacter)
-//   /persona/:id               → persona detail (auth required)
+//   /persona                   → persona setup (choice or form, requires currentCharacter)
+//   /persona/new               → standalone persona creation (no character needed)
+//   /persona/select            → persona select list (requires currentCharacter)
+//   /persona/select/:id        → persona select edit (requires currentCharacter)
+//   /persona/:id               → persona detail page (auth required)
 //   /builder                   → builder chat
 //   /builder/preview           → builder edit/preview
 //   /login                     → login / register
 //   /mypage                    → mypage (auth required)
 const ROUTES = [
-  { pattern: /^\/character\/([^/]+)\/chat$/,    handler: (m) => _routeChat(m[1])           },
-  { pattern: /^\/character\/([^/]+)$/,          handler: (m) => _routeIntro(m[1])          },
-  { pattern: /^\/persona\/(\d+)$/,              handler: (m) => _routePersonaDetail(m[1])  },
-  { pattern: /^\/explore$/,                     handler: ()  => _routeExplore()            },
+  { pattern: /^\/character\/([^/]+)\/chat$/,    handler: (m) => _routeChat(m[1])              },
+  { pattern: /^\/character\/([^/]+)$/,          handler: (m) => _routeIntro(m[1])             },
+  { pattern: /^\/persona\/new$/,                handler: ()  => _routePersonaNew()            },
+  { pattern: /^\/persona\/select\/(\d+)$/,      handler: (m) => _routePersonaSelectEdit(m[1]) },
+  { pattern: /^\/persona\/select$/,             handler: ()  => _routePersonaSelect()         },
+  { pattern: /^\/persona\/(\d+)$/,              handler: (m) => _routePersonaDetail(m[1])     },
+  { pattern: /^\/explore$/,                     handler: ()  => _routeExplore()               },
   { pattern: /^\/history$/,                     handler: ()  => _routeGated('screen-history')      },
-  { pattern: /^\/persona$/,                     handler: ()  => showScreen('screen-persona')       },
-  { pattern: /^\/builder\/preview$/,            handler: ()  => _routeGated('screen-builder-edit') },
-  { pattern: /^\/builder$/,                     handler: ()  => _routeGated('screen-builder-chat') },
+  { pattern: /^\/persona$/,                     handler: ()  => _routePersonaLinked()              },
+  { pattern: /^\/builder\/preview$/,            handler: ()  => _routeGated('screen-builder-edit')   },
+  { pattern: /^\/builder\/chat$/,               handler: ()  => _routeGated('screen-builder-chat')   },
+  { pattern: /^\/builder\/manual$/,             handler: ()  => _routeGated('screen-builder-manual') },
+  { pattern: /^\/builder$/,                     handler: ()  => _routeGated('screen-builder')        },
   { pattern: /^\/login$/,                       handler: ()  => _routeLogin()                      },
   { pattern: /^\/mypage$/,                      handler: ()  => _routeMypage()                     },
   { pattern: /^\/$/,                            handler: ()  => showScreen('screen-landing')       },
@@ -727,6 +740,190 @@ function _routeMypage() {
   showScreen('screen-mypage');
 }
 
+// ── Persona mode state ────────────────────────────────────
+let _personaMode = 'linked'; // 'linked' | 'standalone'
+
+function personaGoBack() {
+  if (_personaMode === 'standalone') goBack('/mypage');
+  else goBack(`/character/${currentCharacter?.id}`);
+}
+
+function showPersonaNewForm() {
+  document.getElementById('persona-choice-wrap').style.display = 'none';
+  document.getElementById('persona-form-wrap').style.display   = 'flex';
+}
+
+// /persona  →  character-linked (choice if has personas)
+// 버튼 클릭 → 비동기 처리 후 화면 전환 (라우터 우회)
+async function openPersonaSetup() {
+  if (!currentCharacter) { navigateTo('/persona/new'); return; }
+  _personaMode = 'linked';
+
+  // UI 기본 세팅
+  const charName = currentCharacter.name || '캐릭터';
+  document.getElementById('persona-nav-label').textContent       = 'Persona Setup';
+  document.getElementById('persona-subtitle').textContent        = `${charName}이(가) 당신을 알 수 있도록 정보를 입력해주세요.`;
+  document.getElementById('persona-recommend-btn').style.display = 'flex';
+  document.getElementById('persona-submit-btn').textContent      = '대화 시작';
+  document.getElementById('p-notes').placeholder                 = `${charName}와(과)의 관계 등 특이사항을 입력해주세요`;
+
+  let showChoice = false;
+  if (_currentUser) {
+    try {
+      const res  = await fetch('/api/personas');
+      const rows = res.ok ? await res.json() : [];
+      showChoice = Array.isArray(rows) && rows.length > 0;
+    } catch (e) {
+      console.error('openPersonaSetup: personas fetch failed', e);
+    }
+  }
+
+  document.getElementById('persona-choice-wrap').style.display = showChoice ? 'flex' : 'none';
+  document.getElementById('persona-form-wrap').style.display   = showChoice ? 'none' : 'flex';
+
+  window.history.pushState({ folio: true }, '', '/persona');
+  showScreen('screen-persona');
+}
+
+// URL 직접 접근 / popstate 대비 (동기 fallback)
+function _routePersonaLinked() {
+  if (!currentCharacter) { navigateTo('/persona/new'); return; }
+  _personaMode = 'linked';
+  // URL 직접 접근: choice 없이 폼 표시
+  document.getElementById('persona-choice-wrap').style.display   = 'none';
+  document.getElementById('persona-form-wrap').style.display     = 'flex';
+  document.getElementById('persona-recommend-btn').style.display = 'flex';
+  document.getElementById('persona-submit-btn').textContent      = '대화 시작';
+  showScreen('screen-persona');
+}
+
+// /persona/new  →  standalone (no character needed)
+function _routePersonaNew() {
+  _personaMode = 'standalone';
+
+  // 폼 완전 초기화 (먼저 실행해서 잔존 데이터 제거)
+  ['p-name', 'p-age', 'p-appearance', 'p-personality', 'p-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  _selectedGender = null;
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+  personaAvatarUpload?.reset?.();
+
+  // UI 설정
+  const $navLabel   = document.getElementById('persona-nav-label');
+  const $choiceWrap = document.getElementById('persona-choice-wrap');
+  const $formWrap   = document.getElementById('persona-form-wrap');
+  const $recommend  = document.getElementById('persona-recommend-btn');
+  const $submit     = document.getElementById('persona-submit-btn');
+
+  if ($navLabel)   $navLabel.textContent    = '새 페르소나';
+  if ($choiceWrap) $choiceWrap.style.display = 'none';
+  if ($formWrap)   $formWrap.style.display   = '';
+  if ($recommend)  $recommend.style.display  = 'none';   // 캐릭터 컨텍스트 없으므로 숨김
+  if ($submit)     $submit.textContent       = '저장하기';
+
+  // 캐릭터 컨텍스트 없으므로 제네릭 텍스트로 리셋
+  const $subtitle = document.getElementById('persona-subtitle');
+  if ($subtitle) $subtitle.textContent = '페르소나 정보를 입력해주세요.';
+  const $notes = document.getElementById('p-notes');
+  if ($notes) $notes.placeholder = '특이사항을 입력해주세요';
+
+  showScreen('screen-persona');
+}
+
+// /persona/select  →  persona list for character-linked selection
+async function _routePersonaSelect() {
+  if (!currentCharacter) { navigateTo('/'); return; }
+  if (!_currentUser)     { navigateTo('/persona'); return; }
+  try {
+    const rows = await (await fetch('/api/personas')).json();
+    const defaultId = _currentUser?.default_persona_id;
+    const list = document.getElementById('persona-select-list');
+    if (!rows.length) {
+      list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;grid-column:1/-1;">저장된 페르소나가 없습니다.</p>';
+    } else {
+      list.innerHTML = rows.map(p => {
+        const d = p.data;
+        const isDefault = p.id === defaultId;
+        const meta = [d.age ? d.age + '세' : '', d.gender === 'male' ? '남' : d.gender === 'female' ? '여' : ''].filter(Boolean).join(' · ');
+        const hasImg = !!d.avatar;
+        return `
+          <div class="mypage-p-card${isDefault ? ' is-default' : ''}${hasImg ? ' has-image' : ''}" onclick="navigateTo('/persona/select/${p.id}')">
+            ${hasImg
+              ? `<img class="mypage-p-img" src="${d.avatar}" alt="${d.name || ''}">`
+              : `<div class="mypage-p-no-img">
+                   <div class="mypage-p-add-icon">
+                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                   </div>
+                 </div>`}
+            <div class="mypage-p-overlay">
+              <div class="mypage-p-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</div>
+              ${meta ? `<div class="mypage-p-meta">${meta}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+    showScreen('screen-persona-select');
+  } catch (_) { navigateTo('/persona'); }
+}
+
+// /persona/select/:id  →  editable pre-filled form → startChatFromSelected
+let _pseGender = null;
+
+async function _routePersonaSelectEdit(id) {
+  if (!currentCharacter) { navigateTo('/'); return; }
+  try {
+    const rows = await (await fetch('/api/personas')).json();
+    const p    = rows.find(r => r.id === Number(id));
+    if (!p) { navigateTo('/persona/select'); return; }
+    const d = p.data;
+
+    document.getElementById('pse-name').value        = d.name        || '';
+    document.getElementById('pse-age').value         = d.age         || '';
+    document.getElementById('pse-appearance').value  = d.appearance  || '';
+    document.getElementById('pse-personality').value = d.personality || '';
+    document.getElementById('pse-notes').value       = d.notes       || '';
+    _pseGender = d.gender || null;
+    document.querySelectorAll('.pse-gender-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.value === _pseGender)
+    );
+    showScreen('screen-persona-select-edit');
+  } catch (_) { navigateTo('/persona/select'); }
+}
+
+function selectPseGender(value) {
+  _pseGender = (_pseGender === value) ? null : value;
+  document.querySelectorAll('.pse-gender-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.value === _pseGender)
+  );
+}
+
+function startChatFromSelected(event) {
+  event.preventDefault();
+  if (!currentCharacter) return;
+  userName = document.getElementById('pse-name').value.trim();
+  const r = t => resolveUser(t, userName);
+  window._persona = {
+    name:        document.getElementById('pse-name').value.trim(),
+    age:         parseInt(document.getElementById('pse-age').value),
+    gender:      _pseGender,
+    appearance:  r(document.getElementById('pse-appearance').value.trim()),
+    personality: r(document.getElementById('pse-personality').value.trim()),
+    notes:       r(document.getElementById('pse-notes').value.trim()),
+  };
+  window._characterId = currentCharacter.id;
+  window._safety      = currentSafety;
+  sessionId    = 'session-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  messageLog   = [];
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('note-dot').style.display = 'none';
+  setModelUI(CHAT_DEFAULT_MODEL);
+  updateChatHeader(currentCharacter);
+  userImageUrl = null;
+  navigateTo(`/character/${currentCharacter.id}/chat`);
+}
+
 async function _routePersonaDetail(id) {
   if (!_currentUser) {
     showAuthGate('페르소나', '페르소나를 보려면 로그인이 필요합니다.', window.location.pathname);
@@ -742,15 +939,40 @@ async function _routePersonaDetail(id) {
   } catch (_) { navigateTo('/mypage'); }
 }
 
+let _pdPersonaId = null;  // 현재 열린 페르소나 ID
+
 function _populatePersonaDetail(p) {
+  _pdPersonaId    = p.id;
   const d         = p.data;
   const isDefault = p.id === _currentUser?.default_persona_id;
   const genderTxt = d.gender === 'male' ? '남성' : d.gender === 'female' ? '여성' : '';
   const metaParts = [d.age ? d.age + '세' : '', genderTxt].filter(Boolean);
+  const metaStr   = metaParts.join(' · ');
+  const nameStr   = d.name || '이름 없음';
 
-  document.getElementById('pd-avatar-letter').textContent = (d.name || '?')[0].toUpperCase();
-  document.getElementById('pd-name').textContent          = d.name || '이름 없음';
-  document.getElementById('pd-meta').textContent          = metaParts.join(' · ');
+  // 3:4 프로필 카드
+  const $card = document.getElementById('pd-card');
+  if (d.avatar) {
+    $card.innerHTML = `
+      <img class="pd-card-img" src="${d.avatar}" alt="${nameStr}">
+      <div class="pd-card-overlay">
+        <div class="pd-card-name">${nameStr}</div>
+        ${metaStr ? `<div class="pd-card-meta">${metaStr}</div>` : ''}
+      </div>`;
+  } else {
+    $card.innerHTML = `
+      <div class="pd-card-no-img">
+        <div class="pd-card-no-img-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+        </div>
+      </div>
+      <div class="pd-card-overlay">
+        <div class="pd-card-name">${nameStr}</div>
+        ${metaStr ? `<div class="pd-card-meta">${metaStr}</div>` : ''}
+      </div>`;
+  }
 
   const fields = [
     d.appearance  && ['외형',   d.appearance],
@@ -770,9 +992,12 @@ function _populatePersonaDetail(p) {
 
   document.getElementById('pd-actions').innerHTML = `
     ${!isDefault
-      ? `<button class="btn-ghost" onclick="setDefaultPersona(${p.id});goBack('/mypage')">기본 설정</button>`
-      : `<p class="pd-default-label">현재 기본 페르소나</p>`}
-    <button class="btn-delete-confirm" onclick="deletePersona(${p.id});navigateTo('/mypage')">삭제</button>
+      ? `<button class="btn-primary" onclick="setDefaultPersona(${p.id});goBack('/mypage')">기본 설정</button>`
+      : `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;">
+           <p class="pd-default-label">✓ 현재 기본 페르소나</p>
+           <button class="pd-delete-link" style="color:var(--text-dim);" onclick="clearDefaultPersona()">기본 해제</button>
+         </div>`}
+    <button class="pd-delete-link" onclick="deletePersona(${p.id});navigateTo('/mypage')">페르소나 삭제</button>
   `;
 }
 
@@ -1172,9 +1397,9 @@ function resolveUser(text, name) {
 }
 
 function syncUserPlaceholders(name) {
-  const display = name.trim() || '{{user}}';
+  if (_personaMode === 'standalone') return;
   const charName = currentCharacter?.name || '캐릭터';
-  document.getElementById('p-notes').placeholder = `${charName}의 남자친구. 같은 팀. (${display} 기준)`;
+  document.getElementById('p-notes').placeholder = `${charName}와(과)의 관계 등 특이사항을 입력해주세요`;
 }
 
 // ─── Recommended Persona ─────────────────────────────────
@@ -1202,8 +1427,32 @@ function selectGender(value) {
 }
 
 // ─── Start Chat ───────────────────────────────────────────
-function startChat(event) {
+async function startChat(event) {
   event.preventDefault();
+
+  // Standalone mode: save persona and go back to mypage
+  if (_personaMode === 'standalone') {
+    const name   = document.getElementById('p-name').value.trim();
+    const avatar = personaAvatarUpload?.getUrl() || null;
+    const data = {
+      name,
+      age:         parseInt(document.getElementById('p-age').value),
+      gender:      _selectedGender,
+      appearance:  document.getElementById('p-appearance').value.trim(),
+      personality: document.getElementById('p-personality').value.trim(),
+      notes:       document.getElementById('p-notes').value.trim(),
+      ...(avatar ? { avatar } : {}),
+    };
+    try {
+      await fetch('/api/personas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data }),
+      });
+      showToast('페르소나가 저장되었습니다.');
+      navigateTo('/mypage');
+    } catch (_) { showToast('저장에 실패했습니다.'); }
+    return;
+  }
 
   if (!currentCharacter) {
     alert('캐릭터를 먼저 선택해주세요.');
@@ -1213,6 +1462,8 @@ function startChat(event) {
   userName = document.getElementById('p-name').value.trim();
   const r  = t => resolveUser(t, userName);
 
+  userImageUrl = personaAvatarUpload?.getUrl() || null;
+
   window._persona = {
     name:        userName,
     age:         parseInt(document.getElementById('p-age').value),
@@ -1220,6 +1471,7 @@ function startChat(event) {
     appearance:  r(document.getElementById('p-appearance').value.trim()),
     personality: r(document.getElementById('p-personality').value.trim()),
     notes:       r(document.getElementById('p-notes').value.trim()),
+    ...(userImageUrl ? { avatar: userImageUrl } : {}),
   };
   window._characterId = currentCharacter.id;
   window._safety      = currentSafety;
@@ -1232,7 +1484,6 @@ function startChat(event) {
   setModelUI(CHAT_DEFAULT_MODEL);
   updateChatHeader(currentCharacter);
 
-  userImageUrl = personaAvatarUpload?.getUrl() || null;
   if (userImageUrl) localStorage.setItem(`user-img:${sessionId}`, userImageUrl);
 
   // Save persona to user account if logged in
@@ -1637,8 +1888,16 @@ let builderSessionId = null;
 let builderCharData  = null;
 let builderSystemMd  = null;
 let _builderTags     = [];   // 태그 편집 중 상태
+let _builderRating   = 'all_ages'; // 'all_ages' | 'toggleable' | 'adult_only'
 
-// ── Tag input logic ───────────────────────────────────────
+function selectBuilderRating(value) {
+  _builderRating = value;
+  document.querySelectorAll('#be-rating-group .rating-select-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.value === value);
+  });
+}
+
+// ── AI Builder tag input ───────────────────────────────────
 function _initTagInput() {
   const input = document.getElementById('be-tag-input');
   if (!input) return;
@@ -1653,7 +1912,6 @@ function _initTagInput() {
     }
   });
   input.addEventListener('input', () => {
-    // 쉼표가 붙어 타이핑된 경우 처리
     if (input.value.includes(',')) {
       input.value.split(',').forEach(t => _addBuilderTag(t));
       input.value = '';
@@ -1685,11 +1943,159 @@ function _renderBuilderTags() {
     `<span class="tag-chip">#${t}<button type="button" class="tag-chip-x" onclick="_removeBuilderTag(${i})">×</button></span>`
   ).join('');
 }
+
+// ── Manual Builder state & tag input ─────────────────────
+let _manualTags   = [];
+let _manualRating = 'all_ages';
+
+function selectManualRating(value) {
+  _manualRating = value;
+  document.querySelectorAll('#bm-rating-group .rating-select-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.value === value);
+  });
+}
+
+function _initManualTagInput() {
+  const input = document.getElementById('bm-tag-input');
+  if (!input) return;
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      _addManualTag(input.value);
+      input.value = '';
+    } else if (e.key === 'Backspace' && input.value === '' && _manualTags.length) {
+      _manualTags.pop();
+      renderManualTags();
+    }
+  });
+  input.addEventListener('input', () => {
+    if (input.value.includes(',')) {
+      input.value.split(',').forEach(t => _addManualTag(t));
+      input.value = '';
+    }
+  });
+}
+
+function _addManualTag(raw) {
+  const tag = raw.trim().replace(/^#/, '');
+  if (!tag || _manualTags.includes(tag) || _manualTags.length >= 8) return;
+  _manualTags.push(tag);
+  renderManualTags();
+}
+
+function addManualTag(tag) {
+  _addManualTag(tag);
+  document.getElementById('bm-tag-input')?.focus();
+}
+
+function removeManualTag(idx) {
+  _manualTags.splice(idx, 1);
+  renderManualTags();
+}
+
+function renderManualTags() {
+  const wrap = document.getElementById('bm-tag-chips');
+  if (!wrap) return;
+  wrap.innerHTML = _manualTags.map((t, i) =>
+    `<span class="tag-chip">#${t}<button type="button" class="tag-chip-x" onclick="removeManualTag(${i})">×</button></span>`
+  ).join('');
+}
+
+function _generateManualSystemPrompt(d) {
+  const lines = [];
+  lines.push(`당신은 ${d.name}입니다. 아래 설정에 따라 캐릭터를 연기하세요.\n`);
+  if (d.age || d.occupation) {
+    lines.push('## 기본 정보');
+    if (d.age)        lines.push(`- 나이: ${d.age}세`);
+    if (d.occupation) lines.push(`- 직업/역할: ${d.occupation}`);
+    lines.push('');
+  }
+  if (d.appearance)    lines.push(`## 외형\n${d.appearance}\n`);
+  if (d.personality)   lines.push(`## 성격\n${d.personality}\n`);
+  if (d.speechStyle)   lines.push(`## 말투\n${d.speechStyle}\n`);
+  if (d.speechExamples?.length) {
+    lines.push('## 말투 예시');
+    d.speechExamples.forEach(e => lines.push(`- "${e}"`));
+    lines.push('');
+  }
+  if (d.background)     lines.push(`## 배경 스토리\n${d.background}\n`);
+  if (d.worldbuilding)  lines.push(`## 세계관\n${d.worldbuilding}\n`);
+  if (d.relationship)   lines.push(`## 유저와의 관계\n${d.relationship}\n`);
+  lines.push(`## 대화 규칙\n- 항상 ${d.name}의 말투와 성격을 유지하세요.\n- 캐릭터 설정에서 벗어나지 마세요.\n- 자연스럽고 몰입감 있는 대화를 이어가세요.`);
+  return lines.join('\n');
+}
+
+async function registerManualCharacter() {
+  const name = document.getElementById('bm-name').value.trim();
+  if (!name) { showToast('캐릭터 이름을 입력해주세요.'); return; }
+
+  const examples = (document.getElementById('bm-speechExamples').value || '')
+    .split('\n').map(s => s.trim()).filter(Boolean);
+
+  const characterData = {
+    name,
+    occupation:     document.getElementById('bm-occupation').value.trim(),
+    age:            document.getElementById('bm-age').value || '',
+    subtitle:       document.getElementById('bm-subtitle').value.trim(),
+    appearance:     document.getElementById('bm-appearance').value.trim(),
+    personality:    document.getElementById('bm-personality').value.trim(),
+    speechStyle:    document.getElementById('bm-speechStyle').value.trim(),
+    speechExamples: examples,
+    background:     document.getElementById('bm-background').value.trim(),
+    worldbuilding:  document.getElementById('bm-worldbuilding').value.trim(),
+    relationship:   document.getElementById('bm-relationship').value.trim(),
+    tags:           _manualTags,
+    rating:         _manualRating,
+    hasProfanity:   _manualRating === 'adult_only',
+  };
+
+  const systemPrompt = _generateManualSystemPrompt(characterData);
+  const imageData    = manualAvatarUpload?.getUrl() || null;
+
+  showScreen('screen-builder-loading');
+  const bar = document.getElementById('builder-progress-bar');
+  bar.style.width = '0%';
+  let prog = 0;
+  const iv = setInterval(() => {
+    prog = Math.min(prog + 8, 85);
+    bar.style.width = prog + '%';
+  }, 120);
+
+  try {
+    const res  = await fetch('/api/characters/create', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ characterData, systemPrompt, imageData }),
+    });
+    clearInterval(iv);
+    bar.style.width = '100%';
+
+    if (!res.ok) throw new Error('create failed');
+    const data = await res.json();
+
+    await loadCharacters();
+    setTimeout(() => {
+      showToast('캐릭터가 등록되었습니다!');
+      navigateTo('/');
+    }, 400);
+  } catch (err) {
+    clearInterval(iv);
+    console.error('registerManualCharacter error:', err);
+    showScreen('screen-builder-manual');
+    showToast('캐릭터 등록에 실패했습니다. 다시 시도해주세요.');
+  }
+}
+
 let builderModel     = BUILDER_DEFAULT_MODEL;
 
 function openBuilder() {
   if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
-  // Reset builder state
+  navigateTo('/builder');
+}
+
+function openBuilderChat() {
+  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
+  // Reset AI builder state
   builderSessionId = null;
   builderCharData  = null;
   builderSystemMd  = null;
@@ -1698,11 +2104,28 @@ function openBuilder() {
   document.getElementById('builder-messages').innerHTML = '';
   document.getElementById('builder-input').value = '';
 
-  navigateTo('/builder');
-  // Reset input height after screen is visible, then start conversation
+  navigateTo('/builder/chat');
   const builderInput = document.getElementById('builder-input');
   builderInput.style.height = '';
   setTimeout(initBuilderConversation, 80);
+}
+
+function openBuilderManual() {
+  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
+  // Reset manual builder state
+  _manualTags   = [];
+  _manualRating = 'all_ages';
+  ['bm-name','bm-occupation','bm-subtitle','bm-appearance','bm-personality',
+   'bm-speechStyle','bm-speechExamples','bm-background','bm-worldbuilding','bm-relationship']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('bm-age').value = '';
+  renderManualTags();
+  document.querySelectorAll('#bm-rating-group .rating-select-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.value === 'all_ages');
+  });
+  manualAvatarUpload?.reset?.();
+  navigateTo('/builder/manual');
+  _initManualTagInput();
 }
 
 async function initBuilderConversation() {
@@ -1853,7 +2276,10 @@ function showBuilderEdit() {
   document.getElementById('be-speechExamples').value =
     Array.isArray(d.speechExamples) ? d.speechExamples.join('\n') : '';
   document.getElementById('be-systemPrompt').value  = builderSystemMd || '';
-  document.getElementById('be-profanity-toggle').checked = !!d.hasProfanity;
+
+  // Rating
+  const savedRating = d.rating || (d.hasProfanity ? 'adult_only' : 'all_ages');
+  selectBuilderRating(savedRating);
 
   // Tags
   _builderTags = Array.isArray(d.tags) ? [...d.tags] : [];
@@ -1878,7 +2304,8 @@ async function registerCharacter() {
     speechStyle:   document.getElementById('be-speechStyle').value.trim(),
     speechExamples: document.getElementById('be-speechExamples').value
       .split('\n').map(l => l.trim()).filter(Boolean),
-    hasProfanity:  document.getElementById('be-profanity-toggle').checked,
+    rating:        _builderRating,
+    hasProfanity:  _builderRating === 'adult_only',
     tags:          [..._builderTags],
   };
 
@@ -1925,7 +2352,8 @@ async function rebuildCharacter() {
     speechStyle:   document.getElementById('be-speechStyle').value.trim(),
     speechExamples: document.getElementById('be-speechExamples').value
       .split('\n').map(l => l.trim()).filter(Boolean),
-    hasProfanity:  document.getElementById('be-profanity-toggle').checked,
+    rating:        _builderRating,
+    hasProfanity:  _builderRating === 'adult_only',
   };
   await startGenerating();
 }
@@ -2023,8 +2451,120 @@ async function initAuth() {
     const data = await res.json();
     _currentUser = data.user || null;
     updateAuthUI();
+    updateAdultToggleUI();
     if (_currentUser) loadBookmarks();
   } catch (_) {}
+}
+
+// ── Adult Content System ───────────────────────────────────
+// OFF→ON 시도: 비로그인이면 auth gate, 인증 안 됐으면 verify modal
+async function setAdultToggle(enable) {
+  if (!enable) {
+    // OFF: 인증 불필요, 즉시 저장
+    if (_currentUser) {
+      const res  = await fetch('/api/auth/adult-content', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: false }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        _currentUser = data.user;
+      }
+    }
+    updateAdultToggleUI();
+    await loadCharacters();
+    return;
+  }
+
+  // ON: 로그인 필요
+  if (!_currentUser) {
+    showAuthGate('성인 콘텐츠', '성인 콘텐츠를 이용하려면 로그인이 필요합니다.', window.location.pathname);
+    return;
+  }
+
+  // 이미 인증됐으면 바로 ON
+  if (_currentUser.adult_verified) {
+    const res  = await fetch('/api/auth/adult-content', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: true }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      _currentUser = data.user;
+      updateAdultToggleUI();
+      await loadCharacters();
+    }
+    return;
+  }
+
+  // 첫 인증: verify modal
+  openAdultVerify();
+}
+
+function openAdultVerify() {
+  const overlay = document.getElementById('adult-verify-overlay');
+  const check   = document.getElementById('adult-verify-check');
+  const confirm = document.getElementById('adult-verify-confirm');
+  if (check)   check.checked    = false;
+  if (confirm) confirm.disabled = true;
+  overlay?.classList.add('open');
+}
+
+function closeAdultVerify(e) {
+  if (e && e.target !== document.getElementById('adult-verify-overlay')) return;
+  // 취소 시 토글 원복
+  updateAdultToggleUI();
+  document.getElementById('adult-verify-overlay')?.classList.remove('open');
+}
+
+async function confirmAdultVerify() {
+  if (!document.getElementById('adult-verify-check')?.checked) return;
+  try {
+    const res  = await fetch('/api/auth/adult-verify', { method: 'POST' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error('adult-verify failed:', res.status, err);
+      showToast(err.error || '인증에 실패했습니다.');
+      return;
+    }
+    const data = await res.json();
+    _currentUser = data.user;
+    document.getElementById('adult-verify-overlay')?.classList.remove('open');
+    updateAdultToggleUI();
+    await loadCharacters();
+    showToast('성인 콘텐츠가 활성화되었습니다.');
+  } catch (e) {
+    console.error('confirmAdultVerify error:', e);
+    showToast('인증에 실패했습니다.');
+  }
+}
+
+function updateAdultToggleUI() {
+  const enabled = !!_currentUser?.adult_content_enabled;
+
+  // 메인 화면 세그먼트
+  document.getElementById('adult-seg-all')?.classList.toggle('active', !enabled);
+  document.getElementById('adult-seg-18')?.classList.toggle('active',  enabled);
+
+  // 마이페이지 토글
+  const mpToggle = document.getElementById('adult-mypage-toggle');
+  if (mpToggle) mpToggle.checked = enabled;
+  const mpSub = document.getElementById('adult-mypage-sub');
+  if (mpSub) {
+    if (!_currentUser) {
+      mpSub.textContent = '로그인 후 이용 가능';
+    } else if (!_currentUser.adult_verified) {
+      mpSub.textContent = '성인 인증 후 이용 가능';
+    } else {
+      mpSub.textContent = enabled ? '현재 성인 콘텐츠 표시 중' : '현재 전연령 콘텐츠만 표시';
+    }
+  }
+}
+
+async function onMypageAdultToggle(el) {
+  const prev = !el.checked;  // revert optimistically
+  el.checked = prev;          // reset until confirmed
+  await setAdultToggle(!prev);
 }
 
 // ── Bookmarks ─────────────────────────────────────────────
@@ -2203,6 +2743,7 @@ async function loadMypage() {
     img.style.display  = 'none';
     letterW.style.display = 'flex';
   }
+  updateAdultToggleUI();
   switchMypageTab('persona');
   loadMypagePersonas();
   loadMypageChars();
@@ -2252,19 +2793,29 @@ async function loadMypagePersonas() {
   try {
     const res  = await fetch('/api/personas');
     const rows = await res.json();
+    const deleteAllBtn = document.getElementById('btn-delete-all-personas');
     if (!rows.length) {
+      if (deleteAllBtn) deleteAllBtn.style.display = 'none';
       list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">저장된 페르소나가 없습니다.</p>';
       return;
     }
+    if (deleteAllBtn) deleteAllBtn.style.display = '';
     const defaultId = _currentUser?.default_persona_id;
     list.innerHTML = rows.map(p => {
       const d = p.data;
       const isDefault = p.id === defaultId;
       const initial = (d.name || '?')[0].toUpperCase();
       const meta = [d.age ? d.age + '세' : '', d.gender === 'male' ? '남' : d.gender === 'female' ? '여' : ''].filter(Boolean).join(' · ');
+      const hasImg = !!d.avatar;
       return `
-        <div class="mypage-p-card${isDefault ? ' is-default' : ''}" onclick="openPersonaDetail(${p.id})">
-          <div class="mypage-p-initial">${initial}</div>
+        <div class="mypage-p-card${isDefault ? ' is-default' : ''}${hasImg ? ' has-image' : ''}" onclick="openPersonaDetail(${p.id})">
+          ${hasImg
+            ? `<img class="mypage-p-img" src="${d.avatar}" alt="${d.name || ''}">`
+            : `<div class="mypage-p-no-img">
+                 <div class="mypage-p-add-icon">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                 </div>
+               </div>`}
           <div class="mypage-p-overlay">
             <div class="mypage-p-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</div>
             ${meta ? `<div class="mypage-p-meta">${meta}</div>` : ''}
@@ -2284,9 +2835,21 @@ function openPersonaDetail(id) {
   navigateTo(`/persona/${id}`);
 }
 
+async function deleteAllPersonas() {
+  if (!confirm('페르소나를 전부 삭제하시겠습니까?')) return;
+  try {
+    const res  = await fetch('/api/personas');
+    const rows = await res.json();
+    await Promise.all(rows.map(p => fetch(`/api/personas/${p.id}`, { method: 'DELETE' })));
+    const me = await (await fetch('/api/auth/me')).json();
+    _currentUser = me.user;
+    loadMypagePersonas();
+    showToast('전체 삭제되었습니다.');
+  } catch (_) { showToast('삭제에 실패했습니다.'); }
+}
+
 function newPersonaFromMypage() {
-  showToast('캐릭터를 선택한 뒤 페르소나를 설정해주세요.');
-  navigateTo('/');
+  navigateTo('/persona/new');
 }
 
 async function setDefaultPersona(id) {
@@ -2295,6 +2858,51 @@ async function setDefaultPersona(id) {
   const data = await res.json();
   _currentUser = data.user;
   loadMypagePersonas();
+}
+
+async function clearDefaultPersona() {
+  await fetch('/api/personas/default', { method: 'DELETE' });
+  const res  = await fetch('/api/auth/me');
+  const data = await res.json();
+  _currentUser = data.user;
+  // 현재 페이지 액션 버튼만 갱신
+  if (_pdPersonaId) {
+    const rows = await (await fetch('/api/personas')).json();
+    const p = rows.find(r => r.id === _pdPersonaId);
+    if (p) _populatePersonaDetail(p);
+  }
+}
+
+async function onPdImgSelected(input) {
+  const file = input.files?.[0];
+  if (!file || !_pdPersonaId) return;
+  input.value = '';  // 같은 파일 재선택 허용
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const avatar = e.target.result;  // base64 dataURL
+
+    // 현재 persona data 가져와서 avatar 업데이트
+    try {
+      const rows = await (await fetch('/api/personas')).json();
+      const p    = rows.find(r => r.id === _pdPersonaId);
+      if (!p) return;
+
+      const newData = { ...p.data, avatar };
+      await fetch(`/api/personas/${_pdPersonaId}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ data: newData }),
+      });
+
+      // 카드 즉시 갱신
+      _populatePersonaDetail({ ...p, data: newData });
+      showToast('이미지가 등록되었습니다.');
+    } catch (_) {
+      showToast('이미지 등록에 실패했습니다.');
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 async function deletePersona(id) {
