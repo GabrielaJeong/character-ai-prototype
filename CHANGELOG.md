@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 41a5955a155441db7a226fa96483d527f40fa211 -->
-<!-- changelog-last-version: 0.12 -->
+<!-- changelog-last-commit: 18754a31dc716e9dcb48806182d4917b8e894a8d -->
+<!-- changelog-last-version: 0.13 -->
+
 
 
 
@@ -8,6 +9,21 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.13 — 2026-04-13
+**어드민 대시보드 구현**
+- /admin 경로에 별도 어드민 SPA 추가 (role 기반 접근 제어)
+- 대시보드: PV/UV/DAU/MAU 통계, 활동 그래프, Safety 위반 추이 차트
+- 캐릭터 평가: 9개 항목 가중 점수, recommendedPersona 적용, 대화 미리보기
+- 유저 관리: 상세 조회, role 변경, 강제 탈퇴
+- 캐릭터 관리: config.json/system.md 직접 편집, 활성화/비활성화
+- 모더레이션: Safety 위반 로그 조회, 전체 대화 버블 UI
+- 공통: 컬럼 정렬, 페이지네이션, 점수 매트릭스 최고/최저 강조
+- page_views 테이블 추가, PV 로깅 미들웨어 (API/정적파일 제외)
+- moderation_logs/eval_results 테이블 추가
+- users.public_id (UUID v4) 도입
 
 ---
 
