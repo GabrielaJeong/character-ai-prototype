@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: df291ac25945a93c8656611c263012ff311b097f -->
-<!-- changelog-last-version: 0.11 -->
+<!-- changelog-last-commit: 41a5955a155441db7a226fa96483d527f40fa211 -->
+<!-- changelog-last-version: 0.12 -->
+
 
 
 
@@ -7,6 +8,12 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.12 — 2026-04-13
+**OG image URL 도메인 수정 (folio-charc.up.railway.app)**
+- OG image URL 도메인 수정 (folio-charc.up.railway.app)
 
 ---
 
