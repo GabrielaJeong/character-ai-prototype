@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Folio Admin</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="stylesheet" href="/css/admin.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Sidebar ────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-text">Folio</span>
+    <span class="logo-badge">Admin</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="nav-item" data-page="dashboard" onclick="navigatePage('dashboard')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      대시보드
+    </a>
+    <a class="nav-item" data-page="eval" onclick="navigatePage('eval')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v1.5H2zm0 4h9v1.5H2zm0 4h6v1.5H2z"/></svg>
+      캐릭터 평가
+    </a>
+    <a class="nav-item" data-page="users" onclick="navigatePage('users')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 13c0-3.3 2.7-6 6-6s6 2.7 6 6H2z"/></svg>
+      유저 관리
+    </a>
+    <a class="nav-item" data-page="characters" onclick="navigatePage('characters')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a4 4 0 0 1 4 4c0 2.2-1.8 4-4 4S4 7.2 4 5a4 4 0 0 1 4-4zm0 9c3.5 0 7 1.5 7 4H1c0-2.5 3.5-4 7-4z"/></svg>
+      캐릭터 관리
+    </a>
+    <a class="nav-item" data-page="moderation" onclick="navigatePage('moderation')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 4v4c0 4 3 7.4 7 8 4-.6 7-4 7-8V4L8 1z"/></svg>
+      모더레이션
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="/" class="nav-item" style="font-size:12px;color:var(--text-dim)">
+      ← 앱으로 돌아가기
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main Content ───────────────────────────────────── -->
+<main class="main-content">
+
+  <!-- Access Denied -->
+  <div id="page-denied" class="page" style="display:none">
+    <div class="denied-wrap">
+      <div class="denied-icon">🔒</div>
+      <h2>접근 권한 없음</h2>
+      <p>어드민 계정으로 로그인하세요.</p>
+      <a href="/" class="btn btn-primary">메인으로</a>
+    </div>
+  </div>
+
+  <!-- ─── Page: Dashboard ───────────────────────────────── -->
+  <div id="page-dashboard" class="page" style="display:none">
+    <div class="page-header">
+      <h1>대시보드</h1>
+      <span class="page-header-sub" id="admin-user-info"></span>
+    </div>
+
+    <!-- Row 1: 기존 4개 -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">총 가입자</div>
+        <div class="stat-value" id="stat-users">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">오늘 활성 세션</div>
+        <div class="stat-value" id="stat-sessions">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">등록된 캐릭터</div>
+        <div class="stat-value" id="stat-chars">—</div>
+      </div>
+      <div class="stat-card stat-card-warn">
+        <div class="stat-label">Safety 위반 (7일)</div>
+        <div class="stat-value" id="stat-modlogs">—</div>
+      </div>
+    </div>
+
+    <!-- Row 2: PV / UV / DAU / MAU -->
+    <div class="stat-grid" style="margin-top:-4px">
+      <div class="stat-card">
+        <div class="stat-label">오늘 PV</div>
+        <div class="stat-value stat-value-sm" id="stat-pv">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">오늘 UV</div>
+        <div class="stat-value stat-value-sm" id="stat-uv">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DAU (오늘)</div>
+        <div class="stat-value stat-value-sm" id="stat-dau">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">MAU (30일)</div>
+        <div class="stat-value stat-value-sm" id="stat-mau">—</div>
+      </div>
+    </div>
+
+    <!-- Graph A: 활동 통계 (bar + line) -->
+    <div class="card chart-card">
+      <div class="chart-card-header">
+        <div class="card-title" style="margin-bottom:0">활동 통계</div>
+        <div class="chart-right">
+          <div class="chart-toggles" id="chart-a-toggles">
+            <label class="toggle-label"><input type="checkbox" id="tgl-pv" onchange="toggleDatasetA(2)"> <span style="color:#F0B34A">PV</span></label>
+            <label class="toggle-label"><input type="checkbox" id="tgl-uv" onchange="toggleDatasetA(3)"> <span style="color:#C084FC">UV</span></label>
+          </div>
+          <div class="period-tabs" id="period-tabs-a">
+            <button class="period-tab active" data-period="day"   onclick="setPeriodA('day')">일</button>
+            <button class="period-tab"        data-period="week"  onclick="setPeriodA('week')">주</button>
+            <button class="period-tab"        data-period="month" onclick="setPeriodA('month')">월</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-activity"></canvas>
+      </div>
+    </div>
+
+    <!-- Graph B: Safety 위반 추이 (line) -->
+    <div class="card chart-card">
+      <div class="chart-card-header">
+        <div class="card-title" style="margin-bottom:0">Safety 위반 추이</div>
+        <div class="period-tabs" id="period-tabs-b">
+          <button class="period-tab active" data-period="day"   onclick="setPeriodB('day')">일</button>
+          <button class="period-tab"        data-period="week"  onclick="setPeriodB('week')">주</button>
+          <button class="period-tab"        data-period="month" onclick="setPeriodB('month')">월</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-safety"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Page: Eval ────────────────────────────────────── -->
+  <div id="page-eval" class="page" style="display:none">
+    <div class="page-header"><h1>캐릭터 평가</h1></div>
+
+    <!-- 2-column layout: left=controls+scores, right=chat preview -->
+    <div class="eval-layout">
+
+      <!-- LEFT -->
+      <div class="eval-left">
+        <div class="card eval-run-card">
+          <div class="card-title">평가 실행</div>
+          <div class="eval-run-row">
+            <select id="eval-char-select" class="select"><option value="">캐릭터 선택</option></select>
+            <select id="eval-model-select" class="select">
+              <option value="claude-opus-4-6">Claude Opus 4.6</option>
+              <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+              <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            </select>
+            <button class="btn btn-primary" onclick="runEval()">평가 실행</button>
+          </div>
+          <textarea id="eval-test-input" class="textarea" placeholder="테스트 입력 메시지 (예: 오늘 기분 어때?)"></textarea>
+          <div id="eval-running" class="eval-status" style="display:none"><span class="spinner"></span> 평가 중...</div>
+          <div id="eval-result" class="eval-result-block" style="display:none"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">점수 매트릭스</div>
+          <div class="table-wrap">
+            <table class="data-table" id="eval-matrix-table">
+              <thead><tr id="eval-matrix-head"></tr></thead>
+              <tbody id="eval-matrix-body"></tbody>
+            </table>
+          </div>
+          <div id="eval-matrix-pagination" class="pagination"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">평가 이력</div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>날짜</th><th>캐릭터</th><th>모델</th><th>점수</th><th></th></tr></thead>
+              <tbody id="eval-history-body"></tbody>
+            </table>
+          </div>
+          <div id="eval-history-pagination" class="pagination"></div>
+        </div>
+      </div><!-- /eval-left -->
+
+      <!-- RIGHT: Chat Preview -->
+      <div class="eval-right">
+        <div class="card eval-chat-card">
+          <div class="card-title">대화 미리보기</div>
+          <div id="eval-chat-preview" class="eval-chat-empty">
+            평가를 실행하면<br>실제 대화를 여기서 확인할 수 있어요
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /eval-layout -->
+  </div>
+
+  <!-- ─── Page: Users ───────────────────────────────────── -->
+  <div id="page-users" class="page" style="display:none">
+    <div id="user-detail-panel" style="display:none">
+      <div class="page-header">
+        <button class="btn btn-ghost" onclick="closeUserDetail()">← 목록으로</button>
+        <h2 id="user-detail-name" style="font-size:18px;margin-left:4px"></h2>
+      </div>
+      <div id="user-detail-content"></div>
+    </div>
+    <div id="user-list-panel">
+      <div class="page-header"><h1>유저 관리</h1></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>닉네임</th><th>이메일</th><th>가입일</th><th>세션</th><th>성인인증</th><th>Role</th><th>액션</th></tr></thead>
+            <tbody id="users-table-body"></tbody>
+          </table>
+        </div>
+        <div id="users-pagination" class="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Page: Characters ─────────────────────────────── -->
+  <div id="page-characters" class="page" style="display:none">
+    <div id="char-detail-panel" style="display:none">
+      <div class="page-header">
+        <button class="btn btn-ghost" onclick="closeCharDetail()">← 목록으로</button>
+        <h2 id="char-detail-name" style="font-size:18px;margin-left:4px"></h2>
+      </div>
+      <div id="char-detail-content"></div>
+    </div>
+    <div id="char-list-panel">
+      <div class="page-header"><h1>캐릭터 관리</h1></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>이름</th><th>구분</th><th>Rating</th><th>상태</th><th>태그</th><th>세션</th><th>액션</th></tr></thead>
+            <tbody id="chars-table-body"></tbody>
+          </table>
+        </div>
+        <div id="chars-pagination" class="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Page: Moderation ─────────────────────────────── -->
+  <div id="page-moderation" class="page" style="display:none">
+    <div id="mod-detail-panel" style="display:none">
+      <div class="page-header">
+        <button class="btn btn-ghost" onclick="closeModerationDetail()">← 목록으로</button>
+        <h2 style="font-size:18px;margin-left:4px">위반 로그 상세</h2>
+      </div>
+      <div id="mod-detail-content"></div>
+    </div>
+    <div id="mod-list-panel">
+      <div class="page-header"><h1>콘텐츠 모더레이션</h1></div>
+      <div class="card filter-bar">
+        <label>From <input type="date" id="mod-from" class="input-sm" /></label>
+        <label>To <input type="date" id="mod-to" class="input-sm" /></label>
+        <label>캐릭터 <select id="mod-char" class="select-sm"><option value="">전체</option></select></label>
+        <label>방어 단계
+          <select id="mod-step" class="select-sm">
+            <option value="">전체</option>
+            <option value="1">1단계</option>
+            <option value="2">2단계</option>
+            <option value="3">3단계</option>
+          </select>
+        </label>
+        <button class="btn btn-primary btn-sm" onclick="loadModeration()">조회</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>시간</th><th>유저</th><th>캐릭터</th><th>모델</th><th>단계</th><th>유저 입력</th><th>응답 요약</th><th></th></tr></thead>
+            <tbody id="mod-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>

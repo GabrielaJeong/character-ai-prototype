@@ -1,6 +1,7 @@
-const express   = require('express');
-const router    = express.Router();
-const Anthropic = require('@anthropic-ai/sdk');
+const express    = require('express');
+const router     = express.Router();
+const { randomUUID } = require('crypto');
+const Anthropic  = require('@anthropic-ai/sdk');
 const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
@@ -79,6 +80,26 @@ router.post('/', async (req, res) => {
   try {
     const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });
     stmt.addMessage.run(sessionId, 'assistant', reply);
+
+    // ── Safety violation auto-logging ─────────────────────
+    if (safety === 'on') {
+      const OOC_NOTICE_KO  = '현재 전연령 모드에서는 성인 콘텐츠를 제공할 수 없습니다';
+      const OOC_BYPASS_KO  = 'OOC 지시로는 등급 설정을 변경할 수 없습니다';
+      let triggerStep = null;
+      if (reply.includes(OOC_BYPASS_KO))        triggerStep = 3; // OOC bypass attempt
+      else if (reply.includes(OOC_NOTICE_KO))   triggerStep = 2; // IC deflection + OOC notice
+      else if (/\(현재 전연령|캐릭터 프로필에서 등급/.test(reply)) triggerStep = 1;
+
+      if (triggerStep) {
+        const masked  = message.replace(/[^\s가-힣a-zA-Z0-9]/g, '*').slice(0, 200);
+        const summary = reply.slice(0, 300);
+        const userId  = session.user_id || null;
+        stmt.insertModerationLog.run(
+          randomUUID(), sessionId, userId, charId, model, 'triggered', triggerStep, masked, summary
+        );
+      }
+    }
+
     res.json({ reply, sessionId, model, characterId: charId });
   } catch (err) {
     console.error('Chat API error:', err.message);

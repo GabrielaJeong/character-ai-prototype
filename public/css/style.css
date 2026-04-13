@@ -263,6 +263,7 @@ body {
 .landing-header-left {
   display: flex;
   align-items: center;
+  margin-left: 4px;
 }
 
 .landing-header-right {

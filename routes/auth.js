@@ -1,10 +1,11 @@
-const express = require('express');
-const bcrypt  = require('bcryptjs');
-const Joi     = require('joi');
-const fs      = require('fs');
-const path    = require('path');
-const router  = express.Router();
-const { stmt } = require('../db');
+const express    = require('express');
+const bcrypt     = require('bcryptjs');
+const Joi        = require('joi');
+const fs         = require('fs');
+const path       = require('path');
+const router     = express.Router();
+const { randomUUID } = require('crypto');
+const { stmt }   = require('../db');
 
 const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
 
@@ -47,7 +48,7 @@ router.post('/register', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, 12);
-    const info = stmt.createUser.run(email, hash, nickname);
+    const info = stmt.createUser.run(email, hash, nickname, randomUUID());
     const user = stmt.getUserById.get(info.lastInsertRowid);
     req.session.userId = user.id;
     res.json({ user });

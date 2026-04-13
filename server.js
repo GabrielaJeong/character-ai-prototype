@@ -47,6 +47,19 @@ app.use(session({
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── Page View tracking (HTML 페이지 요청만 로깅) ──────────
+const STATIC_EXT = /\.(css|js|png|jpg|jpeg|gif|ico|webp|woff2?|ttf|svg|map)$/i;
+app.use((req, res, next) => {
+  if (STATIC_EXT.test(req.path)) return next(); // 정적 파일 제외
+  if (req.path.startsWith('/api/')) return next(); // 모든 API 제외
+  try {
+    const userId       = req.session?.userId || null;
+    const sessionToken = req.sessionID || null;
+    if (sessionToken) stmt.insertPageView.run(userId, sessionToken, req.path);
+  } catch (_) {}
+  next();
+});
+
 // Routes — regenerate must be registered before /api/chat router (Express 5 path matching)
 app.post('/api/chat/regenerate', require('./routes/regenerate'));
 app.use('/api/chat',             require('./routes/chat'));
@@ -57,6 +70,15 @@ app.use('/api/builder',          require('./routes/builder'));
 app.use('/api/auth',             require('./routes/auth'));
 app.use('/api/personas',         require('./routes/personas'));
 app.use('/api/bookmarks',        require('./routes/bookmarks'));
+app.use('/api/admin',            require('./routes/admin'));
+
+// Admin dashboard (serves separate HTML, no 430px constraint)
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+app.get('/admin/{*splat}', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 // Fallback: serve index.html for all non-API routes
 app.get('/{*splat}', (_req, res) => {
