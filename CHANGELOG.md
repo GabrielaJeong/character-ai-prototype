@@ -1,5 +1,5 @@
-<!-- changelog-last-commit: 4ccc7a9ad1640e1a9048477ec43d628c3fab8fc6 -->
-<!-- changelog-last-version: 0.20 -->
+<!-- changelog-last-commit: 9d8aa2937e58477dff248a0f54616465fbd47056 -->
+<!-- changelog-last-version: 0.21 -->
 
 
 
@@ -12,24 +12,34 @@
 
 ---
 
-## v0.20 — 2026-04-20
-**auth 개편(username), 크리에이터 프로필 시스템 (v0.19)**
-- 회원가입: @아이디 필드 추가, 실시간 중복 확인 (GET /api/auth/check-username)
-- 로그인: 이메일 또는 @아이디 모두 지원
-- DB: users.username 컬럼 추가 (unique partial index, NULL 허용)
-- PATCH /api/auth/me: username 변경 지원
-- routes/creator.js: GET /api/creator/:username, PATCH /api/creator/:charId/pin
-- /creator/@:username 크리에이터 프로필 화면 (통계바, 작품 목록, 핀 고정)
-- 캐릭터 카드: 유저 제작 캐릭터에 @username 태그 (클릭 → 크리에이터 프로필)
-- 마이페이지: @username 표시, 크리에이터 프로필 버튼
+## v0.21 — 2026-04-20
+**캐릭터 인트로 리디자인, 마이페이지 개편 (v0.21)**
+- 캐릭터 인트로 페이지 전면 리디자인
+- 풀블리드 히어로 이미지 + 플로팅 nav
+- ROLE·WORLD 라벨, 한/영 이름, CHATS/LIKES 스탯바
+- CREATED.BY 섹션 (유저 생성 캐릭터)
+- 3탭: ABOUT / NOTES / COMMENTS
+- 히어로 우상단: 좋아요·책갈피·더보기 반투명 원형 버튼
+- 하단 바: 대화 시작 버튼 풀 너비
+- 캐릭터 config에 nameEn / about / notes 필드 추가 (4개 캐릭터)
+- 마이페이지 전면 개편
+- 프로필 카드: 사각형 유리 테두리 아바타, @id·이메일 한 줄, CREATOR 배지
+- 설정 섹션 아이콘 (pencil / shield / user / clock)
+- REVENUE.PREVIEW BETA 섹션
+- 새 페르소나 만들기 카드형 CTA
+- 탭 카운트 뱃지 (99+ 처리)
+- 메뉴 리스트 (좋아요·팔로잉·설정·지원·로그아웃)
+- 푸터 버전 표시
+- 전체 폰트 Pretendard 고정 (monospace 제거)
+- SVG 아이콘 파일 추가 (/public/icons/)
 
 ---
 
-## v0.19 — 2026-04-20
+## v0.20 — 2026-04-20
 **회원가입/로그인 개편 및 크리에이터 프로필 시스템 구축**
 - 회원가입: @아이디 필드 추가 (영문 소문자·숫자·언더바 3~20자, 실시간 중복 확인)
-- 로그인: 이메일 또는 @아이디로 로그인 가능
-- `users` 테이블 `username` 컬럼 추가 (유니크 인덱스, NULL 허용)
+- 로그인: 이메일 또는 @아이디 모두 지원
+- `users` 테이블 `username` 컬럼 추가 (unique partial index, NULL 허용)
 - GET /api/auth/check-username: 아이디 사용 가능 여부 확인
 - PATCH /api/auth/me: username 변경 지원 (기존 유저 @아이디 설정)
 - 마이페이지: @아이디 표시, 내 정보 수정에 @아이디 변경 필드, "크리에이터 프로필 보기" 버튼
