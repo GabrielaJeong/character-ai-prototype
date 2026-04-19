@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 353b2744eeba3bf94681d17d9e29758d97d59a08 -->
-<!-- changelog-last-version: 0.19 -->
+<!-- changelog-last-commit: 4ccc7a9ad1640e1a9048477ec43d628c3fab8fc6 -->
+<!-- changelog-last-version: 0.20 -->
+
 
 
 
@@ -8,6 +9,19 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.20 — 2026-04-20
+**auth 개편(username), 크리에이터 프로필 시스템 (v0.19)**
+- 회원가입: @아이디 필드 추가, 실시간 중복 확인 (GET /api/auth/check-username)
+- 로그인: 이메일 또는 @아이디 모두 지원
+- DB: users.username 컬럼 추가 (unique partial index, NULL 허용)
+- PATCH /api/auth/me: username 변경 지원
+- routes/creator.js: GET /api/creator/:username, PATCH /api/creator/:charId/pin
+- /creator/@:username 크리에이터 프로필 화면 (통계바, 작품 목록, 핀 고정)
+- 캐릭터 카드: 유저 제작 캐릭터에 @username 태그 (클릭 → 크리에이터 프로필)
+- 마이페이지: @username 표시, 크리에이터 프로필 버튼
 
 ---
 
