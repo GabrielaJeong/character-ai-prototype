@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 08563c0a350b3dc5fc42826762edeb564263ec1e -->
-<!-- changelog-last-version: 0.16 -->
+<!-- changelog-last-commit: 735376c6a0790b195f00a33689388bba4f84f86e -->
+<!-- changelog-last-version: 0.17 -->
+
 
 
 
@@ -11,6 +12,19 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.17 — 2026-04-19
+**랜딩/탐색 큐레이션 시스템, 어드민 큐레이션 관리 구축**
+- 랜딩 페이지: 섹션별 <section> 컨테이너화, 푸터(LEGAL·SUPPORT·사업자정보) 추가
+- 탐색 페이지: 큐레이션/랭킹 탭 분리, BROADCAST 배너·TAG.CLOUD·EDITOR.PICKS 추가
+- 랭킹: 일간/주간/월간 정렬, TOP 20 더미 데이터
+- 장르 슬라이더: 마우스 드래그 슬라이딩 지원
+- data/curation.json: 모든 큐레이션 데이터 중앙 관리
+- GET /api/curation 공개 엔드포인트로 앱에서 동적 렌더링
+- 어드민 큐레이션 관리: 메인홈/탐색 탭 → 섹션별 서브탭 분리
+- 어드민 각 아이템에 순번 표시 + 드래그 앤 드롭 순서 변경
 
 ---
 
