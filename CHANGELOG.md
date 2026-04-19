@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: aad0d732c41ffdb1b02256999d16494f093f454d -->
-<!-- changelog-last-version: 0.15 -->
+<!-- changelog-last-commit: 08563c0a350b3dc5fc42826762edeb564263ec1e -->
+<!-- changelog-last-version: 0.16 -->
+
 
 
 
@@ -10,6 +11,19 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.16 — 2026-04-19
+**알림 시스템 개편, 어드민 알림/배지 관리 기능 추가**
+- 알림 카테고리 NOTICE 추가 (메가폰 아이콘, 붉은 태그)
+- SOCIAL/SYSTEM/NOTICE 전용 아이콘 SVG 적용
+- 읽음/안읽음 기준 네온바, opacity 제거
+- NOTICE 5줄 초과 시 더보기 아코디언
+- 어드민: 알림 등록/삭제, SOCIAL 제외 NOTICE·SYSTEM만 표시
+- 어드민: 캐릭터 badge_override 수동 설정
+- 알림 폼 UI 개선 (패딩 통일, 인풋 크기 14px)
+- 알림 탭 ALL/SOCIAL/SYSTEM/NOTICE 구성
 
 ---
 
