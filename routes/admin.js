@@ -388,6 +388,32 @@ router.get('/moderation', (req, res) => {
 });
 
 // GET /api/admin/moderation/:publicId — detail with full context
+// ── Notifications (Admin) ────────────────────────────────
+router.get('/notifications', (req, res) => {
+  const items = stmt.adminListNotifications.all();
+  res.json(items);
+});
+
+router.post('/notifications', (req, res) => {
+  const { category, title, body, user_id } = req.body;
+  if (!category || !title) return res.status(400).json({ error: 'category, title 필수' });
+  const validCategories = ['social', 'system', 'notice'];
+  if (!validCategories.includes(category)) return res.status(400).json({ error: '올바른 category: social, system, notice' });
+  const result = stmt.createNotification.run(
+    user_id || null,
+    category,
+    title,
+    body || null,
+    null
+  );
+  res.json({ ok: true, id: result.lastInsertRowid });
+});
+
+router.delete('/notifications/:id', (req, res) => {
+  stmt.adminDeleteNotification.run(Number(req.params.id));
+  res.json({ ok: true });
+});
+
 router.get('/moderation/:publicId', (req, res) => {
   const log = stmt.getModerationLogByPublicId.get(req.params.publicId);
   if (!log) return res.status(404).json({ error: '없음' });

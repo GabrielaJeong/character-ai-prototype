@@ -101,13 +101,13 @@ function handleRoute() {
   });
 
   // Show correct page panel
-  ['dashboard','eval','users','characters','moderation'].forEach(p => {
+  ['dashboard','eval','users','characters','moderation','notifications'].forEach(p => {
     const el = document.getElementById(`page-${p}`);
     if (el) el.style.display = p === page ? '' : 'none';
   });
 
-  if (page === 'dashboard')   loadDashboard();
-  else if (page === 'eval')   loadEval();
+  if (page === 'dashboard')      loadDashboard();
+  else if (page === 'eval')      loadEval();
   else if (page === 'users') {
     if (id) _openUserDetailById(id);
     else     loadUsers();
@@ -120,6 +120,7 @@ function handleRoute() {
     if (id) _openModerationDetailById(id);
     else     loadModeration();
   }
+  else if (page === 'notifications') loadAdminNotifications();
 }
 
 function navigatePage(page) {
@@ -751,6 +752,16 @@ async function _openCharDetailById(id) {
             <select id="cf-status" class="select">${sel(config.status||'active', ['active','inactive'])}</select>
           </label>
           <label class="edit-field">
+            <span>배지 고정 (badge_override)</span>
+            <select id="cf-badge" class="select">
+              <option value="" ${!config.badge_override ? 'selected' : ''}>자동 계산</option>
+              <option value="NEW" ${config.badge_override === 'NEW' ? 'selected' : ''}>NEW</option>
+              <option value="HOT" ${config.badge_override === 'HOT' ? 'selected' : ''}>HOT</option>
+              <option value="UP"  ${config.badge_override === 'UP'  ? 'selected' : ''}>UP</option>
+              <option value="none" ${config.badge_override === 'none' ? 'selected' : ''}>없음 (강제 숨김)</option>
+            </select>
+          </label>
+          <label class="edit-field">
             <span>세션 수 (읽기 전용)</span>
             <input type="text" value="${sessionCount}" class="edit-input" disabled style="opacity:0.4">
           </label>
@@ -791,15 +802,17 @@ async function saveCharFields(id) {
   try {
     // 서버에서 최신 config 가져온 뒤 필드만 덮어쓰기
     const { config: current } = await api(`/characters/${id}`);
+    const badgeVal = document.getElementById('cf-badge').value;
     const updated = {
       ...current,
-      name:          document.getElementById('cf-name').value.trim(),
-      fullName:      document.getElementById('cf-fullName').value.trim(),
-      subtitle:      document.getElementById('cf-subtitle').value.trim(),
-      rating:        document.getElementById('cf-rating').value,
-      safetyToggle:  document.getElementById('cf-safetyToggle').value === 'true',
-      defaultSafety: document.getElementById('cf-defaultSafety').value,
-      status:        document.getElementById('cf-status').value,
+      name:           document.getElementById('cf-name').value.trim(),
+      fullName:       document.getElementById('cf-fullName').value.trim(),
+      subtitle:       document.getElementById('cf-subtitle').value.trim(),
+      rating:         document.getElementById('cf-rating').value,
+      safetyToggle:   document.getElementById('cf-safetyToggle').value === 'true',
+      defaultSafety:  document.getElementById('cf-defaultSafety').value,
+      status:         document.getElementById('cf-status').value,
+      badge_override: badgeVal === '' ? undefined : badgeVal,
     };
     await api(`/characters/${id}`, { method: 'PATCH', body: JSON.stringify({ config: updated }) });
     // JSON textarea도 동기화
@@ -982,6 +995,70 @@ async function init() {
   } catch (_) {}
 
   handleRoute();
+}
+
+// ══════════════════════════════════════════════════════════
+//  Notifications Admin
+// ══════════════════════════════════════════════════════════
+const CAT_LABEL = { social: 'SOCIAL', system: 'SYSTEM', notice: 'NOTICE' };
+const CAT_COLOR = { social: 'var(--accent)', system: '#94A3B8', notice: '#F87171' };
+
+async function loadAdminNotifications() {
+  try {
+    const all   = await api('/notifications');
+    const items = all.filter(n => n.category !== 'social');
+    const tbody = document.getElementById('notif-admin-table-body');
+    if (!tbody) return;
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-dim);text-align:center;padding:20px">등록된 알림 없음</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items.map(n => `
+      <tr>
+        <td style="color:var(--text-dim)">${n.id}</td>
+        <td><span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;background:color-mix(in srgb,${CAT_COLOR[n.category] || '#94A3B8'} 15%,transparent);color:${CAT_COLOR[n.category] || '#94A3B8'}">${CAT_LABEL[n.category] || n.category}</span></td>
+        <td style="color:var(--text-dim)">${n.user_id ? `유저 #${n.user_id}` : '전체'}</td>
+        <td>${esc(n.title)}</td>
+        <td style="color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.body || '—')}</td>
+        <td style="color:var(--text-dim);white-space:nowrap">${fmtDate(n.created_at)}</td>
+        <td><button class="btn btn-ghost btn-sm" style="color:var(--red-text,#F87171)" onclick="deleteAdminNotif(${n.id})">삭제</button></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function submitAdminNotif() {
+  const cat    = document.getElementById('notif-form-cat').value;
+  const title  = document.getElementById('notif-form-title').value.trim();
+  const body   = document.getElementById('notif-form-body').value.trim();
+  const uid    = document.getElementById('notif-form-userid').value.trim();
+  if (!title) { showToast('제목을 입력해주세요', 'error'); return; }
+  try {
+    await api('/notifications', {
+      method: 'POST',
+      body: JSON.stringify({ category: cat, title, body: body || null, user_id: uid ? Number(uid) : null }),
+    });
+    showToast('알림이 등록됐습니다');
+    document.getElementById('notif-form-title').value = '';
+    document.getElementById('notif-form-body').value  = '';
+    document.getElementById('notif-form-userid').value = '';
+    loadAdminNotifications();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function deleteAdminNotif(id) {
+  if (!confirm('이 알림을 삭제할까요?')) return;
+  try {
+    await api(`/notifications/${id}`, { method: 'DELETE' });
+    showToast('삭제됐습니다');
+    loadAdminNotifications();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
 }
 
 init();

@@ -846,36 +846,66 @@ function renderNotifFeed(tab) {
       </div>
       ${g.items.map(n => buildNotifRow(n)).join('')}
     </div>
-  `).join('') + `<div class="notif-feed-end">// END.feed</div>`;
+  `).join('');
+
+  // NOTICE 아코디언 체크 (DOM 삽입 후 실제 높이 측정)
+  requestAnimationFrame(applyNoticeAccordions);
 }
 
 function buildNotifRow(n) {
-  const isSocial = n.category === 'social';
+  const cat = n.category;
   // 아이콘 SVG
-  const iconSvg = isSocial
-    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21l-1.5-1.4C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.5 11.1L12 21z"/></svg>`
-    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>`;
-  const catBadge = isSocial
+  const iconSvg = cat === 'social'
+    ? `<img src="/images/icon-social.svg" width="18" height="18" alt="social">`
+    : cat === 'notice'
+    ? `<img src="/images/icon-notice.svg" width="18" height="18" alt="notice">`
+    : `<img src="/images/icon-system.svg" width="18" height="18" alt="system">`;
+  // 카테고리 뱃지
+  const catBadge = cat === 'social'
     ? `<span class="notif-cat-badge notif-cat-social">SOCIAL</span>`
-    : `<span class="notif-cat-badge notif-cat-sys">SYS</span>`;
+    : cat === 'notice'
+    ? `<span class="notif-cat-badge notif-cat-notice">NOTICE</span>`
+    : `<span class="notif-cat-badge notif-cat-sys">SYSTEM</span>`;
   const timeStr = notifTimeStr(n.created_at);
-  const hasBody = !!n.body;
 
   return `
-    <div class="notif-row${n.is_read ? ' notif-row-read' : ''}${hasBody ? ' notif-row-accordion' : ''}"
+    <div class="notif-row${!n.is_read ? ' notif-row-recent' : ' notif-row-read'}"
          data-id="${n.id}" onclick="onNotifRowClick(this,${n.id})">
-      <div class="notif-row-icon notif-icon-${n.category}">${iconSvg}</div>
+      <div class="notif-row-icon notif-icon-${cat}">${iconSvg}</div>
       <div class="notif-row-content">
         <div class="notif-row-top">
           <span class="notif-row-title">${n.title}</span>
           ${catBadge}
         </div>
-        ${hasBody ? `<div class="notif-row-body-wrap"><p class="notif-row-body">${n.body}</p></div>` : ''}
+        ${n.body
+          ? cat === 'notice'
+            ? `<div class="notif-notice-body-wrap"><p class="notif-row-body">${n.body}</p></div>`
+            : `<p class="notif-row-body">${n.body}</p>`
+          : ''}
         <p class="notif-row-time">${timeStr}</p>
       </div>
-      ${hasBody ? '<span class="notif-row-chevron">›</span>' : ''}
     </div>
   `;
+}
+
+// NOTICE 아코디언 — 렌더 후 실제 높이 체크해서 버튼 주입
+function applyNoticeAccordions() {
+  document.querySelectorAll('.notif-notice-body-wrap').forEach(wrap => {
+    if (wrap.dataset.checked) return;
+    wrap.dataset.checked = '1';
+    // scrollHeight > clientHeight 이면 내용이 clamp 밖으로 넘침 → 버튼 추가
+    if (wrap.scrollHeight > wrap.clientHeight + 2) {
+      const btn = document.createElement('button');
+      btn.className = 'notif-notice-toggle';
+      btn.textContent = '더 보기';
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const expanded = wrap.classList.toggle('notif-notice-expanded');
+        btn.textContent = expanded ? '접기' : '더 보기';
+      };
+      wrap.after(btn);
+    }
+  });
 }
 
 function notifTimeStr(unixSec) {
@@ -888,13 +918,10 @@ function notifTimeStr(unixSec) {
 }
 
 function onNotifRowClick(el, id) {
-  // 아코디언 토글
-  if (el.classList.contains('notif-row-accordion')) {
-    el.classList.toggle('notif-row-expanded');
-  }
   // 읽음 처리
   if (!el.classList.contains('notif-row-read') && _currentUser) {
     fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+    el.classList.remove('notif-row-recent');
     el.classList.add('notif-row-read');
     // 헤더 카운트 갱신
     const countEl = document.getElementById('notif-new-count');

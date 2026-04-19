@@ -2658,7 +2658,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 18px 12px;
+  padding: 28px 18px 20px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -2695,32 +2695,36 @@ body {
   gap: 8px;
 }
 .notif-new-count {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-dim);
-  font-family: var(--font-mono, monospace);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 .notif-mark-all-btn {
-  background: none;
-  border: none;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
   cursor: pointer;
-  font-family: var(--font-mono, monospace);
-  padding: 0;
+  font-family: var(--font);
+  padding: 5px 11px;
   flex-shrink: 0;
-  transition: color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.notif-mark-all-btn:hover { color: var(--text); }
+.notif-mark-all-btn:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+  background: var(--surface);
+}
 
 /* 필터 탭 */
 .notif-tabs {
   display: flex;
   gap: 6px;
-  padding: 10px 18px 8px;
+  padding: 14px 18px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
 }
@@ -2729,12 +2733,12 @@ body {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 99px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   color: var(--text-dim);
   cursor: pointer;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
@@ -2764,18 +2768,17 @@ body {
   padding: 14px 18px 4px;
 }
 .notif-group-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.06em;
   color: var(--accent);
-  font-family: var(--font-mono, monospace);
-  text-transform: uppercase;
+  font-family: var(--font);
 }
 .notif-group-date {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-dim);
-  font-family: var(--font-mono, monospace);
-  letter-spacing: 0.05em;
+  font-family: var(--font);
+  letter-spacing: 0.02em;
 }
 
 /* 알림 행 */
@@ -2786,17 +2789,19 @@ body {
   align-items: flex-start;
   padding: 11px 18px;
   border-bottom: 0.5px solid var(--border);
-  border-left: 2px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  border-left: 2px solid transparent;
   cursor: pointer;
   position: relative;
   transition: background 0.15s;
 }
 .notif-row:last-child { border-bottom: none; }
+.notif-row.notif-row-recent {
+  border-left-color: #6ce5d5;
+  background: color-mix(in srgb, #6ce5d5 4%, transparent);
+}
 .notif-row.notif-row-read {
   border-left-color: transparent;
   background: transparent;
-  opacity: 0.6;
 }
 .notif-row:active { background: var(--surface); }
 
@@ -2830,16 +2835,16 @@ body {
   margin-bottom: 3px;
 }
 .notif-row-title {
-  font-size: 12.5px;
+  font-size: 14.5px;
   font-weight: 600;
   color: var(--text);
   line-height: 1.35;
 }
 .notif-cat-badge {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  font-family: var(--font);
   padding: 1px 5px;
   border-radius: 3px;
   flex-shrink: 0;
@@ -2849,29 +2854,52 @@ body {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 .notif-cat-sys {
-  color: var(--text-dim);
-  background: var(--surface);
+  color: #94A3B8;
+  background: color-mix(in srgb, #94A3B8 12%, transparent);
 }
-/* 아코디언 본문 */
-.notif-row-body-wrap {
-  max-height: 0;
+.notif-cat-notice {
+  color: #F87171;
+  background: color-mix(in srgb, #F87171 12%, transparent);
+}
+/* NOTICE 아코디언 래퍼 */
+.notif-notice-body-wrap {
+  /* 13.5px * 1.55 line-height * 5줄 ≈ 105px */
+  max-height: 105px;
   overflow: hidden;
-  transition: max-height 0.25s ease;
+  transition: max-height 0.28s ease;
 }
-.notif-row.notif-row-expanded .notif-row-body-wrap {
-  max-height: 400px;
+.notif-notice-body-wrap.notif-notice-expanded {
+  max-height: 800px;
 }
+.notif-notice-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #F87171;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+}
+.notif-notice-toggle:hover { opacity: 0.75; }
+
 .notif-row-body {
-  font-size: 11.5px;
+  font-size: 13.5px;
   color: var(--text-muted);
   line-height: 1.55;
   padding: 5px 0 4px;
 }
 .notif-row-time {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-dim);
-  font-family: var(--font-mono, monospace);
-  letter-spacing: 0.05em;
+  font-family: var(--font);
+  letter-spacing: 0.01em;
   margin-top: 2px;
 }
 /* 아코디언 화살표 */
@@ -2891,10 +2919,10 @@ body {
 /* 피드 끝 */
 .notif-feed-end {
   text-align: center;
-  font-size: 9px;
-  letter-spacing: 0.15em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
   color: var(--text-dim);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font);
   padding: 24px 0 8px;
 }
 
@@ -2904,15 +2932,15 @@ body {
   text-align: center;
 }
 .notif-empty-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-muted);
-  letter-spacing: 0.1em;
-  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  font-family: var(--font);
   margin-bottom: 6px;
 }
 .notif-empty-desc {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
 }
 

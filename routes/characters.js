@@ -62,7 +62,10 @@ router.get('/', (req, res) => {
           const isHot = (sessionRecent[id] || 0)   >= hotThreshold;
           const isUp  = !isNew && (Date.now() - updatedMs) < 7 * 24 * 60 * 60 * 1000;
 
-          const badge = isNew ? 'NEW' : isHot ? 'HOT' : isUp ? 'UP' : null;
+          // badge_override가 있으면 우선 적용
+          const badge = config.badge_override !== undefined
+            ? (config.badge_override || null)
+            : isNew ? 'NEW' : isHot ? 'HOT' : isUp ? 'UP' : null;
 
           return {
             ...config,

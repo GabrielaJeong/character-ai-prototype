@@ -84,17 +84,29 @@ try { db.exec(`ALTER TABLE notifications ADD COLUMN user_id INTEGER REFERENCES u
 try { db.exec(`ALTER TABLE notifications ADD COLUMN category TEXT NOT NULL DEFAULT 'system'`); } catch(_) {}
 try { db.exec(`ALTER TABLE notifications ADD COLUMN related_id TEXT`); } catch(_) {}
 
-// 샘플 알림 시드 (최초 1회 — category 기준)
-const _notifCount = db.prepare(`SELECT COUNT(*) AS cnt FROM notifications WHERE category IN ('social','system')`).get();
-if (_notifCount.cnt === 0) {
+// 샘플 알림 시드 v2 — 이미지 기준 더미 데이터
+const _notifSeedV2 = db.prepare(`SELECT COUNT(*) AS cnt FROM notifications WHERE title = '@midnight_atelier 님이 당신의 캐릭터를 좋아합니다'`).get();
+if (_notifSeedV2.cnt === 0) {
+  // 기존 글로벌 시드 삭제 후 재시드
+  db.prepare(`DELETE FROM notifications WHERE user_id IS NULL`).run();
   const _ins = db.prepare(`INSERT INTO notifications (user_id, category, title, body, related_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`);
-  const _now = Math.floor(Date.now() / 1000);
-  // SYS — 전체 공지 (user_id NULL)
-  _ins.run(null, 'system', '새로운 AI 모델 · Gemini 1.5 Pro 추가', '더 긴 문맥, 더 섬세한 한국어 문체를 지원합니다. 채팅 화면에서 모델을 선택할 수 있어요.', null, _now - 60);
-  _ins.run(null, 'system', '캐릭터 빌더 오픈', '이제 누구나 나만의 AI 캐릭터를 직접 만들 수 있습니다. 빌더 탭에서 시작해보세요.', null, _now - 3600);
-  _ins.run(null, 'system', '가이드라인 업데이트', '4월 20일부터 캐릭터 등록 시 요약문이 120자 이상이어야 합니다.', null, _now - 86400 * 2);
-  // SOCIAL — 전체 공지 (user_id NULL, 실제론 user_id별로 생성됨)
-  _ins.run(null, 'social', '이화 이번주 인기 캐릭터 톱 3 진입 🎉', '#로맨스 카테고리에서 3위. 12.4K 대화 · 3.2K 좋아요.', 'ihwa', _now - 1800);
+  // 2026-04-19 (오늘) KST 기준 타임스탬프
+  const _today = 1776556800; // 2026-04-19 00:00 UTC
+  const _yest  = 1776470400; // 2026-04-18 00:00 UTC
+  // TODAY — 오늘
+  _ins.run(null, 'social', '@midnight_atelier 님이 당신의 캐릭터를 좋아합니다',
+    '이화 · "차갑고 차분한 대화 흐름이 좋아요."', 'ihwa',
+    _today + 43320); // 21:02 KST (12:02 UTC)
+  _ins.run(null, 'system', '이번 달 예상 수익 업데이트',
+    '₩142,300 · 지난주 대비 +8%. 결제 시스템 정식 오픈 전까지 누적됩니다.', null,
+    _today + 19800); // 14:30 KST (05:30 UTC)
+  // YESTERDAY — 어제
+  _ins.run(null, 'social', '새로운 팔로워 3명',
+    '@paperlamp, @nocturne.kr, @ssonamu 님이 팔로우를 시작했어요.', null,
+    _yest + 37320); // 19:22 KST (10:22 UTC)
+  _ins.run(null, 'notice', '가이드라인 업데이트',
+    '4월 20일부터 캐릭터 등록 시 요약문은 120자 이상이어야 합니다.', null,
+    _yest + 32700); // 18:05 KST (09:05 UTC)
 }
 
 // ── Password reset tokens ────────────────────────────────
@@ -293,6 +305,14 @@ const stmt = {
   `),
   createNotification: db.prepare(`
     INSERT INTO notifications (user_id, category, title, body, related_id) VALUES (?, ?, ?, ?, ?)
+  `),
+
+  // ── Admin Notifications ──────────────────────────────────
+  adminListNotifications: db.prepare(`
+    SELECT * FROM notifications ORDER BY created_at DESC
+  `),
+  adminDeleteNotification: db.prepare(`
+    DELETE FROM notifications WHERE id = ?
   `),
 
   // ── Password reset tokens ────────────────────────────────
