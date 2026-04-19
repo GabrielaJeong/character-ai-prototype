@@ -1,5 +1,4 @@
 /* ─── Fonts ─────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
 
 /* ─── Variables (same palette as main app) ──────────────── */
@@ -20,7 +19,7 @@
   --text:         #E2E8F0;
   --text-muted:   #A8B5C8;
   --text-dim:     #4A5568;
-  --font:         'Pretendard', 'Inter', -apple-system, sans-serif;
+  --font:         'Pretendard', sans-serif;
   --sidebar-w:    220px;
 }
 
@@ -664,7 +663,7 @@ td.matrix-worst {
   max-height: 300px;
   overflow-y: auto;
   line-height: 1.6;
-  font-family: 'Consolas', monospace;
+  font-family: var(--font);
 }
 
 /* ─── Access denied ─────────────────────────────────────── */
@@ -785,7 +784,7 @@ td.matrix-worst {
 .edit-input:focus { border-color: var(--accent); }
 
 .textarea-code {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--font);
   font-size: 12px;
   line-height: 1.5;
   min-height: 260px;
@@ -930,20 +929,367 @@ td.matrix-worst {
   color: var(--text);
   border-color: var(--accent);
 }
+.cur-section-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.cur-save-btn {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  background: rgba(91,143,185,0.08) !important;
+}
+.cur-save-btn:hover {
+  background: rgba(91,143,185,0.18) !important;
+}
+
+/* ── Broadcast 미리보기 ───────────────────────────────────── */
+.bc-preview-wrap {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bc-preview-wrap .bc-preview-label {
+  width: 390px;
+  max-width: 100%;
+}
+.bc-preview-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.bc-admin-preview {
+  width: 390px;
+  max-width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f1620;
+  border: 1px solid var(--border);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bc-preview-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 20px;
+}
+.bc-preview-banner {
+  width: 100%;
+  position: relative;
+  background: #141420;
+  border-radius: 0;
+  padding: 16px;
+  overflow: hidden;
+  min-height: 90px;
+}
+.bc-preview-img {
+  position: absolute;
+  top: 0; right: 0;
+  width: 60%;
+  height: 100%;
+  background-size: cover;
+  background-position: center 25%;
+  opacity: 1;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 55%);
+  mask-image: linear-gradient(to right, transparent, black 55%);
+}
+.bc-preview-inner {
+  position: relative;
+  z-index: 0;
+}
+.bc-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #6ce5d5;
+  background: rgba(108,229,213,0.09);
+  border: 1px solid rgba(108,229,213,0.27);
+  border-radius: 3px;
+  padding: 2px 6px;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+.bc-preview-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #6ce5d5;
+  box-shadow: 0 0 6px #6ce5d5;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.bc-preview-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+.bc-preview-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Broadcast 아이템 ─────────────────────────────────────── */
+.bc-item-row {
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.bc-item-active {
+  border-color: var(--accent) !important;
+  background: rgba(91,143,185,0.04);
+}
+.bc-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.bc-item-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bc-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bc-upload-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--surface2);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bc-upload-btn {
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.bc-upload-path {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ── Broadcast 히스토리 ───────────────────────────────────── */
+.bc-history-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 16px 0;
+  text-align: center;
+}
+.bc-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.bc-history-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+.bc-history-table td {
+  padding: 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(30,42,58,0.5);
+}
+.bc-hist-thumbs {
+  display: flex;
+  gap: 4px;
+}
+.bc-hist-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  background: var(--surface2);
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.bc-hist-titles {
+  min-width: 180px;
+}
+.bc-hist-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.bc-hist-num {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(91,143,185,0.12);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+.bc-hist-date {
+  color: var(--text-dim);
+  white-space: nowrap;
+  font-size: 11px;
+}
+.bc-hist-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.bc-hist-del-btn {
+  color: var(--red-text) !important;
+  border-color: var(--red-text) !important;
+}
+
+/* ── Collection 미리보기 ──────────────────────────────────── */
+.col-admin-preview {
+  width: 390px;
+  max-width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f1620;
+  border: 1px solid var(--border);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.col-preview-card {
+  width: 100%;
+  position: relative;
+  aspect-ratio: 16/7;
+  background: linear-gradient(135deg, #1a2634, #0c1622);
+  overflow: hidden;
+}
+.col-preview-img {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 60%;
+  background-size: cover;
+  background-position: center 25%;
+  opacity: 1;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 55%);
+  mask-image: linear-gradient(to right, transparent, #000 55%);
+}
+.col-preview-inner {
+  position: absolute;
+  inset: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 0;
+}
+.col-preview-num {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #6ce5d5;
+  margin-bottom: 5px;
+}
+.col-preview-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.4px;
+}
+.col-preview-meta {
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.4px;
+}
+
+/* ── 개발 예정 안내 ───────────────────────────────────────── */
+.cur-dev-notice {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+.cur-dev-icon {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+.cur-dev-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cur-dev-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.cur-dev-current {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+.cur-dev-current span {
+  color: var(--accent);
+}
+
 .cur-tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 .cur-tag-item {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
 }
 .cur-tag-input {
   width: 110px !important;
-  padding: 6px 10px !important;
+  padding: 6px 28px 6px 10px !important;
   font-size: 12px !important;
+}
+.cur-tag-del {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.cur-tag-del:hover {
+  color: #F87171;
 }
 .cur-item-list {
   display: flex;

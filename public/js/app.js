@@ -1622,7 +1622,7 @@ function _renderLandingCuration(c) {
         <div class="feed-header-top"><span class="feed-eyebrow"><span class="feed-chevron">›</span> TOP.creators</span></div>
         <div class="feed-header-main"><h2 class="feed-title">이번 주 제작자</h2></div>
       </div>
-      <div class="creator-row">
+      <div class="creator-row" id="creator-slider">
         ${c.creators.map(cr => `
           <div class="creator-card">
             <div class="creator-avatar"><img src="${cr.img}" alt=""></div>
@@ -1630,6 +1630,7 @@ function _renderLandingCuration(c) {
             <span class="creator-count">${cr.count}</span>
           </div>`).join('')}
       </div>`;
+    initDragSlider(document.getElementById('creator-slider'));
   }
 
   const secGenres = document.getElementById('section-genres');
@@ -1676,20 +1677,34 @@ function _renderLandingCuration(c) {
   }
 }
 
+let _bcTimer = null;
+let _bcIdx   = 0;
+
 function _renderExploreCuration(c) {
   const secBroadcast = document.getElementById('section-broadcast');
-  if (secBroadcast && c.broadcast) {
-    const bc = c.broadcast;
-    const titleHtml = bc.title.replace(/\n/g, '<br>');
+  if (secBroadcast && c.broadcast?.length) {
+    const items = c.broadcast;
     secBroadcast.innerHTML = `
-      <div class="broadcast-banner">
-        <div class="broadcast-banner-img" style="background-image:url('${bc.img}')"></div>
-        <div class="broadcast-banner-inner">
-          <div class="broadcast-badge"><span class="broadcast-dot"></span>BROADCAST · NOW</div>
-          <h3 class="broadcast-title">${titleHtml}</h3>
-          <p class="broadcast-meta">${bc.subtitle}</p>
+      <div class="bc-carousel">
+        <div class="bc-track" id="bc-track">
+          ${items.map(bc => `
+            <div class="broadcast-banner">
+              <div class="broadcast-banner-img" style="background-image:url('${bc.img}')"></div>
+              <div class="broadcast-banner-inner">
+                <div class="broadcast-badge"><span class="broadcast-dot"></span>BROADCAST · NOW</div>
+                <h3 class="broadcast-title">${bc.title.replace(/\n/g,'<br>')}</h3>
+                <p class="broadcast-meta">${bc.subtitle}</p>
+              </div>
+            </div>`).join('')}
+        </div>
+        <div class="bc-dots" id="bc-dots">
+          ${items.map((_,i) => `<span class="bc-dot${i===0?' bc-dot-active':''}" onclick="_bcGo(${i})"></span>`).join('')}
         </div>
       </div>`;
+    _bcIdx = 0;
+    if (_bcTimer) clearInterval(_bcTimer);
+    if (items.length > 1) _bcTimer = setInterval(() => _bcGo((_bcIdx + 1) % items.length), 4000);
+    _initBcSwipe(document.getElementById('bc-track'), items.length);
   }
 
   const secTags = document.getElementById('section-tags');
@@ -1733,6 +1748,30 @@ function _renderExploreCuration(c) {
         </div>
       </div>`;
   }
+}
+
+// ─── Broadcast Carousel ──────────────────────────────────
+function _bcGo(idx) {
+  const track = document.getElementById('bc-track');
+  const dots  = document.querySelectorAll('#bc-dots .bc-dot');
+  if (!track) return;
+  _bcIdx = idx;
+  track.style.transform = `translateX(${-idx * 100}%)`;
+  dots.forEach((d, i) => d.classList.toggle('bc-dot-active', i === idx));
+}
+
+function _initBcSwipe(track, total) {
+  if (!track) return;
+  let startX = 0, moved = false;
+  track.addEventListener('touchstart', e => { startX = e.touches[0].clientX; moved = false; }, { passive: true });
+  track.addEventListener('touchmove',  e => { moved = Math.abs(e.touches[0].clientX - startX) > 10; }, { passive: true });
+  track.addEventListener('touchend',   e => {
+    if (!moved) return;
+    const diff = e.changedTouches[0].clientX - startX;
+    if (diff < -40 && _bcIdx < total - 1) _bcGo(_bcIdx + 1);
+    if (diff >  40 && _bcIdx > 0)         _bcGo(_bcIdx - 1);
+    if (_bcTimer) { clearInterval(_bcTimer); _bcTimer = setInterval(() => _bcGo((_bcIdx + 1) % total), 4000); }
+  });
 }
 
 // ─── Drag Slider ─────────────────────────────────────────

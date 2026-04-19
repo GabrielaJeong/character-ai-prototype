@@ -428,6 +428,109 @@ router.get('/moderation/:publicId', (req, res) => {
   res.json({ log, session, messages, user });
 });
 
+// ── Image Upload ──────────────────────────────────────────
+const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads');
+
+router.post('/upload', (req, res) => {
+  try {
+    const { data, ext } = req.body;
+    const allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    const safeExt = (ext || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!allowed.includes(safeExt)) return res.status(400).json({ error: '허용되지 않는 파일 형식' });
+    if (!data) return res.status(400).json({ error: 'data 필수' });
+    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+    const filename = `bc_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${safeExt}`;
+    fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(data, 'base64'));
+    res.json({ path: `/uploads/${filename}` });
+  } catch (e) {
+    res.status(500).json({ error: '업로드 실패: ' + e.message });
+  }
+});
+
+// ── Broadcast History ─────────────────────────────────────
+const BCAST_HIST_FILE = path.join(__dirname, '..', 'data', 'broadcast-history.json');
+
+function _loadBcastHist() {
+  try { return JSON.parse(fs.readFileSync(BCAST_HIST_FILE, 'utf-8')); }
+  catch { return []; }
+}
+
+router.get('/broadcast-history', (req, res) => {
+  res.json(_loadBcastHist());
+});
+
+router.post('/broadcast-history', (req, res) => {
+  try {
+    const { banners } = req.body;
+    if (!Array.isArray(banners)) return res.status(400).json({ error: 'banners 배열 필수' });
+    const hist = _loadBcastHist();
+    hist.unshift({
+      banners,
+      savedAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    });
+    if (hist.length > 30) hist.length = 30;
+    fs.writeFileSync(BCAST_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '히스토리 저장 실패: ' + e.message });
+  }
+});
+
+router.delete('/broadcast-history/:idx', (req, res) => {
+  try {
+    const hist = _loadBcastHist();
+    const idx = parseInt(req.params.idx, 10);
+    if (isNaN(idx) || idx < 0 || idx >= hist.length) return res.status(404).json({ error: '없음' });
+    hist.splice(idx, 1);
+    fs.writeFileSync(BCAST_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '히스토리 삭제 실패: ' + e.message });
+  }
+});
+
+// ── Collection History ────────────────────────────────────
+const COL_HIST_FILE = path.join(__dirname, '..', 'data', 'collection-history.json');
+
+function _loadColHist() {
+  try { return JSON.parse(fs.readFileSync(COL_HIST_FILE, 'utf-8')); }
+  catch { return []; }
+}
+
+router.get('/collection-history', (req, res) => {
+  res.json(_loadColHist());
+});
+
+router.post('/collection-history', (req, res) => {
+  try {
+    const { collections } = req.body;
+    if (!Array.isArray(collections)) return res.status(400).json({ error: 'collections 배열 필수' });
+    const hist = _loadColHist();
+    hist.unshift({
+      collections,
+      savedAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    });
+    if (hist.length > 30) hist.length = 30;
+    fs.writeFileSync(COL_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '히스토리 저장 실패: ' + e.message });
+  }
+});
+
+router.delete('/collection-history/:idx', (req, res) => {
+  try {
+    const hist = _loadColHist();
+    const idx = parseInt(req.params.idx, 10);
+    if (isNaN(idx) || idx < 0 || idx >= hist.length) return res.status(404).json({ error: '없음' });
+    hist.splice(idx, 1);
+    fs.writeFileSync(COL_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '히스토리 삭제 실패: ' + e.message });
+  }
+});
+
 // ── Curation ──────────────────────────────────────────────
 router.get('/curation', (req, res) => {
   try {

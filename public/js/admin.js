@@ -1092,6 +1092,8 @@ async function loadCuration() {
   try {
     _curation = await api('/curation');
     _renderCuration();
+    loadBcHistory();
+    loadColHistory();
   } catch (e) {
     showToast('큐레이션 로드 실패: ' + e.message, 'error');
   }
@@ -1102,40 +1104,32 @@ function _renderCuration() {
   if (!c) return;
 
   // BROADCAST
-  document.getElementById('bc-title').value    = (c.broadcast?.title    || '').replace(/\n/g, '\\n');
-  document.getElementById('bc-subtitle').value = c.broadcast?.subtitle  || '';
-  document.getElementById('bc-img').value      = c.broadcast?.img       || '';
+  _renderBroadcastList();
 
   // TAGS
   const tagList = document.getElementById('cur-tag-list');
   tagList.innerHTML = (c.tags || []).map((t, i) => `
     <div class="cur-tag-item">
       <input class="notif-form-input cur-tag-input" value="${esc(t)}" data-idx="${i}" onchange="_curUpdateTag(${i},this.value)" />
-      <button class="btn-icon cur-del-btn" onclick="_curDeleteTag(${i})" title="삭제">✕</button>
+      <button class="cur-tag-del" onclick="_curDeleteTag(${i})" title="삭제">✕</button>
     </div>`).join('');
 
   // COLLECTIONS
-  _renderItemList('cur-collection-list', c.collections || [], [
-    { key:'num',   label:'번호',    placeholder:'COLLECTION.07' },
-    { key:'title', label:'제목',    placeholder:'비 오는 날의 대화' },
-    { key:'meta',  label:'메타',    placeholder:'9 characters · ...' },
-    { key:'img',   label:'이미지',  placeholder:'/images/ihwa.png' },
-  ], '_curDeleteCollection', '_curUpdateCollection', 'collections');
+  _renderCollectionList();
 
-  // CREATORS
-  _renderItemList('cur-creator-list', c.creators || [], [
-    { key:'handle', label:'핸들',       placeholder:'@midnight_atelier' },
-    { key:'count',  label:'캐릭터 수',  placeholder:'12 캐릭터' },
-    { key:'img',    label:'이미지',     placeholder:'/images/ihwa.png' },
-  ], '_curDeleteCreator', '_curUpdateCreator', 'creators');
+  // CREATORS — 더미 데이터 유지, 편집 불가
+  const creatorCountEl = document.getElementById('cur-creator-count');
+  if (creatorCountEl) {
+    const handles = (c.creators || []).map(cr => cr.handle).join(', ');
+    creatorCountEl.textContent = `${c.creators?.length || 0}명 (${handles})`;
+  }
 
-  // GENRES
-  _renderItemList('cur-genre-list', c.genres || [], [
-    { key:'label', label:'라벨',    placeholder:'OFFICE' },
-    { key:'title', label:'제목',    placeholder:'오피스 로맨스' },
-    { key:'count', label:'작품 수', placeholder:'248 작품' },
-    { key:'img',   label:'이미지',  placeholder:'/images/jaeheon.png' },
-  ], '_curDeleteGenre', '_curUpdateGenre', 'genres');
+  // GENRES — 더미 데이터 유지, 편집 불가
+  const genreCountEl = document.getElementById('cur-genre-count');
+  if (genreCountEl) {
+    const labels = (c.genres || []).map(g => g.label).join(', ');
+    genreCountEl.textContent = `${c.genres?.length || 0}개 (${labels})`;
+  }
 
   // UPCOMING
   _renderItemList('cur-upcoming-list', c.upcoming || [], [
@@ -1208,9 +1202,208 @@ function _curDeleteTag(i)       { _curation.tags.splice(i, 1); _renderCuration()
 function curAddTag()            { _curation.tags.push('#새태그'); _renderCuration(); }
 
 // ── Collection ops ────────────────────────────────────────
+let _colActiveIdx = 0;
+let _colHistory   = [];
+
+function _renderCollectionList() {
+  const el = document.getElementById('cur-collection-list');
+  if (!el) return;
+  const items = _curation.collections || [];
+  if (!items.length) {
+    el.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:13px;">컬렉션이 없습니다. + 추가를 눌러 추가하세요.</div>';
+    _updateColPreview(-1);
+    return;
+  }
+  el.innerHTML = items.map((col, i) => `
+    <div class="cur-item-row bc-item-row${i === _colActiveIdx ? ' bc-item-active' : ''}"
+         draggable="true" data-idx="${i}" data-key="collections"
+         onclick="_colActivate(${i}, event)">
+      <div class="cur-item-drag" title="드래그로 순서 변경">
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+          <circle cx="4" cy="3"  r="1.5"/><circle cx="8" cy="3"  r="1.5"/>
+          <circle cx="4" cy="8"  r="1.5"/><circle cx="8" cy="8"  r="1.5"/>
+          <circle cx="4" cy="13" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+        </svg>
+      </div>
+      <div class="cur-item-num">${i + 1}</div>
+      <div class="bc-item-body">
+        <div class="bc-item-inputs">
+          <div class="cur-item-field">
+            <label class="cur-item-label">번호</label>
+            <input class="notif-form-input cur-item-input" type="text"
+              value="${esc(col.num || '')}" placeholder="COLLECTION.07"
+              oninput="_colField(${i},'num',this.value)" />
+          </div>
+          <div class="cur-item-field">
+            <label class="cur-item-label">제목</label>
+            <input class="notif-form-input cur-item-input" type="text"
+              value="${esc(col.title || '')}" placeholder="비 오는 날의 대화"
+              oninput="_colField(${i},'title',this.value)" />
+          </div>
+          <div class="cur-item-field">
+            <label class="cur-item-label">메타</label>
+            <input class="notif-form-input cur-item-input" type="text"
+              value="${esc(col.meta || '')}" placeholder="9 characters · 서늘한 공기, 낮은 목소리"
+              oninput="_colField(${i},'meta',this.value)" />
+          </div>
+          <div class="cur-item-field">
+            <label class="cur-item-label">이미지</label>
+            <div class="bc-upload-row">
+              <div class="bc-upload-thumb" id="col-thumb-${i}"
+                style="${col.img ? `background-image:url('${col.img}')` : ''}"></div>
+              <label class="btn btn-sm bc-upload-btn">
+                이미지 업로드
+                <input type="file" accept="image/*" style="display:none"
+                  onchange="_colUploadImage(${i}, this)">
+              </label>
+              <span class="bc-upload-path" id="col-path-${i}">${esc(col.img || '')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-icon cur-del-btn" onclick="event.stopPropagation();_curDeleteCollection(${i})" title="삭제">✕</button>
+    </div>`).join('');
+
+  _initDragDrop(el, 'collections');
+  _updateColPreview(_colActiveIdx < items.length ? _colActiveIdx : 0);
+}
+
+function _colActivate(i, e) {
+  if (e && (e.target.tagName === 'BUTTON' || e.target.closest('.cur-del-btn'))) return;
+  _colActiveIdx = i;
+  document.querySelectorAll('#cur-collection-list .bc-item-row').forEach((row, idx) => {
+    row.classList.toggle('bc-item-active', idx === i);
+  });
+  _updateColPreview(i);
+}
+
+function _colField(i, key, val) {
+  _curation.collections[i][key] = val;
+  if (i === _colActiveIdx) _updateColPreview(i);
+}
+
+function _updateColPreview(idx) {
+  const el = document.getElementById('col-admin-preview');
+  if (!el) return;
+  const items = _curation.collections || [];
+  const col = items[idx];
+  if (!col) {
+    el.innerHTML = '<div class="bc-preview-empty">컬렉션을 선택하면 미리보기가 표시됩니다</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="col-preview-card">
+      ${col.img ? `<div class="col-preview-img" style="background-image:url('${col.img}')"></div>` : ''}
+      <div class="col-preview-inner">
+        <div>
+          <div class="col-preview-num">${esc(col.num || 'COLLECTION.00')}</div>
+          <div class="col-preview-title">${esc(col.title || '제목 없음')}</div>
+        </div>
+        <div class="col-preview-meta">${esc(col.meta || '')}</div>
+      </div>
+    </div>`;
+}
+
+async function _colUploadImage(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop();
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const base64 = reader.result.split(',')[1];
+      const res = await api('/upload', { method:'POST', body: JSON.stringify({ data: base64, ext }) });
+      _curation.collections[i].img = res.path;
+      const thumb = document.getElementById(`col-thumb-${i}`);
+      const pathEl = document.getElementById(`col-path-${i}`);
+      if (thumb) thumb.style.backgroundImage = `url('${res.path}')`;
+      if (pathEl) pathEl.textContent = res.path;
+      if (i === _colActiveIdx) _updateColPreview(i);
+    } catch (e) {
+      showToast('이미지 업로드 실패: ' + e.message, 'error');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadColHistory() {
+  try {
+    _colHistory = await api('/collection-history');
+    _renderColHistory();
+  } catch (e) {
+    const el = document.getElementById('col-history-wrap');
+    if (el) el.innerHTML = '<div class="bc-history-empty">히스토리를 불러올 수 없습니다</div>';
+  }
+}
+
+function _renderColHistory() {
+  const el = document.getElementById('col-history-wrap');
+  if (!el) return;
+  if (!_colHistory.length) {
+    el.innerHTML = '<div class="bc-history-empty">저장된 히스토리가 없습니다. 컬렉션을 저장하면 여기에 기록됩니다.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="bc-history-table">
+      <thead>
+        <tr>
+          <th>썸네일</th>
+          <th>컬렉션 목록</th>
+          <th>저장 일시</th>
+          <th>작업</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_colHistory.map((snap, si) => `
+          <tr>
+            <td>
+              <div class="bc-hist-thumbs">
+                ${(snap.collections || []).map(col => `
+                  <div class="bc-hist-thumb" style="${col.img ? `background-image:url('${col.img}')` : ''}"></div>
+                `).join('')}
+              </div>
+            </td>
+            <td class="bc-hist-titles">
+              ${(snap.collections || []).map((col, ci) => `
+                <div class="bc-hist-title-row">
+                  <span class="bc-hist-num">${ci + 1}</span>
+                  <span>${esc(col.title || '')}</span>
+                </div>
+              `).join('')}
+            </td>
+            <td class="bc-hist-date">${esc(snap.savedAt || '')}</td>
+            <td class="bc-hist-actions">
+              <button class="btn btn-sm" onclick="restoreColSnapshot(${si})">복원</button>
+              <button class="btn btn-sm bc-hist-del-btn" onclick="deleteColSnapshot(${si})">삭제</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function restoreColSnapshot(si) {
+  const snap = _colHistory[si];
+  if (!snap) return;
+  _curation.collections = JSON.parse(JSON.stringify(snap.collections));
+  _colActiveIdx = 0;
+  _renderCuration();
+  showToast('히스토리에서 복원했습니다. 저장 버튼으로 반영하세요.');
+}
+
+async function deleteColSnapshot(si) {
+  try {
+    await api(`/collection-history/${si}`, { method:'DELETE' });
+    _colHistory.splice(si, 1);
+    _renderColHistory();
+    showToast('히스토리 삭제됐습니다');
+  } catch (e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
 function _curUpdateCollection(i, key, val) { _curation.collections[i][key] = val; }
-function _curDeleteCollection(i)           { _curation.collections.splice(i, 1); _renderCuration(); }
-function curAddCollection()                { _curation.collections.push({ num:'COLLECTION.00', title:'', meta:'', img:'' }); _renderCuration(); }
+function _curDeleteCollection(i)           { _curation.collections.splice(i, 1); if (_colActiveIdx >= _curation.collections.length) _colActiveIdx = Math.max(0, _curation.collections.length - 1); _renderCuration(); }
+function curAddCollection()                { _curation.collections.push({ num:'COLLECTION.00', title:'', meta:'', img:'' }); _colActiveIdx = _curation.collections.length - 1; _renderCuration(); }
 
 // ── Creator ops ───────────────────────────────────────────
 function _curUpdateCreator(i, key, val) { _curation.creators[i][key] = val; }
@@ -1227,21 +1420,232 @@ function _curUpdateUpcoming(i, key, val) { _curation.upcoming[i][key] = val; }
 function _curDeleteUpcoming(i)           { _curation.upcoming.splice(i, 1); _renderCuration(); }
 function curAddUpcoming()                { _curation.upcoming.push({ name:'', role:'', img:'' }); _renderCuration(); }
 
-// ── Save ─────────────────────────────────────────────────
-async function saveCuration() {
-  // broadcast 제목의 \n 처리
-  _curation.broadcast = {
-    title:    document.getElementById('bc-title').value.replace(/\\n/g, '\n'),
-    subtitle: document.getElementById('bc-subtitle').value,
-    img:      document.getElementById('bc-img').value,
+// ── Broadcast ops ─────────────────────────────────────────
+let _bcActiveIdx = 0;
+let _bcHistory   = [];
+
+function _renderBroadcastList() {
+  const el = document.getElementById('cur-broadcast-list');
+  if (!el) return;
+  const items = _curation.broadcast || [];
+  if (!items.length) {
+    el.innerHTML = '<div style="padding:16px;color:var(--text-dim);font-size:13px;">배너가 없습니다. + 배너 추가를 눌러 추가하세요.</div>';
+    _updateBcPreview(-1);
+    return;
+  }
+  el.innerHTML = items.map((bc, i) => `
+    <div class="cur-item-row bc-item-row${i === _bcActiveIdx ? ' bc-item-active' : ''}"
+         draggable="true" data-idx="${i}" data-key="broadcast"
+         onclick="_bcActivate(${i}, event)">
+      <div class="cur-item-drag" title="드래그로 순서 변경">
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+          <circle cx="4" cy="3"  r="1.5"/><circle cx="8" cy="3"  r="1.5"/>
+          <circle cx="4" cy="8"  r="1.5"/><circle cx="8" cy="8"  r="1.5"/>
+          <circle cx="4" cy="13" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+        </svg>
+      </div>
+      <div class="cur-item-num">${i + 1}</div>
+      <div class="bc-item-body">
+        <div class="bc-item-inputs">
+          <div class="cur-item-field">
+            <label class="cur-item-label">제목 (줄바꿈: \\n)</label>
+            <input class="notif-form-input cur-item-input" type="text"
+              value="${esc(bc.title || '')}" placeholder="신작: 지하 서점의\\n마지막 능력자"
+              oninput="_bcField(${i},'title',this.value)" />
+          </div>
+          <div class="cur-item-field">
+            <label class="cur-item-label">부제목</label>
+            <input class="notif-form-input cur-item-input" type="text"
+              value="${esc(bc.subtitle || '')}" placeholder="박재헌 · 3.2k 사용자가 읽는 중"
+              oninput="_bcField(${i},'subtitle',this.value)" />
+          </div>
+          <div class="cur-item-field">
+            <label class="cur-item-label">이미지</label>
+            <div class="bc-upload-row">
+              <div class="bc-upload-thumb" id="bc-thumb-${i}"
+                style="${bc.img ? `background-image:url('${bc.img}')` : ''}"></div>
+              <label class="btn btn-sm bc-upload-btn">
+                이미지 업로드
+                <input type="file" accept="image/*" style="display:none"
+                  onchange="_bcUploadImage(${i}, this)">
+              </label>
+              <span class="bc-upload-path" id="bc-path-${i}">${esc(bc.img || '')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-icon cur-del-btn" onclick="event.stopPropagation();_curDeleteBroadcast(${i})" title="삭제">✕</button>
+    </div>`).join('');
+
+  _initDragDrop(el, 'broadcast');
+  _updateBcPreview(_bcActiveIdx < items.length ? _bcActiveIdx : 0);
+}
+
+function _bcActivate(i, e) {
+  if (e && (e.target.tagName === 'BUTTON' || e.target.closest('.cur-del-btn'))) return;
+  _bcActiveIdx = i;
+  document.querySelectorAll('#cur-broadcast-list .bc-item-row').forEach((row, idx) => {
+    row.classList.toggle('bc-item-active', idx === i);
+  });
+  _updateBcPreview(i);
+}
+
+function _bcField(i, key, val) {
+  _curation.broadcast[i][key] = val;
+  if (i === _bcActiveIdx) _updateBcPreview(i);
+}
+
+function _updateBcPreview(idx) {
+  const el = document.getElementById('bc-admin-preview');
+  if (!el) return;
+  const items = _curation.broadcast || [];
+  const bc = items[idx];
+  if (!bc) {
+    el.innerHTML = '<div class="bc-preview-empty">배너를 선택하면 미리보기가 표시됩니다</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="bc-preview-banner">
+      ${bc.img ? `<div class="bc-preview-img" style="background-image:url('${bc.img}')"></div>` : ''}
+      <div class="bc-preview-inner">
+        <div class="bc-preview-badge"><span class="bc-preview-dot"></span>BROADCAST · NOW</div>
+        <div class="bc-preview-title">${(bc.title || '제목 없음').replace(/\\n/g,'<br>')}</div>
+        <div class="bc-preview-meta">${bc.subtitle || '부제목 없음'}</div>
+      </div>
+    </div>`;
+}
+
+async function _bcUploadImage(i, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop();
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const base64 = reader.result.split(',')[1];
+      const res = await api('/upload', { method:'POST', body: JSON.stringify({ data: base64, ext }) });
+      _curation.broadcast[i].img = res.path;
+      const thumb = document.getElementById(`bc-thumb-${i}`);
+      const pathEl = document.getElementById(`bc-path-${i}`);
+      if (thumb) thumb.style.backgroundImage = `url('${res.path}')`;
+      if (pathEl) pathEl.textContent = res.path;
+      if (i === _bcActiveIdx) _updateBcPreview(i);
+    } catch (e) {
+      showToast('이미지 업로드 실패: ' + e.message, 'error');
+    }
   };
-  // tag input 값 동기화
+  reader.readAsDataURL(file);
+}
+
+async function loadBcHistory() {
+  try {
+    _bcHistory = await api('/broadcast-history');
+    _renderBcHistory();
+  } catch (e) {
+    const el = document.getElementById('bc-history-wrap');
+    if (el) el.innerHTML = '<div class="bc-history-empty">히스토리를 불러올 수 없습니다</div>';
+  }
+}
+
+function _renderBcHistory() {
+  const el = document.getElementById('bc-history-wrap');
+  if (!el) return;
+  if (!_bcHistory.length) {
+    el.innerHTML = '<div class="bc-history-empty">저장된 히스토리가 없습니다. 배너를 저장하면 여기에 기록됩니다.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <table class="bc-history-table">
+      <thead>
+        <tr>
+          <th>썸네일</th>
+          <th>배너 목록</th>
+          <th>저장 일시</th>
+          <th>작업</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_bcHistory.map((snap, si) => `
+          <tr>
+            <td>
+              <div class="bc-hist-thumbs">
+                ${(snap.banners || []).map(bc => `
+                  <div class="bc-hist-thumb" style="${bc.img ? `background-image:url('${bc.img}')` : ''}"></div>
+                `).join('')}
+              </div>
+            </td>
+            <td class="bc-hist-titles">
+              ${(snap.banners || []).map((bc, bi) => `
+                <div class="bc-hist-title-row">
+                  <span class="bc-hist-num">${bi + 1}</span>
+                  <span>${esc((bc.title || '').replace(/\n/g,' '))}</span>
+                </div>
+              `).join('')}
+            </td>
+            <td class="bc-hist-date">${esc(snap.savedAt || '')}</td>
+            <td class="bc-hist-actions">
+              <button class="btn btn-sm" onclick="restoreBcSnapshot(${si})">복원</button>
+              <button class="btn btn-sm bc-hist-del-btn" onclick="deleteBcSnapshot(${si})">삭제</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function restoreBcSnapshot(si) {
+  const snap = _bcHistory[si];
+  if (!snap) return;
+  _curation.broadcast = JSON.parse(JSON.stringify(snap.banners));
+  _bcActiveIdx = 0;
+  _renderCuration();
+  showToast('히스토리에서 복원했습니다. 저장 버튼으로 반영하세요.');
+}
+
+async function deleteBcSnapshot(si) {
+  try {
+    await api(`/broadcast-history/${si}`, { method:'DELETE' });
+    _bcHistory.splice(si, 1);
+    _renderBcHistory();
+    showToast('히스토리 삭제됐습니다');
+  } catch (e) {
+    showToast('삭제 실패: ' + e.message, 'error');
+  }
+}
+
+function _curUpdateBroadcast(i, key, val) { _curation.broadcast[i][key] = val; }
+function _curDeleteBroadcast(i)           { _curation.broadcast.splice(i, 1); if (_bcActiveIdx >= _curation.broadcast.length) _bcActiveIdx = Math.max(0, _curation.broadcast.length - 1); _renderCuration(); }
+function curAddBroadcast()                { _curation.broadcast.push({ title:'', subtitle:'', img:'' }); _bcActiveIdx = _curation.broadcast.length - 1; _renderCuration(); }
+
+// ── Save helpers ─────────────────────────────────────────
+function _syncTagInputs() {
   document.querySelectorAll('.cur-tag-input').forEach(el => {
     _curation.tags[+el.dataset.idx] = el.value;
   });
+}
+
+async function saveCurationSection(key) {
+  if (key === 'tags') _syncTagInputs();
+  try {
+    if (key === 'broadcast') {
+      await api('/broadcast-history', { method:'POST', body: JSON.stringify({ banners: _curation.broadcast }) });
+      await loadBcHistory();
+    }
+    if (key === 'collections') {
+      await api('/collection-history', { method:'POST', body: JSON.stringify({ collections: _curation.collections }) });
+      await loadColHistory();
+    }
+    await api('/curation', { method:'PUT', body: JSON.stringify(_curation) });
+    showToast(`${key} 저장됐습니다`);
+  } catch (e) {
+    showToast('저장 실패: ' + e.message, 'error');
+  }
+}
+
+async function saveCuration() {
+  _syncTagInputs();
   try {
     await api('/curation', { method:'PUT', body: JSON.stringify(_curation) });
-    showToast('큐레이션이 저장됐습니다');
+    showToast('전체 큐레이션 저장됐습니다');
   } catch (e) {
     showToast('저장 실패: ' + e.message, 'error');
   }

@@ -1,5 +1,4 @@
 /* ─── Fonts ─────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
 
 /* ─── Variables ─────────────────────────────────────────── */
@@ -16,7 +15,7 @@
   --msg-user:     #1A2744;
   --radius-card:  12px;
   --radius-btn:   8px;
-  --font: 'Pretendard', 'Inter', -apple-system, sans-serif;
+  --font: 'Pretendard', sans-serif;
 }
 
 /* ─── Splash Screen ─────────────────────────────────────── */
@@ -43,7 +42,7 @@
   font-size: 42px;
   font-weight: 800;
   color: #E2E8F0;
-  font-family: 'Pretendard', 'Inter', -apple-system, sans-serif;
+  font-family: var(--font);
   letter-spacing: -0.02em;
   animation: splashLogoIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -55,7 +54,7 @@
 .splash-copy {
   font-size: 13px;
   color: #4A5568;
-  font-family: 'Pretendard', 'Inter', -apple-system, sans-serif;
+  font-family: var(--font);
   letter-spacing: 0.04em;
   opacity: 0;
   animation: splashCopyIn 0.5s ease 0.3s forwards;
@@ -295,7 +294,7 @@ body {
   letter-spacing: 2px;
   line-height: 1;
   color: #E2E8F0;
-  font-family: 'Pretendard', var(--font);
+  font-family: var(--font);
 }
 
 .logo-o-wrap {
@@ -403,6 +402,11 @@ body {
   overflow-x: auto;
   padding-bottom: 4px;
   scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
+}
+.creator-row.dragging {
+  cursor: grabbing;
 }
 .creator-row::-webkit-scrollbar { display: none; }
 .creator-card {
@@ -483,7 +487,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--accent);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font);
 }
 .genre-card-title {
   font-size: 14px;
@@ -2791,7 +2795,7 @@ body {
   font-weight: 600;
   letter-spacing: 0.2em;
   color: var(--accent);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font);
   margin-bottom: 3px;
 }
 .notif-inbox-title {
@@ -3853,10 +3857,48 @@ body {
 .chart-change-down { color: #F87171; }
 .chart-change-none { color: var(--text-muted); }
 
+/* ── BROADCAST 캐러셀 ────────────────────────────────────── */
+.bc-carousel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  margin: 20px;
+}
+.bc-track {
+  display: flex;
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.bc-track .broadcast-banner {
+  flex: 0 0 100%;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+}
+.bc-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 0 4px;
+}
+.bc-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: background 0.2s, width 0.2s;
+}
+.bc-dot-active {
+  background: var(--accent);
+  width: 14px;
+  border-radius: 3px;
+}
+
 /* ── BROADCAST 배너 ──────────────────────────────────────── */
 .broadcast-banner {
   position: relative;
-  margin: 20px;
+  margin: 0;
   border-radius: 10px;
   background: #141420;
   border: 1px solid rgba(255,255,255,0.07);
@@ -3867,23 +3909,25 @@ body {
 .broadcast-banner-img {
   position: absolute;
   top: 0; right: 0;
-  width: 120px;
+  width: 60%;
   height: 100%;
   background-size: cover;
-  background-position: center top;
-  opacity: 0.35;
-  -webkit-mask-image: linear-gradient(to left, black, transparent);
-  mask-image: linear-gradient(to left, black, transparent);
+  background-position: center 25%;
+  opacity: 1;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 55%);
+  mask-image: linear-gradient(to right, transparent, black 55%);
 }
 .broadcast-banner-inner {
   position: relative;
+  z-index: 0;
 }
 .broadcast-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-size: 9px;
-  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-family: var(--font);
   font-weight: 600;
   letter-spacing: 1px;
   color: #6ce5d5;
@@ -3950,11 +3994,13 @@ body {
 .collection-card-img {
   position: absolute;
   top: 0; right: 0; bottom: 0;
-  width: 55%;
+  width: 60%;
   background-size: cover;
-  background-position: center top;
-  -webkit-mask-image: linear-gradient(to left, #000 10%, transparent 85%);
-  mask-image: linear-gradient(to left, #000 10%, transparent 85%);
+  background-position: center 25%;
+  opacity: 1;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 55%);
+  mask-image: linear-gradient(to right, transparent, #000 55%);
 }
 .collection-card-inner {
   position: absolute;
@@ -3963,10 +4009,11 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  z-index: 0;
 }
 .collection-num {
   font-size: 9px;
-  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-family: var(--font);
   font-weight: 600;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -3985,7 +4032,7 @@ body {
 }
 .collection-meta {
   font-size: 10.5px;
-  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-family: var(--font);
   color: rgba(255,255,255,0.7);
   margin: 0;
   letter-spacing: 0.6px;
@@ -3994,7 +4041,7 @@ body {
 
 /* ── TAG.CLOUD ────────────────────────────────────────────── */
 .tag-cloud-section {
-  padding: 20px;
+  padding: 10px 20px 20px;
 }
 .tag-cloud-pills {
   display: flex;

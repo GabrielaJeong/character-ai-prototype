@@ -1,0 +1,22 @@
+[
+  {
+    "banners": [
+      {
+        "title": "신작: 지하 서점의\n마지막 능력자",
+        "subtitle": "박재헌 · 3.2k 사용자가 읽는 중",
+        "img": "/images/jaeheon.png"
+      },
+      {
+        "title": "이화와 함께하는\n프로파일링 세션",
+        "subtitle": "이화 · 지금 12.4k명이 대화 중",
+        "img": "/images/ihwa.png"
+      },
+      {
+        "title": "4월의 특별 컬렉션\n귀신이 아니라 사람이",
+        "subtitle": "COLLECTION.09 · 지금 오픈",
+        "img": "/images/sehyun.png"
+      }
+    ],
+    "savedAt": "2026. 4. 20. AM 12:51:05"
+  }
+]
