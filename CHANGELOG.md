@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 735376c6a0790b195f00a33689388bba4f84f86e -->
-<!-- changelog-last-version: 0.17 -->
+<!-- changelog-last-commit: 353b2744eeba3bf94681d17d9e29758d97d59a08 -->
+<!-- changelog-last-version: 0.18 -->
+
 
 
 
@@ -12,6 +13,21 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.18 — 2026-04-20
+**큐레이션 어드민 고도화 및 UI 개선**
+- BROADCAST 배너: 캐러셀 전환, 이미지 업로드, 실시간 미리보기(390px), 히스토리 기록/복원
+- EDITOR.PICKS: 이미지 업로드, 실시간 미리보기(390px), 히스토리 기록/복원
+- 배너/컬렉션 이미지 레이어 z-index 조정 및 그라데이션 마스크 개선 (오른쪽→선명, 왼쪽→투명)
+- TOP.creators / GENRE.catalog: 추후 개발 예정 안내 플레이스홀더로 교체
+- TAG.CLOUD 삭제 버튼 인라인 x 버튼으로 소형화
+- 어드민 미리보기 너비 390px 고정 (실제 앱 화면 기준)
+- 전체 폰트 Pretendard 통일, Inter 제거
+- POST /api/admin/upload (base64 이미지 업로드)
+- GET/POST/DELETE /api/admin/broadcast-history
+- GET/POST/DELETE /api/admin/collection-history
 
 ---
 
