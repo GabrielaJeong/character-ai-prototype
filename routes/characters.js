@@ -22,19 +22,62 @@ router.get('/', (req, res) => {
       .filter(d => d.isDirectory())
       .map(d => d.name);
 
+    // ── 통계 집계 ─────────────────────────────────────────
+    const now7dAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
+
+    const sessionTotals  = Object.fromEntries(
+      stmt.charSessionCounts.all().map(r => [r.character_id, r.cnt])
+    );
+    const sessionRecent  = Object.fromEntries(
+      stmt.charSessionCountsRecent.all(now7dAgo).map(r => [r.character_id, r.cnt])
+    );
+    const bookmarkTotals = Object.fromEntries(
+      stmt.charBookmarkCounts.all().map(r => [r.character_id, r.cnt])
+    );
+
+    // HOT 임계값: 최근 7일 세션 상위 기준 (최소 1회 이상이면서 상위 50%)
+    const recentCounts = Object.values(sessionRecent).filter(n => n > 0);
+    const hotThreshold = recentCounts.length > 0
+      ? Math.max(1, Math.ceil(recentCounts.sort((a, b) => b - a)[Math.floor(recentCounts.length / 2)]))
+      : Infinity;
+
     const characters = dirs
       .map(id => {
         const configPath = path.join(CHARS_DIR, id, 'config.json');
         if (!fs.existsSync(configPath)) return null;
         try {
-          return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+
+          // ── 배지 판정 ──────────────────────────────────
+          const charDir   = path.join(CHARS_DIR, id);
+          const configStat = fs.statSync(configPath);
+          const sysMdPath  = path.join(charDir, 'system.md');
+          const sysMtime   = fs.existsSync(sysMdPath) ? fs.statSync(sysMdPath).mtimeMs : 0;
+          const updatedMs  = Math.max(configStat.mtimeMs, sysMtime);
+          const createdAt  = config.created_at
+            ? new Date(config.created_at).getTime()
+            : configStat.birthtimeMs;
+
+          const isNew = (Date.now() - createdAt)    < 7 * 24 * 60 * 60 * 1000;
+          const isHot = (sessionRecent[id] || 0)   >= hotThreshold;
+          const isUp  = !isNew && (Date.now() - updatedMs) < 7 * 24 * 60 * 60 * 1000;
+
+          const badge = isNew ? 'NEW' : isHot ? 'HOT' : isUp ? 'UP' : null;
+
+          return {
+            ...config,
+            badge,
+            stats: {
+              sessions:  sessionTotals[id]  || 0,
+              bookmarks: bookmarkTotals[id] || 0,
+            },
+          };
         } catch {
           return null;
         }
       })
       .filter(Boolean)
       .filter(c => {
-        // adult_only 캐릭터는 성인 인증된 유저만 접근 가능
         if (c.rating === 'adult_only' && !adultEnabled) return false;
         return true;
       });
@@ -95,6 +138,7 @@ router.post('/create', (req, res) => {
     const config = {
       id,
       status:       'active',
+      owner_user_id: req.session?.userId || null,
       name:         characterData.name,
       fullName:     characterData.name,
       subtitle:     characterData.subtitle || `${characterData.name} · ${characterData.occupation || ''}`,

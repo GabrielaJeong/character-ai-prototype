@@ -197,6 +197,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initNoticeCarousel();
   initAuth();
   loadCharacters();
+  loadNotifBadge();
   // Bottom nav visible on landing by default
   document.getElementById('bottom-nav')?.classList.remove('hidden');
 
@@ -240,39 +241,71 @@ async function loadCharacters() {
   }
 }
 
+// K 단위 포맷
+function fmtK(n) {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return String(n);
+}
+
+// 공통 카드 빌더 — 이미지 카드 + 카드 하단 정보 블록을 묶은 wrapper 반환
+function buildCharCard(char, index) {
+  const isComingSoon = char.status === 'coming_soon';
+
+  // 넘버링 배지
+  const numStr = String(index + 1).padStart(2, '0');
+
+  // 상태 배지
+  const badgeMap = {
+    NEW: { cls: 'badge-new', dot: '●', label: 'NEW' },
+    HOT: { cls: 'badge-hot', dot: '●', label: 'HOT' },
+    UP:  { cls: 'badge-up',  dot: '●', label: 'UP'  },
+  };
+  const b = char.badge && badgeMap[char.badge];
+
+  // 태그
+  const visibleTags = Array.isArray(char.tags) ? char.tags.slice(0, 3) : [];
+  const tagsHtml = visibleTags.length
+    ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${t}</span>`).join('')}</div>`
+    : '';
+
+  // 이미지 카드
+  const card = document.createElement('div');
+  card.className = 'char-card' + (isComingSoon ? ' char-card-disabled' : '');
+  if (!isComingSoon) card.onclick = () => selectCharacter(char.id);
+  card.innerHTML = `
+    ${char.image
+      ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
+      : `<div class="char-card-img-placeholder">${char.name[0]}</div>`}
+    <span class="char-card-number">#B${numStr}</span>
+    ${b ? `<span class="char-card-status-badge ${b.cls}"><span class="status-dot">${b.dot}</span>${b.label}</span>` : ''}
+    <div class="char-card-overlay">${tagsHtml}</div>
+    ${isComingSoon ? `<div class="char-card-coming-overlay"></div><span class="char-card-soon-badge">Coming Soon</span>` : ''}
+  `;
+
+  // 카드 하단 정보 (카드 밖)
+  const stats = char.stats;
+  const info = document.createElement('div');
+  info.className = 'char-card-info';
+  info.innerHTML = `
+    <div class="char-card-name">${char.name}</div>
+    <div class="char-card-role">${char.role || char.team || ''}</div>
+    ${stats ? `<div class="char-card-stats">
+      <span class="char-stat"><span class="char-stat-icon">▲</span>${fmtK(stats.sessions)}</span>
+      <span class="char-stat"><span class="char-stat-icon">♥</span>${fmtK(stats.bookmarks)}</span>
+    </div>` : ''}
+  `;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'char-card-wrap';
+  wrap.appendChild(card);
+  wrap.appendChild(info);
+  return wrap;
+}
+
 function renderCharacterGrid(list) {
   const grid = document.getElementById('char-grid');
   grid.innerHTML = '';
-
-  list.forEach(char => {
-    const isComingSoon = char.status === 'coming_soon';
-    const card = document.createElement('div');
-    card.className = 'char-card' + (isComingSoon ? ' char-card-disabled' : '');
-    if (!isComingSoon) card.onclick = () => selectCharacter(char.id);
-
-    const imgHtml = char.image
-      ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
-      : `<div class="char-card-img-placeholder">${char.name[0]}</div>`;
-
-    const visibleTags = Array.isArray(char.tags) ? char.tags.slice(0, 3) : [];
-    const tagsHtml = visibleTags.length
-      ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${t}</span>`).join('')}</div>`
-      : '';
-
-    card.innerHTML = `
-      ${imgHtml}
-      <div class="char-card-overlay">
-        ${tagsHtml}
-        <div class="char-card-name">${char.name}</div>
-        <div class="char-card-role">${char.role || char.team}</div>
-      </div>
-      ${isComingSoon ? `
-        <div class="char-card-coming-overlay"></div>
-        <span class="char-card-soon-badge">Coming Soon</span>
-      ` : ''}
-    `;
-    grid.appendChild(card);
-  });
+  list.forEach((char, i) => grid.appendChild(buildCharCard(char, i)));
 }
 
 function selectCharacter(id) {
@@ -673,7 +706,7 @@ function showScreen(id) {
 
   // Bottom nav: hidden in chat screens and login
   const nav = document.getElementById('bottom-nav');
-  const noNavScreens = ['screen-chat', 'screen-builder-chat', 'screen-builder-loading', 'screen-builder-manual', 'screen-login', 'screen-persona-select', 'screen-persona-select-edit'];
+  const noNavScreens = ['screen-chat', 'screen-builder-chat', 'screen-builder-loading', 'screen-builder-manual', 'screen-login', 'screen-reset-password', 'screen-notification', 'screen-persona-select', 'screen-persona-select-edit'];
   if (nav) nav.classList.toggle('hidden', noNavScreens.includes(id));
   updateNavActiveTab(id);
 }
@@ -707,7 +740,9 @@ const ROUTES = [
   { pattern: /^\/builder\/chat$/,               handler: ()  => _routeGated('screen-builder-chat')   },
   { pattern: /^\/builder\/manual$/,             handler: ()  => _routeGated('screen-builder-manual') },
   { pattern: /^\/builder$/,                     handler: ()  => _routeGated('screen-builder')        },
+  { pattern: /^\/notification$/,                handler: ()  => _routeNotification()              },
   { pattern: /^\/login$/,                       handler: ()  => _routeLogin()                      },
+  { pattern: /^\/reset-password$/,              handler: ()  => _routeResetPassword()              },
   { pattern: /^\/mypage$/,                      handler: ()  => _routeMypage()                     },
   { pattern: /^\/$/,                            handler: ()  => showScreen('screen-landing')       },
 ];
@@ -725,10 +760,185 @@ function _routeGated(screenId) {
   showScreen(screenId);
 }
 
+// ─── Notifications ────────────────────────────────────────
+let _notifItems = [];
+let _notifActiveTab = 'all';
+
+function _routeNotification() {
+  showScreen('screen-notification');
+  loadNotifications();
+}
+
+async function loadNotifBadge() {
+  try {
+    const res  = await fetch('/api/notifications/unread-count');
+    const data = await res.json();
+    const badge = document.getElementById('notif-badge');
+    if (!badge) return;
+    if (data.count > 0) {
+      badge.textContent = data.count > 9 ? '9+' : data.count;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch (_) {}
+}
+
+async function loadNotifications() {
+  const feed = document.getElementById('notif-list');
+  if (!feed) return;
+  try {
+    const res  = await fetch('/api/notifications');
+    const data = await res.json();
+    _notifItems = data.items || [];
+    // 헤더 [N new] 배지
+    const countEl = document.getElementById('notif-new-count');
+    if (countEl) countEl.textContent = data.unreadCount > 0 ? `[${data.unreadCount} new]` : '';
+    // 현재 탭으로 렌더
+    renderNotifFeed(_notifActiveTab);
+  } catch (_) {
+    feed.innerHTML = '<p class="notif-empty">알림을 불러오지 못했습니다.</p>';
+  }
+}
+
+function switchNotifTab(btn, tab) {
+  _notifActiveTab = tab;
+  document.querySelectorAll('.notif-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNotifFeed(tab);
+}
+
+function renderNotifFeed(tab) {
+  const feed = document.getElementById('notif-list');
+  if (!feed) return;
+
+  const filtered = tab === 'all' ? _notifItems : _notifItems.filter(n => n.category === tab);
+
+  // 날짜 그룹 계산
+  const now       = Date.now() / 1000;
+  const todayMidnight    = new Date(); todayMidnight.setHours(0,0,0,0);
+  const todayStart       = todayMidnight.getTime() / 1000;
+  const yesterdayStart   = todayStart - 86400;
+  const weekStart        = todayStart - 6 * 86400;
+
+  const fmtDate = ts => {
+    const d = new Date(ts * 1000);
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  };
+
+  const groups = [
+    { key: 'today',     label: 'TODAY · 오늘',        items: filtered.filter(n => n.created_at >= todayStart) },
+    { key: 'yesterday', label: 'YESTERDAY · 어제',    items: filtered.filter(n => n.created_at >= yesterdayStart && n.created_at < todayStart) },
+    { key: 'week',      label: 'THIS.WEEK · 이번주',  items: filtered.filter(n => n.created_at >= weekStart   && n.created_at < yesterdayStart) },
+    { key: 'older',     label: 'EARLIER · 이전',      items: filtered.filter(n => n.created_at <  weekStart) },
+  ].filter(g => g.items.length > 0);
+
+  if (filtered.length === 0) {
+    feed.innerHTML = `<div class="notif-empty-state"><p class="notif-empty-title">NO MATCHES</p><p class="notif-empty-desc">새로운 알림이 오면 여기에 표시돼요.</p></div>`;
+    return;
+  }
+
+  feed.innerHTML = groups.map(g => `
+    <div class="notif-group">
+      <div class="notif-group-header">
+        <span class="notif-group-label">${g.label}</span>
+        <span class="notif-group-date">${fmtDate(g.items[0].created_at)}</span>
+      </div>
+      ${g.items.map(n => buildNotifRow(n)).join('')}
+    </div>
+  `).join('') + `<div class="notif-feed-end">// END.feed</div>`;
+}
+
+function buildNotifRow(n) {
+  const isSocial = n.category === 'social';
+  // 아이콘 SVG
+  const iconSvg = isSocial
+    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21l-1.5-1.4C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.5 11.1L12 21z"/></svg>`
+    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>`;
+  const catBadge = isSocial
+    ? `<span class="notif-cat-badge notif-cat-social">SOCIAL</span>`
+    : `<span class="notif-cat-badge notif-cat-sys">SYS</span>`;
+  const timeStr = notifTimeStr(n.created_at);
+  const hasBody = !!n.body;
+
+  return `
+    <div class="notif-row${n.is_read ? ' notif-row-read' : ''}${hasBody ? ' notif-row-accordion' : ''}"
+         data-id="${n.id}" onclick="onNotifRowClick(this,${n.id})">
+      <div class="notif-row-icon notif-icon-${n.category}">${iconSvg}</div>
+      <div class="notif-row-content">
+        <div class="notif-row-top">
+          <span class="notif-row-title">${n.title}</span>
+          ${catBadge}
+        </div>
+        ${hasBody ? `<div class="notif-row-body-wrap"><p class="notif-row-body">${n.body}</p></div>` : ''}
+        <p class="notif-row-time">${timeStr}</p>
+      </div>
+      ${hasBody ? '<span class="notif-row-chevron">›</span>' : ''}
+    </div>
+  `;
+}
+
+function notifTimeStr(unixSec) {
+  const diff = Math.floor(Date.now() / 1000) - unixSec;
+  const d = new Date(unixSec * 1000);
+  const hhmm = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  if (diff < 86400)    return hhmm;
+  if (diff < 86400*2)  return `어제 ${hhmm}`;
+  return `${d.getMonth()+1}/${d.getDate()} ${hhmm}`;
+}
+
+function onNotifRowClick(el, id) {
+  // 아코디언 토글
+  if (el.classList.contains('notif-row-accordion')) {
+    el.classList.toggle('notif-row-expanded');
+  }
+  // 읽음 처리
+  if (!el.classList.contains('notif-row-read') && _currentUser) {
+    fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+    el.classList.add('notif-row-read');
+    // 헤더 카운트 갱신
+    const countEl = document.getElementById('notif-new-count');
+    if (countEl) {
+      const cur = parseInt(countEl.textContent.replace(/\D/g,'')) || 0;
+      const next = Math.max(0, cur - 1);
+      countEl.textContent = next > 0 ? `[${next} new]` : '';
+    }
+    loadNotifBadge();
+  }
+}
+
+async function markAllNotifRead() {
+  if (!_currentUser) return;
+  await fetch('/api/notifications/read-all', { method: 'PATCH' });
+  document.querySelectorAll('.notif-row').forEach(el => el.classList.add('notif-row-read'));
+  const countEl = document.getElementById('notif-new-count');
+  if (countEl) countEl.textContent = '';
+  loadNotifBadge();
+}
+
+function timeAgo(unixSec) {
+  const diff = Math.floor(Date.now() / 1000) - unixSec;
+  if (diff < 60)    return '방금 전';
+  if (diff < 3600)  return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  return `${Math.floor(diff / 86400)}일 전`;
+}
+
 function _routeLogin() {
   if (_currentUser) { navigateTo('/'); return; }
   showAuthView('login');
   showScreen('screen-login');
+}
+
+function _routeResetPassword() {
+  if (_currentUser) { navigateTo('/'); return; }
+  const token = new URLSearchParams(window.location.search).get('token');
+  if (!token) { navigateTo('/login'); return; }
+  document.getElementById('reset-pw-form-view').style.display = '';
+  document.getElementById('reset-pw-done-view').style.display = 'none';
+  document.getElementById('reset-pw-global-err').textContent  = '';
+  document.getElementById('reset-pw-form').reset();
+  showScreen('screen-reset-password');
 }
 
 function _routeMypage() {
@@ -1025,7 +1235,7 @@ function _routeChat(id) {
 
 
 function renderRoute(path) {
-  const pathname = path || window.location.pathname;
+  const pathname = (path || window.location.pathname).split('?')[0];
   for (const { pattern, handler } of ROUTES) {
     const m = pathname.match(pattern);
     if (m) { handler(m); return; }
@@ -1214,32 +1424,7 @@ function _applyExploreFilter() {
   }
 
   grid.innerHTML = '';
-  results.forEach(char => {
-    const isComingSoon = char.status === 'coming_soon';
-    const card = document.createElement('div');
-    card.className = 'char-card' + (isComingSoon ? ' char-card-disabled' : '');
-    if (!isComingSoon) card.onclick = () => selectCharacter(char.id);
-
-    const imgHtml = char.image
-      ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
-      : `<div class="char-card-img-placeholder">${char.name[0]}</div>`;
-
-    const visibleTags = Array.isArray(char.tags) ? char.tags.slice(0, 3) : [];
-    const tagsHtml = visibleTags.length
-      ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${t}</span>`).join('')}</div>`
-      : '';
-
-    card.innerHTML = `
-      ${imgHtml}
-      <div class="char-card-overlay">
-        ${tagsHtml}
-        <div class="char-card-name">${char.name}</div>
-        <div class="char-card-role">${char.role || char.team}</div>
-      </div>
-      ${isComingSoon ? `<div class="char-card-coming-overlay"></div><span class="char-card-soon-badge">Coming Soon</span>` : ''}
-    `;
-    grid.appendChild(card);
-  });
+  results.forEach((char, i) => grid.appendChild(buildCharCard(char, i)));
 }
 
 // ─── Notice Carousel ─────────────────────────────────────
@@ -2645,10 +2830,17 @@ function closeAuthGate(e) {
 
 // ── Login / Register screens ──────────────────────────────
 function showAuthView(view) {
-  const isLogin = view === 'login';
-  document.getElementById('auth-login-view').style.display    = isLogin ? '' : 'none';
-  document.getElementById('auth-register-view').style.display = isLogin ? 'none' : '';
-  document.getElementById('auth-nav-label').textContent       = isLogin ? '로그인' : '회원가입';
+  document.getElementById('auth-login-view').style.display    = view === 'login'    ? '' : 'none';
+  document.getElementById('auth-register-view').style.display = view === 'register' ? '' : 'none';
+  document.getElementById('auth-forgot-view').style.display   = view === 'forgot'   ? '' : 'none';
+  const labels = { login: '로그인', register: '회원가입', forgot: '비밀번호 찾기' };
+  document.getElementById('auth-nav-label').textContent = labels[view] || '로그인';
+  if (view === 'forgot') {
+    document.getElementById('forgot-form').reset();
+    const errEl = document.getElementById('forgot-global-err');
+    errEl.textContent = '';
+    errEl.style.color = '';
+  }
 }
 
 // Inline validation
@@ -2663,6 +2855,63 @@ function validateField(inputId, errId, type) {
   const err = v.re.test(val) ? '' : v.msg;
   document.getElementById(errId).textContent = err;
   return !err;
+}
+
+async function submitForgotPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-global-err');
+  errEl.textContent = '';
+
+  try {
+    const res  = await fetch('/api/auth/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error; return; }
+
+    if (data._demo_token) {
+      navigateTo(`/reset-password?token=${data._demo_token}`);
+    } else {
+      // 가입되지 않은 이메일 — 안내만 표시
+      errEl.style.color = 'var(--text-muted)';
+      errEl.textContent = '해당 이메일로 가입된 계정이 없습니다.';
+    }
+  } catch {
+    errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+  }
+}
+
+async function submitResetPassword(e) {
+  e.preventDefault();
+  const pw        = document.getElementById('reset-pw-input').value;
+  const pwConfirm = document.getElementById('reset-pw-confirm').value;
+  const errEl     = document.getElementById('reset-pw-global-err');
+  const confirmEl = document.getElementById('reset-pw-confirm-err');
+  errEl.textContent     = '';
+  confirmEl.textContent = '';
+
+  if (!validateField('reset-pw-input', 'reset-pw-err', 'password')) return;
+  if (pw !== pwConfirm) {
+    confirmEl.textContent = '비밀번호가 일치하지 않습니다';
+    return;
+  }
+
+  const token = new URLSearchParams(window.location.search).get('token');
+  try {
+    const res  = await fetch('/api/auth/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password: pw }),
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error; return; }
+
+    document.getElementById('reset-pw-form-view').style.display = 'none';
+    document.getElementById('reset-pw-done-view').style.display = '';
+  } catch {
+    errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+  }
 }
 
 async function submitLogin(e) {

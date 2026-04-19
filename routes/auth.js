@@ -172,6 +172,51 @@ router.patch('/adult-content', (req, res) => {
   res.json({ user: updated });
 });
 
+// ── POST /api/auth/forgot-password ───────────────────────
+// 데모 버전: 실제 이메일 발송 없이 토큰을 응답에 포함
+router.post('/forgot-password', (req, res) => {
+  const { email } = req.body;
+  const { error } = Joi.string().email({ tlds: { allow: false } }).validate(email);
+  if (error) return res.status(400).json({ error: '이메일 형식이 올바르지 않습니다' });
+
+  const user = stmt.getUserByEmail.get(email);
+  // 이메일이 존재하지 않아도 동일한 응답 (보안 고려)
+  if (!user) {
+    return res.json({ ok: true, _demo_token: null });
+  }
+
+  // 기존 미사용 토큰 삭제 후 새 토큰 생성
+  stmt.deleteOldResetTokens.run(user.id);
+  const token     = randomUUID().replace(/-/g, '');
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 30; // 30분 유효
+  stmt.createResetToken.run(user.id, token, expiresAt);
+
+  res.json({ ok: true, _demo_token: token });
+});
+
+// ── POST /api/auth/reset-password ────────────────────────
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token) return res.status(400).json({ error: '유효하지 않은 링크입니다' });
+
+  const { error: pwErr } = Joi.string().min(8).pattern(/^(?=.*[a-zA-Z])(?=.*\d)/).validate(password);
+  if (pwErr) return res.status(400).json({ error: '비밀번호는 8자 이상, 영문과 숫자를 포함해야 합니다' });
+
+  const now = Math.floor(Date.now() / 1000);
+  const row = stmt.getResetToken.get(token, now);
+  if (!row) return res.status(400).json({ error: '링크가 만료되었거나 이미 사용된 링크입니다' });
+
+  try {
+    const hash = await bcrypt.hash(password, 12);
+    stmt.updatePassword.run(hash, row.user_id);
+    stmt.markResetTokenUsed.run(token);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Reset password error:', err.message);
+    res.status(500).json({ error: '비밀번호 변경에 실패했습니다' });
+  }
+});
+
 // ── DELETE /api/auth/me ───────────────────────────────────
 router.delete('/me', async (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });

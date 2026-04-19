@@ -70,6 +70,7 @@ app.use('/api/builder',          require('./routes/builder'));
 app.use('/api/auth',             require('./routes/auth'));
 app.use('/api/personas',         require('./routes/personas'));
 app.use('/api/bookmarks',        require('./routes/bookmarks'));
+app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/admin',            require('./routes/admin'));
 
 // Admin dashboard (serves separate HTML, no 430px constraint)

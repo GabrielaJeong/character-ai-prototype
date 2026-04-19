@@ -1,5 +1,5 @@
 <!-- changelog-last-commit: 18754a31dc716e9dcb48806182d4917b8e894a8d -->
-<!-- changelog-last-version: 0.13 -->
+<!-- changelog-last-version: 0.14 -->
 
 
 
@@ -9,6 +9,37 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.14 — 2026-04-19
+**카드 리디자인, 알림 시스템, 비밀번호 찾기 기능 추가**
+
+### 캐릭터 카드 리디자인
+- 카드 구조 변경: 이미지 카드 + 하단 정보 블록 분리
+- 넘버링 배지 (#B01~), 상태 배지 (NEW/HOT/UP), 통계 (세션 수/책갈피 수)
+- NEW: 등록 7일 이내, HOT: 최근 7일 세션 상위, UP: 프롬프트 7일 내 업데이트
+- ALL / 18+ 토글 pill 형태로 변경
+- RECOMMENDED.feed 섹션 헤더 + VIEW ALL → 탐색 이동
+
+### 알림 시스템 신규
+- notifications, notification_reads 테이블
+- API: GET/PATCH /api/notifications (목록, 읽음 처리)
+- SOCIAL 알림: 내 캐릭터 책갈피 시 자동 생성
+- SYS 알림: 시스템 공지 (전체 유저)
+- /notification 화면: 필터 탭 (ALL/SOCIAL/SYS), 날짜 그룹, 아코디언, MARK ALL
+- 헤더 벨 아이콘 + 미읽 수 배지
+
+### 비밀번호 찾기
+- password_reset_tokens 테이블
+- POST /api/auth/forgot-password, POST /api/auth/reset-password
+- 데모 버전: SMTP 미연결, 응답에 _demo_token 포함
+- 미등록 이메일도 동일 응답 (이메일 존재 여부 노출 방지)
+- 로그인 → 비밀번호 찾기 → 이메일 입력 → 토큰 → 비밀번호 재설정
+
+### 버그 수정
+- 로그인 버튼 동작 안 함: auth-gate 닫기 시 navigateTo('/') 덮어쓰기 방지
+- /reset-password?token=... 쿼리스트링 때문에 라우트 매칭 실패 수정
 
 ---
 

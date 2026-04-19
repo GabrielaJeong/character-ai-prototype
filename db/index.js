@@ -60,6 +60,54 @@ db.exec(`
   );
 `);
 
+// ── Notifications ─────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notifications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    category    TEXT    NOT NULL DEFAULT 'system',
+    title       TEXT    NOT NULL,
+    body        TEXT,
+    related_id  TEXT,
+    created_at  INTEGER DEFAULT (unixepoch())
+  );
+
+  CREATE TABLE IF NOT EXISTS notification_reads (
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+    read_at         INTEGER DEFAULT (unixepoch()),
+    PRIMARY KEY (user_id, notification_id)
+  );
+`);
+// 마이그레이션 (기존 테이블에 컬럼 추가)
+try { db.exec(`ALTER TABLE notifications ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`); } catch(_) {}
+try { db.exec(`ALTER TABLE notifications ADD COLUMN category TEXT NOT NULL DEFAULT 'system'`); } catch(_) {}
+try { db.exec(`ALTER TABLE notifications ADD COLUMN related_id TEXT`); } catch(_) {}
+
+// 샘플 알림 시드 (최초 1회 — category 기준)
+const _notifCount = db.prepare(`SELECT COUNT(*) AS cnt FROM notifications WHERE category IN ('social','system')`).get();
+if (_notifCount.cnt === 0) {
+  const _ins = db.prepare(`INSERT INTO notifications (user_id, category, title, body, related_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`);
+  const _now = Math.floor(Date.now() / 1000);
+  // SYS — 전체 공지 (user_id NULL)
+  _ins.run(null, 'system', '새로운 AI 모델 · Gemini 1.5 Pro 추가', '더 긴 문맥, 더 섬세한 한국어 문체를 지원합니다. 채팅 화면에서 모델을 선택할 수 있어요.', null, _now - 60);
+  _ins.run(null, 'system', '캐릭터 빌더 오픈', '이제 누구나 나만의 AI 캐릭터를 직접 만들 수 있습니다. 빌더 탭에서 시작해보세요.', null, _now - 3600);
+  _ins.run(null, 'system', '가이드라인 업데이트', '4월 20일부터 캐릭터 등록 시 요약문이 120자 이상이어야 합니다.', null, _now - 86400 * 2);
+  // SOCIAL — 전체 공지 (user_id NULL, 실제론 user_id별로 생성됨)
+  _ins.run(null, 'social', '이화 이번주 인기 캐릭터 톱 3 진입 🎉', '#로맨스 카테고리에서 3위. 12.4K 대화 · 3.2K 좋아요.', 'ihwa', _now - 1800);
+}
+
+// ── Password reset tokens ────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token      TEXT    NOT NULL UNIQUE,
+    expires_at INTEGER NOT NULL,
+    used       INTEGER NOT NULL DEFAULT 0
+  );
+`);
+
 // ── Admin tables ─────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS moderation_logs (
@@ -196,6 +244,62 @@ const stmt = {
   removeBookmark:       db.prepare('DELETE FROM bookmarks WHERE user_id = ? AND character_id = ?'),
   getBookmarksByUser:   db.prepare('SELECT character_id, created_at FROM bookmarks WHERE user_id = ? ORDER BY created_at DESC'),
   getBookmark:          db.prepare('SELECT id FROM bookmarks WHERE user_id = ? AND character_id = ?'),
+
+  // ── Character stats ──────────────────────────────────────
+  // 전체 세션 수 (캐릭터별)
+  charSessionCounts: db.prepare(`
+    SELECT character_id, COUNT(*) AS cnt FROM sessions GROUP BY character_id
+  `),
+  // 최근 7일 세션 수 (캐릭터별) — HOT 판정용
+  charSessionCountsRecent: db.prepare(`
+    SELECT character_id, COUNT(*) AS cnt FROM sessions
+    WHERE created_at >= ? GROUP BY character_id
+  `),
+  // 전체 북마크 수 (캐릭터별)
+  charBookmarkCounts: db.prepare(`
+    SELECT character_id, COUNT(*) AS cnt FROM bookmarks GROUP BY character_id
+  `),
+
+  // ── Notifications ────────────────────────────────────────
+  // 로그인 유저: 전체 공지(user_id NULL) + 본인 알림(user_id=me)
+  listNotifications: db.prepare(`
+    SELECT n.*,
+      CASE WHEN nr.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_read
+    FROM notifications n
+    LEFT JOIN notification_reads nr ON nr.notification_id = n.id AND nr.user_id = ?
+    WHERE n.user_id IS NULL OR n.user_id = ?
+    ORDER BY n.created_at DESC
+  `),
+  // 비로그인: 전체 공지만, 전부 unread
+  listNotificationsGuest: db.prepare(`
+    SELECT n.*, 0 AS is_read FROM notifications n
+    WHERE n.user_id IS NULL
+    ORDER BY n.created_at DESC
+  `),
+  countUnread: db.prepare(`
+    SELECT COUNT(*) AS cnt FROM notifications n
+    WHERE (n.user_id IS NULL OR n.user_id = ?)
+      AND NOT EXISTS (
+        SELECT 1 FROM notification_reads nr
+        WHERE nr.notification_id = n.id AND nr.user_id = ?
+      )
+  `),
+  markAllRead: db.prepare(`
+    INSERT OR IGNORE INTO notification_reads (user_id, notification_id)
+    SELECT ?, id FROM notifications WHERE user_id IS NULL OR user_id = ?
+  `),
+  markOneRead: db.prepare(`
+    INSERT OR IGNORE INTO notification_reads (user_id, notification_id) VALUES (?, ?)
+  `),
+  createNotification: db.prepare(`
+    INSERT INTO notifications (user_id, category, title, body, related_id) VALUES (?, ?, ?, ?, ?)
+  `),
+
+  // ── Password reset tokens ────────────────────────────────
+  createResetToken:    db.prepare('INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)'),
+  getResetToken:       db.prepare('SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > ?'),
+  markResetTokenUsed:  db.prepare('UPDATE password_reset_tokens SET used = 1 WHERE token = ?'),
+  deleteOldResetTokens: db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ? AND used = 0'),
 
   // ── Auth sessions (SQLite session store) ─────────────────
   sessionGet:     db.prepare('SELECT sess FROM auth_sessions WHERE sid = ? AND expired > ?'),
