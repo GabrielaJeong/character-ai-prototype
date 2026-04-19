@@ -2282,22 +2282,482 @@ body {
   background: linear-gradient(to bottom, transparent, var(--bg));
 }
 
-/* Intro page — rectangular card image */
-.intro-img-wrap {
-  width:         100%;
-  height:        500px;
-  border-radius: var(--radius-card);
-  overflow:      hidden;
-  border:        1px solid var(--border);
+/* ══════════════════════════════════════════════════════════
+   SCREEN 2 v2 — INTRO REDESIGN
+══════════════════════════════════════════════════════════ */
+
+/* Override screen-intro: block its own scroll, children scroll instead */
+#screen-intro {
+  overflow: hidden;
 }
 
-.intro-img {
-  width:           100%;
-  height:          100%;
-  object-fit:      cover;
-  object-position: top center;
-  display:         block;
+/* ── Hero image ── */
+.intro-hero {
+  position: relative;
+  flex-shrink: 0;
+  height: 420px;
+  background: var(--card);
 }
+.intro-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+.intro-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 40%, rgba(8,10,14,0.85) 100%);
+}
+
+/* Floating nav buttons over hero */
+.intro-float-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  z-index: 2;
+}
+.intro-nav-btn {
+  background: rgba(0,0,0,0.35);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.intro-float-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 좋아요 / 책갈피 / 더보기 원형 버튼 */
+.intro-hero-action-btn {
+  background: rgba(0,0,0,0.50);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.80);
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.intro-hero-action-btn.active {
+  color: var(--accent);
+  background: rgba(91,143,185,0.20);
+  border-color: rgba(91,143,185,0.30);
+}
+.intro-hero-action-btn:hover { background: rgba(0,0,0,0.65); }
+
+/* 좋아요 카운트 텍스트 */
+.intro-like-count {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  min-width: 0;
+}
+/* 카운트 있을 때 버튼을 pill 형태로 */
+.intro-hero-action-btn:has(.intro-like-count:not(:empty)) {
+  border-radius: 20px;
+  width: auto;
+  padding: 0 10px 0 8px;
+}
+
+/* Safety segment inside hero nav — compact style */
+.intro-float-nav-right .safety-segment-wrap {
+  margin: 0;
+}
+.intro-float-nav-right .safety-segment {
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-color: rgba(255,255,255,0.15);
+}
+.intro-float-nav-right .safety-seg-btn {
+  font-size: 10px;
+  padding: 4px 10px;
+}
+.intro-float-nav-right .safety-segment-hint { display: none; }
+
+/* ── Scrollable section below hero ── */
+.intro-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 80px; /* space for bottom bar */
+}
+
+/* ── Identity block ── */
+.intro-identity {
+  padding: 20px 20px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.intro-role-label {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  font-family: var(--font);
+  text-transform: uppercase;
+  margin: 0;
+}
+.intro-name {
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.15;
+}
+.intro-name-en {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+/* ── Stats bar ── */
+.intro-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  margin: 0 0 0;
+}
+.intro-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex: 1;
+}
+.intro-stat-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.intro-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+.intro-stat-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  margin: 0 20px;
+}
+
+/* ── CREATED.BY ── */
+.intro-created-by {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.intro-creator-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.intro-creator-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.intro-creator-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.intro-creator-handle {
+  font-size: 13px;
+  color: var(--text);
+}
+.intro-verified-badge {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-family: var(--font);
+}
+.intro-follow-btn {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.intro-follow-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Section label ── */
+.intro-section-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  font-family: var(--font);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ── Tab bar ── */
+.intro-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  gap: 0;
+}
+.intro-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 16px 10px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color 0.15s, border-color 0.15s;
+}
+.intro-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.intro-tab:hover { color: var(--text-dim); }
+
+/* ── Panels ── */
+.intro-panel {
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── ABOUT: 2+1 card grid ── */
+.intro-about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.intro-about-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.intro-about-card-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+.intro-about-card-val {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+/* ── Traits chips ── */
+.intro-traits-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.intro-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.intro-trait-chip {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+/* ── Opening line bubble ── */
+.intro-opening-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.intro-opening-bubble {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0 12px 12px 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ── Description ── */
+.intro-desc-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.intro-desc-body p {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin: 0 0 10px;
+}
+.intro-desc-body p:last-child { margin-bottom: 0; }
+
+/* ── NOTES panel ── */
+.intro-notes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.intro-notes-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.intro-notes-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin: 0;
+}
+.intro-rules-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.intro-rules-list li {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.intro-tip-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.intro-tip-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  font-family: var(--font);
+}
+.intro-tip-text {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin: 0;
+}
+.intro-notes-footer {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin: 4px 0 0;
+  font-family: var(--font);
+}
+.intro-notes-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* ── COMMENTS soon placeholder ── */
+.intro-comments-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 60px 20px;
+}
+.intro-comments-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+.intro-comments-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Bottom bar ── */
+.intro-bottom-bar {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.intro-start-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: var(--radius-card);
+  height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.intro-start-btn:hover { opacity: 0.85; }
 
 /* Chat — small circular avatar beside message */
 .msg-avatar {
@@ -3103,6 +3563,156 @@ body {
 /* ══════════════════════════════════════════════════════════
    SCREEN 10 — MYPAGE
 ══════════════════════════════════════════════════════════ */
+
+/* ── Profile card ── */
+.mp-profile-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+}
+.mp-username-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  margin: 2px 0 0;
+}
+.mp-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.mp-profile-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mp-creator-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  font-family: var(--font);
+  margin-top: 3px;
+}
+.mp-creator-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.mp-edit-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-family: var(--font);
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.mp-edit-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+/* ── Token row extras ── */
+.mypage-row-token { cursor: default; }
+.mypage-row-token:hover { background: none; }
+.mp-token-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.mp-beta-badge {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1px 5px;
+  font-family: var(--font);
+}
+.mp-charge-btn {
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-card);
+  color: var(--accent);
+  font-size: 11px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s;
+}
+.mp-charge-btn:hover { background: rgba(91,143,185,0.1); }
+
+/* ── Revenue card ── */
+.mp-revenue-card {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mp-revenue-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mp-revenue-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  font-family: var(--font);
+  flex: 1;
+}
+.mp-revenue-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Menu row EN label ── */
+.mp-menu-en {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  font-family: var(--font);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.mp-signout-row span:first-child { color: #e06c75; }
+
+/* ── Footer ── */
+.mp-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 0 8px;
+  gap: 2px;
+}
+.mp-footer-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ── Legacy profile class (keep for avatar) ── */
 .mypage-profile {
   display: flex;
   align-items: center;
@@ -3111,23 +3721,25 @@ body {
 }
 
 .mypage-avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
   background: var(--accent-dim);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
 }
 
 .mypage-nickname {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text);
+  margin: 0;
+  line-height: 1.2;
 }
 
 .mypage-username {
@@ -3137,9 +3749,16 @@ body {
   font-weight: 500;
 }
 .mypage-email {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-dim);
-  margin-top: 3px;
+  margin: 1px 0 0;
+}
+.mp-email-username {
+  color: var(--accent);
+  font-weight: 500;
+}
+.mp-email-sep {
+  color: var(--text-muted);
 }
 
 .mypage-section {
@@ -3167,6 +3786,28 @@ body {
 .mypage-row:last-child { border-bottom: none; }
 .mypage-row:hover { background: rgba(255,255,255,0.03); }
 .mypage-row-arrow { color: var(--text-dim); font-size: 18px; }
+.mypage-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.mypage-row-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.45;
+  flex-shrink: 0;
+  /* SVG stroke를 현재 색상으로 — img는 filter로 처리 */
+  filter: brightness(0) invert(1);
+}
+.mypage-row-chevron {
+  width: 16px;
+  height: 16px;
+  opacity: 0.35;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+}
 .mypage-row-toggle { cursor: default; }
 .mypage-row-toggle:hover { background: none; }
 .mypage-row-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
@@ -3252,25 +3893,40 @@ body {
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
+  border-radius: 16px;
+  padding: 2px;
+  /* gradient border — 좌상단 밝게, 우하단 accent 틴트 */
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(91, 143, 185, 0.30) 100%
+  );
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .mypage-avatar-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
   object-fit: cover;
+  object-position: top center;
+  display: block;
 }
 .mypage-avatar-edit {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 18px;
-  height: 18px;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
   background: var(--accent);
+  border: 2px solid var(--surface);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
   color: #fff;
   pointer-events: none;
 }
@@ -3330,6 +3986,33 @@ body {
   color: var(--text);
   font-weight: 600;
 }
+.mypage-tab-count {
+  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  vertical-align: middle;
+}
+
+/* 책갈피 탭 아이콘 */
+.mypage-tab-bookmark-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.mypage-tab-bookmark-icon {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+  flex-shrink: 0;
+}
+/* inactive 아이콘: 탭 비활성 시 표시 */
+.mypage-tab-bookmark-btn .mypage-tab-bookmark-icon.inactive { display: inline; opacity: 0.4; }
+.mypage-tab-bookmark-btn .mypage-tab-bookmark-icon.active   { display: none; }
+/* active 아이콘: 탭 활성 시 표시 */
+.mypage-tab-bookmark-btn.active .mypage-tab-bookmark-icon.inactive { display: none; }
+.mypage-tab-bookmark-btn.active .mypage-tab-bookmark-icon.active   { display: inline; opacity: 1; }
 
 .mypage-tab-indicator {
   position: absolute;
@@ -3618,6 +4301,31 @@ body {
   transition: background 0.15s;
 }
 .mypage-add-btn:hover { background: rgba(255,255,255,0.03); }
+
+/* 새 페르소나 만들기 — 카드 형태 */
+.mypage-p-new-card {
+  border: 1px dashed rgba(255,255,255,0.12);
+  background: linear-gradient(160deg, #141824 0%, #1a2030 100%);
+  text-align: left;
+  font-family: var(--font);
+  padding: 0;
+}
+.mypage-p-new-card .mypage-p-add-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.mypage-p-new-card .mypage-p-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
 
 /* ── Logout / delete text buttons ───────────────────────── */
 .mypage-text-actions {

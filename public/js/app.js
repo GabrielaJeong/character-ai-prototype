@@ -341,52 +341,88 @@ function selectCharacter(id) {
 }
 
 function populateIntroScreen(char) {
-  // Image
+  // Hero image
   const img = document.getElementById('intro-img');
-  if (char.image) {
-    img.src   = char.image;
-    img.alt   = char.name;
-    img.style.display = '';
+  if (char.image) { img.src = char.image; img.alt = char.name; }
+
+  // Identity block
+  const roleLabelParts = [];
+  if (char.role) roleLabelParts.push(char.role.toUpperCase());
+  if (char.about && char.about.world) roleLabelParts.push(char.about.world.toUpperCase());
+  document.getElementById('intro-role-label').textContent = roleLabelParts.join('  ·  ');
+  document.getElementById('intro-name').textContent = char.name || '';
+  document.getElementById('intro-name-en').textContent = char.nameEn || char.fullName || '';
+
+  // Stats
+  const sessions = char.stats?.sessions ?? 0;
+  const bookmarks = char.stats?.bookmarks ?? 0;
+  document.getElementById('intro-stat-chats').textContent = fmtK(sessions);
+  document.getElementById('intro-stat-likes').textContent = fmtK(bookmarks);
+
+  // CREATED.BY section (user-created chars)
+  const createdByEl = document.getElementById('intro-created-by');
+  if (char.owner_username) {
+    createdByEl.style.display = '';
+    document.getElementById('intro-creator-handle').textContent = '@' + char.owner_username;
+    const avatarEl = document.getElementById('intro-creator-avatar');
+    avatarEl.textContent = char.owner_username.charAt(0).toUpperCase();
+    const followBtn = document.getElementById('intro-follow-btn');
+    followBtn.onclick = () => navigateTo('/creator/@' + char.owner_username);
   } else {
-    img.style.display = 'none';
+    createdByEl.style.display = 'none';
   }
 
-  // Name + subtitle
-  document.getElementById('intro-fullname').textContent = char.fullName || char.name;
-  document.getElementById('intro-subtitle').textContent = char.subtitle || char.team || '';
+  // Reset tabs to ABOUT
+  switchIntroTab('about', document.querySelector('.intro-tab'));
 
-  // Tags
-  const tagsEl = document.getElementById('intro-tags');
-  if (tagsEl) {
-    if (Array.isArray(char.tags) && char.tags.length > 0) {
-      tagsEl.innerHTML = char.tags.map(t => `<span class="intro-tag-chip">#${t}</span>`).join('');
-      tagsEl.style.display = '';
-    } else {
-      tagsEl.style.display = 'none';
-    }
-  }
-
-  // Profile table
-  const profileCard = document.getElementById('intro-profile-card');
-  if (char.profile && Object.keys(char.profile).length > 0) {
-    profileCard.innerHTML = Object.entries(char.profile).map(([k, v]) =>
-      `<div class="pt-row"><span class="pt-key">${k}</span><span class="pt-val">${v}</span></div>`
+  // ── ABOUT panel ──
+  // 2x2 about grid
+  const grid = document.getElementById('intro-about-grid');
+  const about = char.about || {};
+  const gridItems = [
+    { label: 'WORLD', value: about.world || null },
+    { label: 'AVG.LENGTH', value: about.avg_length || null },
+    { label: 'TONE', value: about.tone || null },
+  ];
+  // Filter out null items and render
+  const validItems = gridItems.filter(i => i.value);
+  if (validItems.length > 0) {
+    grid.innerHTML = validItems.map(i =>
+      `<div class="intro-about-card"><span class="intro-about-card-label">${i.label}</span><span class="intro-about-card-val">${i.value}</span></div>`
     ).join('');
-    profileCard.style.display = '';
+    grid.style.display = '';
   } else {
-    profileCard.style.display = 'none';
+    grid.style.display = 'none';
   }
 
-  // Creator's note
-  const noteCard = document.getElementById('intro-note-card');
-  if (char.description && char.description.length > 0) {
-    noteCard.innerHTML = `
-      <p class="note-eyebrow">제작자 노트</p>
-      ${char.description.map(p => `<p>${p}</p>`).join('')}
-    `;
-    noteCard.style.display = '';
+  // Traits
+  const traitsWrap = document.getElementById('intro-traits-wrap');
+  const traitsEl = document.getElementById('intro-traits');
+  if (about.traits && about.traits.length > 0) {
+    traitsEl.innerHTML = about.traits.map(t => `<span class="intro-trait-chip">${t}</span>`).join('');
+    traitsWrap.style.display = '';
   } else {
-    noteCard.style.display = 'none';
+    traitsWrap.style.display = 'none';
+  }
+
+  // Opening line
+  const openingWrap = document.getElementById('intro-opening-wrap');
+  const openingBubble = document.getElementById('intro-opening-bubble');
+  if (about.opening_line) {
+    openingBubble.textContent = about.opening_line;
+    openingWrap.style.display = '';
+  } else {
+    openingWrap.style.display = 'none';
+  }
+
+  // Description
+  const descWrap = document.getElementById('intro-desc-wrap');
+  const descBody = document.getElementById('intro-desc-body');
+  if (char.description && char.description.length > 0) {
+    descBody.innerHTML = char.description.map(p => `<p>${p}</p>`).join('');
+    descWrap.style.display = '';
+  } else {
+    descWrap.style.display = 'none';
   }
 
   // Worldbuilding accordion
@@ -409,11 +445,45 @@ function populateIntroScreen(char) {
     wbEl.innerHTML = '';
   }
 
+  // ── NOTES panel ──
+  const notesBody = document.getElementById('intro-notes-body');
+  const notes = char.notes || {};
+  let notesHTML = '';
+  if (notes.creator_note) {
+    notesHTML += `<div class="intro-notes-section"><p class="intro-section-label">FROM.CREATOR</p><p class="intro-notes-text">${notes.creator_note}</p></div>`;
+  }
+  if (notes.rules && notes.rules.length > 0) {
+    notesHTML += `<div class="intro-notes-section"><p class="intro-section-label">RULES</p><ol class="intro-rules-list">${notes.rules.map(r => `<li>${r}</li>`).join('')}</ol></div>`;
+  }
+  if (notes.tip) {
+    notesHTML += `<div class="intro-tip-card"><span class="intro-tip-label">TIP</span><p class="intro-tip-text">${notes.tip}</p></div>`;
+  }
+  if (notes.notes_by || notes.notes_date) {
+    const by = notes.notes_by || '';
+    const date = notes.notes_date || '';
+    notesHTML += `<p class="intro-notes-footer">NOTES BY ${by} · ${date}</p>`;
+  }
+  notesBody.innerHTML = notesHTML || '<p class="intro-notes-empty">노트가 없습니다.</p>';
+
   // Safety segment control
   mountSafetySegment(char);
 
-  // Bookmark button
+  // Bookmark + Like buttons
   updateBookmarkBtn();
+  updateLikeBtn();
+}
+
+function switchIntroTab(tabName, btn) {
+  // Update tab buttons
+  document.querySelectorAll('.intro-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  // Show/hide panels
+  const panels = ['about', 'notes', 'comments'];
+  panels.forEach(p => {
+    const el = document.getElementById('intro-panel-' + p);
+    if (el) el.style.display = p === tabName ? '' : 'none';
+  });
 }
 
 // ─── SafetySegment Component ─────────────────────────────
@@ -3242,8 +3312,9 @@ async function onMypageAdultToggle(el) {
   await setAdultToggle(!prev);
 }
 
-// ── Bookmarks ─────────────────────────────────────────────
+// ── Bookmarks & Likes ─────────────────────────────────────
 let _bookmarkedIds = new Set();
+let _likedIds      = new Set();
 
 async function loadBookmarks() {
   try {
@@ -3266,6 +3337,34 @@ function updateBookmarkBtn() {
   const active = _bookmarkedIds.has(currentCharacter.id);
   icon.setAttribute('fill', active ? 'currentColor' : 'none');
   btn.classList.toggle('active', active);
+}
+
+function updateLikeBtn() {
+  const btn       = document.getElementById('btn-like');
+  const icon      = document.getElementById('like-icon');
+  const countEl   = document.getElementById('like-count');
+  if (!btn || !currentCharacter) return;
+
+  if (!_currentUser) { btn.style.display = 'none'; return; }
+
+  btn.style.display = '';
+  const active = _likedIds.has(currentCharacter.id);
+  icon.setAttribute('fill', active ? 'currentColor' : 'none');
+  btn.classList.toggle('active', active);
+
+  // Show like count from stats
+  const count = currentCharacter.stats?.bookmarks ?? 0;
+  if (countEl) countEl.textContent = count > 0 ? fmtK(count) : '';
+}
+
+async function toggleLike() {
+  if (!_currentUser) { showToast('로그인이 필요합니다.'); return; }
+  if (!currentCharacter) return;
+  const id = currentCharacter.id;
+  const isLiked = _likedIds.has(id);
+  if (isLiked) _likedIds.delete(id); else _likedIds.add(id);
+  updateLikeBtn();
+  showToast(isLiked ? '좋아요를 취소했습니다.' : '좋아요를 눌렀습니다.');
 }
 
 async function toggleBookmark() {
@@ -3530,25 +3629,28 @@ async function logoutUser() {
 // ═══════════════════════════════════════════════════════════
 async function loadMypage() {
   if (!_currentUser) return;
+
   document.getElementById('mypage-nickname').textContent = _currentUser.nickname;
 
-  const usernameEl = document.getElementById('mypage-username');
-  if (usernameEl) {
-    if (_currentUser.username) {
-      usernameEl.textContent = '@' + _currentUser.username;
-      usernameEl.style.display = '';
-    } else {
-      usernameEl.textContent = '';
-      usernameEl.style.display = 'none';
-    }
+  // @username · email 한 줄로 (username은 accent 색)
+  const emailEl = document.getElementById('mypage-email');
+  if (emailEl) {
+    emailEl.innerHTML = _currentUser.username
+      ? `<span class="mp-email-username">@${_currentUser.username}</span><span class="mp-email-sep"> · </span>${_currentUser.email}`
+      : _currentUser.email;
   }
-
-  document.getElementById('mypage-email').textContent         = _currentUser.email;
   document.getElementById('mypage-avatar-letter').textContent = _currentUser.nickname[0].toUpperCase();
 
+  // CREATOR badge — username 보유 or admin role
+  const isCreator = !!_currentUser.username || _currentUser.role === 'admin';
+  const creatorBadge = document.getElementById('mp-creator-badge');
+  if (creatorBadge) creatorBadge.style.display = isCreator ? '' : 'none';
+
+  // Creator profile menu item — username 있을 때만
   const creatorBtn = document.getElementById('btn-creator-profile');
   if (creatorBtn) creatorBtn.style.display = _currentUser.username ? '' : 'none';
 
+  // Avatar
   const img     = document.getElementById('mypage-avatar-img');
   const letterW = document.getElementById('mypage-avatar-letter-wrap');
   if (_currentUser.avatar) {
@@ -3559,6 +3661,13 @@ async function loadMypage() {
     img.style.display  = 'none';
     letterW.style.display = 'flex';
   }
+
+  // Footer
+  const footerEl = document.getElementById('mp-footer-text');
+  if (footerEl) {
+    footerEl.textContent = 'Folio · v0.20 · Build 2026.04';
+  }
+
   updateAdultToggleUI();
   switchMypageTab('persona');
   loadMypagePersonas();
@@ -3612,10 +3721,22 @@ async function loadMypagePersonas() {
     const deleteAllBtn = document.getElementById('btn-delete-all-personas');
     if (!rows.length) {
       if (deleteAllBtn) deleteAllBtn.style.display = 'none';
-      list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">저장된 페르소나가 없습니다.</p>';
+      setTabCount('persona', 0);
+      list.innerHTML = `
+        <button class="mypage-p-card mypage-p-new-card" onclick="newPersonaFromMypage()">
+          <div class="mypage-p-no-img">
+            <div class="mypage-p-add-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>
+            </div>
+          </div>
+          <div class="mypage-p-overlay">
+            <p class="mypage-p-name">새 페르소나 만들기</p>
+          </div>
+        </button>`;
       return;
     }
     if (deleteAllBtn) deleteAllBtn.style.display = '';
+    setTabCount('persona', rows.length);
     const defaultId = _currentUser?.default_persona_id;
     list.innerHTML = rows.map(p => {
       const d = p.data;
@@ -3642,6 +3763,18 @@ async function loadMypagePersonas() {
           </div>
         </div>`;
     }).join('');
+    // 새 페르소나 만들기 카드 — 그리드 마지막에 추가
+    list.insertAdjacentHTML('beforeend', `
+      <button class="mypage-p-card mypage-p-new-card" onclick="newPersonaFromMypage()">
+        <div class="mypage-p-no-img">
+          <div class="mypage-p-add-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>
+          </div>
+        </div>
+        <div class="mypage-p-overlay">
+          <p class="mypage-p-name">새 페르소나 만들기</p>
+        </div>
+      </button>`);
   } catch (_) {
     list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">불러오기 실패</p>';
   }
@@ -3731,9 +3864,16 @@ async function deletePersona(id) {
 }
 
 // ── My characters ─────────────────────────────────────────
+function setTabCount(tab, n) {
+  const el = document.getElementById(`tab-count-${tab}`);
+  if (!el) return;
+  el.textContent = n > 0 ? (n > 99 ? '99+' : n) : '';
+}
+
 function loadMypageChars() {
   const list = document.getElementById('mypage-chars-list');
   const mine = characters.filter(c => c.id.startsWith('char_'));
+  setTabCount('chars', mine.length);
   if (!mine.length) {
     list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;">제작한 캐릭터가 없습니다.</p>';
     return;
@@ -3762,6 +3902,7 @@ async function loadMypageBookmarks() {
     const res = await fetch('/api/bookmarks');
     if (!res.ok) throw new Error();
     const ids = await res.json();
+    setTabCount('bookmark', ids.length);
     if (!ids.length) {
       panel.innerHTML = '<p class="mypage-empty" style="padding:48px 0;text-align:center;">아직 책갈피한 캐릭터가 없습니다.</p>';
       return;

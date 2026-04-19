@@ -165,31 +165,116 @@
 
   <!-- ── SCREEN 2: Character Intro (dynamic) ────────────── -->
   <div id="screen-intro" class="screen">
-    <div class="page-wrap">
-      <div class="page-nav">
-        <button class="btn-back" onclick="goBack('/')">←</button>
-        <span class="nav-label">Character Profile</span>
-        <button class="btn-icon btn-bookmark" id="btn-bookmark" onclick="toggleBookmark()" style="display:none;">
-          <svg id="bookmark-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 2h10a1 1 0 0 1 1 1v13l-6-3.5L3 16V3a1 1 0 0 1 1-1z"/>
-          </svg>
+    <!-- Hero image -->
+    <div class="intro-hero">
+      <img id="intro-img" src="" alt="" class="intro-hero-img" />
+      <div class="intro-hero-overlay"></div>
+      <!-- Floating nav over hero -->
+      <div class="intro-float-nav">
+        <button class="intro-nav-btn" onclick="goBack('/')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 4 5 9 11 14"/></svg>
         </button>
+        <div class="intro-float-nav-right">
+          <div id="safety-segment-container"></div>
+          <!-- 좋아요 -->
+          <button class="intro-hero-action-btn" id="btn-like" onclick="toggleLike()" style="display:none;">
+            <svg id="like-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            <span class="intro-like-count" id="like-count"></span>
+          </button>
+          <!-- 책갈피 -->
+          <button class="intro-hero-action-btn" id="btn-bookmark" onclick="toggleBookmark()" style="display:none;">
+            <svg id="bookmark-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+          </button>
+          <!-- 더보기 -->
+          <button class="intro-hero-action-btn" onclick="showToast('준비 중입니다.')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="page-body">
-        <div id="safety-segment-container"></div>
-        <div class="intro-img-wrap">
-          <img id="intro-img" src="" alt="" class="intro-img" />
+    </div>
+
+    <!-- Scrollable content below hero -->
+    <div class="intro-scroll">
+      <!-- Identity block -->
+      <div class="intro-identity">
+        <p class="intro-role-label" id="intro-role-label"></p>
+        <h1 class="intro-name" id="intro-name"></h1>
+        <p class="intro-name-en" id="intro-name-en"></p>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="intro-stats-bar">
+        <div class="intro-stat">
+          <span class="intro-stat-value" id="intro-stat-chats">—</span>
+          <span class="intro-stat-label">CHATS</span>
         </div>
-        <div class="content-header" style="margin-bottom:0;">
-          <p class="content-header-title" id="intro-fullname"></p>
-          <p class="content-header-desc" id="intro-subtitle"></p>
-          <div id="intro-tags" class="intro-tags" style="margin-top:4px;"></div>
+        <div class="intro-stat-divider"></div>
+        <div class="intro-stat">
+          <span class="intro-stat-value" id="intro-stat-likes">—</span>
+          <span class="intro-stat-label">LIKES</span>
         </div>
-        <div class="profile-card" id="intro-profile-card"></div>
-        <div class="note-card" id="intro-note-card"></div>
+      </div>
+
+      <!-- CREATED.BY section (user-created chars only) -->
+      <div class="intro-created-by" id="intro-created-by" style="display:none;">
+        <span class="intro-section-label">CREATED.BY</span>
+        <div class="intro-creator-row">
+          <div class="intro-creator-avatar" id="intro-creator-avatar"></div>
+          <div class="intro-creator-info">
+            <span class="intro-creator-handle" id="intro-creator-handle"></span>
+            <span class="intro-verified-badge">VERIFIED</span>
+          </div>
+          <button class="intro-follow-btn" id="intro-follow-btn">FOLLOW</button>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="intro-tab-bar">
+        <button class="intro-tab active" onclick="switchIntroTab('about', this)">ABOUT</button>
+        <button class="intro-tab" onclick="switchIntroTab('notes', this)">NOTES</button>
+        <button class="intro-tab" onclick="switchIntroTab('comments', this)">COMMENTS</button>
+      </div>
+
+      <!-- ABOUT panel -->
+      <div class="intro-panel" id="intro-panel-about">
+        <!-- 2x2 stat cards -->
+        <div class="intro-about-grid" id="intro-about-grid"></div>
+        <!-- Traits chips -->
+        <div class="intro-traits-wrap" id="intro-traits-wrap" style="display:none;">
+          <span class="intro-section-label">TRAITS</span>
+          <div class="intro-traits" id="intro-traits"></div>
+        </div>
+        <!-- Opening line -->
+        <div class="intro-opening-wrap" id="intro-opening-wrap" style="display:none;">
+          <span class="intro-section-label">OPENING LINE</span>
+          <div class="intro-opening-bubble" id="intro-opening-bubble"></div>
+        </div>
+        <!-- Description -->
+        <div class="intro-desc-wrap" id="intro-desc-wrap" style="display:none;">
+          <span class="intro-section-label">ABOUT</span>
+          <div class="intro-desc-body" id="intro-desc-body"></div>
+        </div>
+        <!-- Worldbuilding accordion -->
         <div id="intro-worldbuilding"></div>
-        <button class="btn-primary" onclick="openPersonaSetup()">페르소나 설정하기</button>
       </div>
+
+      <!-- NOTES panel -->
+      <div class="intro-panel" id="intro-panel-notes" style="display:none;">
+        <div class="intro-notes-body" id="intro-notes-body"></div>
+      </div>
+
+      <!-- COMMENTS panel -->
+      <div class="intro-panel" id="intro-panel-comments" style="display:none;">
+        <div class="intro-comments-soon">
+          <p class="intro-comments-label">COMMENTS</p>
+          <p class="intro-comments-sub">곧 오픈됩니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fixed bottom bar -->
+    <div class="intro-bottom-bar">
+      <button class="intro-start-btn" onclick="openPersonaSetup()">대화 시작 →</button>
     </div>
   </div>
 
@@ -647,7 +732,7 @@
 
           <div class="form-group">
             <label>생성된 시스템 프롬프트</label>
-            <textarea id="be-systemPrompt" rows="10" style="font-size:12px;line-height:1.6;font-family:monospace;"></textarea>
+            <textarea id="be-systemPrompt" rows="10" style="font-size:12px;line-height:1.6;"></textarea>
           </div>
 
           <div class="form-group">
@@ -908,48 +993,84 @@
         <span class="tab-title">마이페이지</span>
       </div>
       <div class="tab-body">
-        <!-- 프로필 -->
-        <div class="mypage-profile">
-          <div class="mypage-avatar-wrap" onclick="triggerAvatarUpload()">
-            <img id="mypage-avatar-img" src="" alt="" class="mypage-avatar-img" style="display:none;">
-            <div class="mypage-avatar" id="mypage-avatar-letter-wrap">
-              <span id="mypage-avatar-letter"></span>
+
+        <!-- ── 프로필 헤더 ── -->
+        <div class="mp-profile-card">
+          <button class="mp-edit-btn" onclick="openMypageModal('info')">EDIT</button>
+          <div class="mp-profile-row">
+            <div class="mypage-avatar-wrap" onclick="triggerAvatarUpload()">
+              <img id="mypage-avatar-img" src="" alt="" class="mypage-avatar-img" style="display:none;">
+              <div class="mypage-avatar" id="mypage-avatar-letter-wrap">
+                <span id="mypage-avatar-letter"></span>
+              </div>
+              <div class="mypage-avatar-edit">✎</div>
+              <input type="file" id="mypage-avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarChange(this)">
             </div>
-            <div class="mypage-avatar-edit">✎</div>
-            <input type="file" id="mypage-avatar-input" accept="image/*" style="display:none;" onchange="handleAvatarChange(this)">
-          </div>
-          <div>
-            <p class="mypage-nickname" id="mypage-nickname"></p>
-            <p class="mypage-username" id="mypage-username"></p>
-            <p class="mypage-email" id="mypage-email"></p>
+            <div class="mp-profile-info">
+              <p class="mypage-nickname" id="mypage-nickname"></p>
+              <p class="mypage-email" id="mypage-email"></p>
+              <div class="mp-creator-badge" id="mp-creator-badge" style="display:none;">
+                <span class="mp-creator-dot"></span>CREATOR
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 내 설정 -->
-        <div class="mypage-section" style="margin-top:24px;">
-          <button class="mypage-row" onclick="openMypageModal('info')">
-            <span>내 정보 수정하기</span><span class="mypage-row-arrow">›</span>
-          </button>
-          <button class="mypage-row" id="btn-creator-profile" style="display:none;" onclick="navigateTo('/creator/@' + (_currentUser?.username || ''))">
-            <span>크리에이터 프로필 보기</span><span class="mypage-row-arrow">›</span>
+        <!-- ── 설정 섹션 ── -->
+        <div class="mypage-section" style="margin-top:5px;">
+          <button class="mypage-row" onclick="openMypageModal('info')" style="width:385px;height:63px;">
+            <div class="mypage-row-left">
+              <img src="/icons/pencil-edit.svg" class="mypage-row-icon" alt="">
+              <span>내 정보 수정하기</span>
+            </div>
+            <img src="/icons/chevron-right.svg" class="mypage-row-chevron" alt="">
           </button>
           <div class="mypage-row mypage-row-toggle">
-            <div>
-              <span>성인 콘텐츠 허용</span>
-              <p class="mypage-row-sub" id="adult-mypage-sub">성인 인증 후 이용 가능</p>
+            <div class="mypage-row-left">
+              <img src="/icons/shield-adult.svg" class="mypage-row-icon" alt="">
+              <div>
+                <span>성인 콘텐츠 허용</span>
+                <p class="mypage-row-sub" id="adult-mypage-sub">성인 인증 후 이용 가능</p>
+              </div>
             </div>
             <label class="toggle-switch">
               <input type="checkbox" id="adult-mypage-toggle" onchange="onMypageAdultToggle(this)" />
               <span class="toggle-thumb"></span>
             </label>
           </div>
+          <div class="mypage-row mypage-row-toggle">
+            <div class="mypage-row-left">
+              <img src="/icons/user-profile.svg" class="mypage-row-icon" alt="">
+              <div>
+                <span>기본 대화 모델</span>
+                <p class="mypage-row-sub">Gemini 3.1 Pro</p>
+              </div>
+            </div>
+          </div>
+          <div class="mypage-row mypage-row-token">
+            <div class="mypage-row-left">
+              <img src="/icons/clock-token.svg" class="mypage-row-icon" alt="">
+              <div>
+                <span>토큰 잔량</span>
+                <p class="mypage-row-sub">247,300 / 500,000</p>
+              </div>
+            </div>
+            <div class="mp-token-right">
+              <span class="mp-beta-badge">BETA</span>
+              <button class="mp-charge-btn" onclick="showToast('결제 시스템 준비 중입니다.')">충전</button>
+            </div>
+          </div>
         </div>
 
-        <!-- 탭 바 -->
-        <div class="mypage-tab-bar" style="margin-top:28px;">
-          <button class="mypage-tab active" id="mypage-tab-persona"   onclick="switchMypageTab('persona')">내 페르소나</button>
-          <button class="mypage-tab"        id="mypage-tab-chars"     onclick="switchMypageTab('chars')">내 캐릭터</button>
-          <button class="mypage-tab"        id="mypage-tab-bookmark"  onclick="switchMypageTab('bookmark')">책갈피</button>
+        <!-- ── 탭 바 ── -->
+        <div class="mypage-tab-bar" style="margin-top:24px;">
+          <button class="mypage-tab active" id="mypage-tab-persona"  onclick="switchMypageTab('persona')">내 페르소나<span class="mypage-tab-count" id="tab-count-persona"></span></button>
+          <button class="mypage-tab"        id="mypage-tab-chars"    onclick="switchMypageTab('chars')">내 캐릭터<span class="mypage-tab-count" id="tab-count-chars"></span></button>
+          <button class="mypage-tab mypage-tab-bookmark-btn" id="mypage-tab-bookmark" onclick="switchMypageTab('bookmark')">
+            <img src="/icons/bookmark-outline.svg" class="mypage-tab-bookmark-icon inactive" alt="">
+            <img src="/icons/bookmark-filled.svg"  class="mypage-tab-bookmark-icon active"   alt="">
+            책갈피<span class="mypage-tab-count" id="tab-count-bookmark"></span>
+          </button>
           <div class="mypage-tab-indicator" id="mypage-tab-indicator"></div>
         </div>
 
@@ -959,7 +1080,6 @@
             <button class="mypage-card-action-btn danger" id="btn-delete-all-personas" onclick="deleteAllPersonas()" style="display:none;">전체삭제</button>
           </div>
           <div id="mypage-personas-list" class="mypage-card-grid"></div>
-          <button class="mypage-add-btn" onclick="newPersonaFromMypage()">+ 새 페르소나 만들기</button>
         </div>
 
         <!-- 탭 패널: 내 캐릭터 -->
@@ -973,12 +1093,49 @@
           <p class="mypage-empty" style="padding:48px 0;text-align:center;">아직 책갈피한 캐릭터가 없습니다.</p>
         </div>
 
-        <!-- 하단 텍스트 액션 -->
-        <div class="mypage-text-actions">
-          <button class="mypage-text-btn" onclick="logoutUser()">로그아웃</button>
-          <span class="mypage-text-divider">·</span>
-          <button class="mypage-text-btn danger" onclick="startDeleteAccount()">탈퇴하기</button>
+        <!-- ── REVENUE.PREVIEW ── -->
+        <div class="mp-revenue-card" style="margin-top:16px;">
+          <div class="mp-revenue-header">
+            <span class="mp-revenue-label">// REVENUE.PREVIEW</span>
+            <span class="mp-beta-badge">BETA</span>
+          </div>
+          <p class="mp-revenue-desc">결제 시스템 준비 중 — 수익 연동 후 이용 가능합니다.</p>
         </div>
+
+        <!-- ── 메뉴 리스트 ── -->
+        <div class="mypage-section" style="margin-top:16px;">
+          <button class="mypage-row" onclick="showToast('준비 중입니다.')">
+            <div><span>좋아요</span><span class="mp-menu-en">LIKES</span></div>
+            <span class="mypage-row-arrow">›</span>
+          </button>
+          <button class="mypage-row" id="btn-creator-profile" style="display:none;" onclick="navigateTo('/creator/@' + (_currentUser?.username || ''))">
+            <div><span>크리에이터 프로필</span><span class="mp-menu-en">MY.CREATOR</span></div>
+            <span class="mypage-row-arrow">›</span>
+          </button>
+          <button class="mypage-row" onclick="showToast('준비 중입니다.')">
+            <div><span>팔로잉 작가</span><span class="mp-menu-en">FOLLOWING</span></div>
+            <span class="mypage-row-arrow">›</span>
+          </button>
+          <button class="mypage-row" onclick="showToast('준비 중입니다.')">
+            <div><span>설정</span><span class="mp-menu-en">SETTINGS</span></div>
+            <span class="mypage-row-arrow">›</span>
+          </button>
+          <button class="mypage-row" onclick="showToast('준비 중입니다.')">
+            <div><span>고객 지원</span><span class="mp-menu-en">SUPPORT</span></div>
+            <span class="mypage-row-arrow">›</span>
+          </button>
+          <button class="mypage-row mp-signout-row" onclick="logoutUser()">
+            <div><span>로그아웃</span><span class="mp-menu-en">SIGN OUT</span></div>
+            <span class="mypage-row-arrow">›</span>
+          </button>
+        </div>
+
+        <!-- ── 푸터 ── -->
+        <div class="mp-footer">
+          <p class="mp-footer-text" id="mp-footer-text"></p>
+          <button class="mypage-text-btn danger" onclick="startDeleteAccount()" style="margin-top:10px;">탈퇴하기</button>
+        </div>
+
       </div>
     </div>
   </div>
