@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 18754a31dc716e9dcb48806182d4917b8e894a8d -->
-<!-- changelog-last-version: 0.14 -->
+<!-- changelog-last-commit: aad0d732c41ffdb1b02256999d16494f093f454d -->
+<!-- changelog-last-version: 0.15 -->
+
 
 
 
@@ -9,6 +10,19 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.15 — 2026-04-19
+**카드 리디자인, 알림 시스템, 비밀번호 찾기 기능 추가 (v0.14)**
+- 캐릭터 카드 구조 변경: 이미지+배지+태그 / 이름+직업+통계 분리
+- 상태 배지 (NEW/HOT/UP) 및 넘버링 배지 서버 계산
+- RECOMMENDED.feed 섹션 헤더 + ALL/18+ pill 토글
+- notifications/notification_reads 테이블 + /api/notifications API
+- /notification 화면: 탭 필터, 날짜 그룹, 아코디언, 벨 아이콘 배지
+- 북마크 트리거 → SOCIAL 알림 자동 생성
+- 비밀번호 찾기: password_reset_tokens + forgot/reset-password API
+- 버그 수정: auth-gate 로그인 버튼, 쿼리스트링 라우트 매칭
 
 ---
 
