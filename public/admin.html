@@ -42,6 +42,10 @@
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 0 1 5 5v3l1.5 2H1.5L3 9V6a5 5 0 0 1 5-5zm-1.5 11h3a1.5 1.5 0 0 1-3 0z"/></svg>
       알림 관리
     </a>
+    <a class="nav-item" data-page="curation" onclick="navigatePage('curation')">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2.5" rx="1.2"/><rect x="1" y="6.8" width="9" height="2.5" rx="1.2"/><rect x="1" y="11.5" width="11" height="2.5" rx="1.2"/></svg>
+      큐레이션 관리
+    </a>
   </nav>
 
   <div class="sidebar-footer">
@@ -338,6 +342,113 @@
       </div>
     </div>
   </div>
+
+  <!-- ─── Page: Curation ──────────────────────────────────── -->
+  <div id="page-curation" class="page" style="display:none">
+    <div class="page-header">
+      <h1>큐레이션 관리</h1>
+      <button class="btn btn-primary" onclick="saveCuration()">저장</button>
+    </div>
+
+    <!-- 탭바 -->
+    <div class="cur-tab-bar">
+      <button class="cur-tab active" id="cur-tab-landing" onclick="switchCurTab('landing')">메인 홈</button>
+      <button class="cur-tab" id="cur-tab-explore" onclick="switchCurTab('explore')">탐색</button>
+    </div>
+
+    <!-- ── 메인 홈 탭 ── -->
+    <div id="cur-panel-landing">
+      <div class="cur-sub-tab-bar">
+        <button class="cur-sub-tab active" id="cur-sub-creators" onclick="switchCurSubTab('landing','creators')">TOP.creators</button>
+        <button class="cur-sub-tab" id="cur-sub-genres"   onclick="switchCurSubTab('landing','genres')">GENRE.catalog</button>
+        <button class="cur-sub-tab" id="cur-sub-upcoming" onclick="switchCurSubTab('landing','upcoming')">UPCOMING.feed</button>
+      </div>
+
+      <div id="cur-sub-panel-creators">
+        <div class="card cur-section">
+          <div class="cur-section-header">
+            <span class="cur-section-title">TOP.creators</span>
+            <button class="btn btn-sm" onclick="curAddCreator()">+ 제작자 추가</button>
+          </div>
+          <div id="cur-creator-list" class="cur-item-list"></div>
+        </div>
+      </div>
+
+      <div id="cur-sub-panel-genres" style="display:none">
+        <div class="card cur-section">
+          <div class="cur-section-header">
+            <span class="cur-section-title">GENRE.catalog</span>
+            <button class="btn btn-sm" onclick="curAddGenre()">+ 장르 추가</button>
+          </div>
+          <div id="cur-genre-list" class="cur-item-list"></div>
+        </div>
+      </div>
+
+      <div id="cur-sub-panel-upcoming" style="display:none">
+        <div class="card cur-section">
+          <div class="cur-section-header">
+            <span class="cur-section-title">UPCOMING.feed</span>
+            <button class="btn btn-sm" onclick="curAddUpcoming()">+ 캐릭터 추가</button>
+          </div>
+          <div id="cur-upcoming-list" class="cur-item-list"></div>
+        </div>
+      </div>
+    </div><!-- /cur-panel-landing -->
+
+    <!-- ── 탐색 탭 ── -->
+    <div id="cur-panel-explore" style="display:none">
+      <div class="cur-sub-tab-bar">
+        <button class="cur-sub-tab active" id="cur-sub-broadcast"   onclick="switchCurSubTab('explore','broadcast')">BROADCAST</button>
+        <button class="cur-sub-tab" id="cur-sub-tags"        onclick="switchCurSubTab('explore','tags')">TAG.CLOUD</button>
+        <button class="cur-sub-tab" id="cur-sub-collections" onclick="switchCurSubTab('explore','collections')">EDITOR.PICKS</button>
+      </div>
+
+      <div id="cur-sub-panel-broadcast">
+        <div class="card cur-section">
+          <div class="cur-section-header">
+            <span class="cur-section-title">BROADCAST 배너</span>
+          </div>
+          <div class="notif-form">
+            <div class="notif-form-field">
+              <label class="form-label">제목 (줄바꿈: \n)</label>
+              <input id="bc-title" type="text" class="notif-form-input" placeholder="신작: 지하 서점의\n마지막 능력자" />
+            </div>
+            <div class="notif-form-row">
+              <div class="notif-form-field">
+                <label class="form-label">부제목</label>
+                <input id="bc-subtitle" type="text" class="notif-form-input" placeholder="박재헌 · 3.2k 사용자가 읽는 중" />
+              </div>
+              <div class="notif-form-field">
+                <label class="form-label">이미지 경로</label>
+                <input id="bc-img" type="text" class="notif-form-input" placeholder="/images/jaeheon.png" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="cur-sub-panel-tags" style="display:none">
+        <div class="card cur-section">
+          <div class="cur-section-header">
+            <span class="cur-section-title">TAG.CLOUD</span>
+            <button class="btn btn-sm" onclick="curAddTag()">+ 태그 추가</button>
+          </div>
+          <div class="cur-tag-list" id="cur-tag-list"></div>
+        </div>
+      </div>
+
+      <div id="cur-sub-panel-collections" style="display:none">
+        <div class="card cur-section">
+          <div class="cur-section-header">
+            <span class="cur-section-title">EDITOR.PICKS 컬렉션</span>
+            <button class="btn btn-sm" onclick="curAddCollection()">+ 컬렉션 추가</button>
+          </div>
+          <div id="cur-collection-list" class="cur-item-list"></div>
+        </div>
+      </div>
+    </div><!-- /cur-panel-explore -->
+
+  </div><!-- /page-curation -->
 
 </main>
 

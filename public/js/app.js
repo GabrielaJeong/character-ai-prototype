@@ -196,6 +196,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initBuilderModelPicker();
   initNoticeCarousel();
   initAuth();
+  loadCurationSections();
   loadCharacters();
   loadNotifBadge();
   // Bottom nav visible on landing by default
@@ -239,6 +240,24 @@ async function loadCharacters() {
     _dataReady = true;
     _tryDismissSplash();
   }
+}
+
+// 섹션 헤더 컴포넌트 빌더
+// eyebrow: 'RECOMMENDED.feed', title: '추천 캐릭터', viewAll: { label, onClick } (optional)
+function buildFeedHeader(eyebrow, title, viewAll) {
+  const viewAllBtn = viewAll
+    ? `<button class="feed-view-all" onclick="${viewAll.onClick}">VIEW ALL <span class="feed-arrow">→</span></button>`
+    : '';
+  return `
+    <div class="feed-header">
+      <div class="feed-header-top">
+        <span class="feed-eyebrow"><span class="feed-chevron">›</span> ${eyebrow}</span>
+      </div>
+      <div class="feed-header-main">
+        <h2 class="feed-title">${title}</h2>
+        ${viewAllBtn}
+      </div>
+    </div>`;
 }
 
 // K 단위 포맷
@@ -750,6 +769,7 @@ const ROUTES = [
 function _routeExplore() {
   showScreen('screen-explore');
   loadExplore();
+  if (_curationData) _renderExploreCuration(_curationData);
 }
 
 function _routeGated(screenId) {
@@ -1452,6 +1472,289 @@ function _applyExploreFilter() {
 
   grid.innerHTML = '';
   results.forEach((char, i) => grid.appendChild(buildCharCard(char, i)));
+}
+
+// ─── Explore View Tabs ───────────────────────────────────
+let _currentChartSort = 'weekly';
+
+const _chartData = {
+  daily: [
+    { rank:1,  name:'이화',    role:'프로파일러',    chats:'12.4k', img:'/images/ihwa.png',    change:2,  dir:'up'   },
+    { rank:2,  name:'박재헌',  role:'서울 사장',     chats:'8.9k',  img:'/images/jaeheon.png', change:1,  dir:'down' },
+    { rank:3,  name:'지세현',  role:'메인 작가',     chats:'7.2k',  img:'/images/sehyun.png',  change:0,  dir:'none' },
+    { rank:4,  name:'한윤서',  role:'심야 DJ',      chats:'6.3k',  img:'/images/coming1.jpg', change:4,  dir:'up'   },
+    { rank:5,  name:'강도윤',  role:'형사',          chats:'4.7k',  img:'/images/coming2.jpg', change:2,  dir:'down' },
+    { rank:6,  name:'오영일',  role:'소설 편집자',   chats:'4.1k',  img:'/images/yujin.png',   change:3,  dir:'up'   },
+    { rank:7,  name:'최시원',  role:'사진작가',      chats:'3.8k',  img:'/images/coming3.jpg', change:1,  dir:'down' },
+    { rank:8,  name:'한세아',  role:'소설가',        chats:'3.5k',  img:'/images/coming4.jpg', change:0,  dir:'none' },
+    { rank:9,  name:'이준혁',  role:'인디 뮤지션',   chats:'3.1k',  img:'/images/coming2.jpg', change:5,  dir:'up'   },
+    { rank:10, name:'김유진',  role:'바리스타',      chats:'2.9k',  img:'/images/coming1.jpg', change:2,  dir:'down' },
+    { rank:11, name:'박소율',  role:'웹툰 작가',     chats:'2.6k',  img:'/images/coming3.jpg', change:1,  dir:'up'   },
+    { rank:12, name:'서민준',  role:'변호사',        chats:'2.4k',  img:'/images/coming4.jpg', change:3,  dir:'down' },
+    { rank:13, name:'정하은',  role:'심리상담사',    chats:'2.2k',  img:'/images/ihwa.png',    change:0,  dir:'none' },
+    { rank:14, name:'윤재원',  role:'북카페 사장',   chats:'2.0k',  img:'/images/jaeheon.png', change:2,  dir:'up'   },
+    { rank:15, name:'류다현',  role:'야간 간호사',   chats:'1.8k',  img:'/images/sehyun.png',  change:1,  dir:'down' },
+    { rank:16, name:'임서진',  role:'건축 설계사',   chats:'1.7k',  img:'/images/yujin.png',   change:4,  dir:'up'   },
+    { rank:17, name:'강민서',  role:'유학생',        chats:'1.5k',  img:'/images/coming1.jpg', change:0,  dir:'none' },
+    { rank:18, name:'오지안',  role:'마케터',        chats:'1.3k',  img:'/images/coming2.jpg', change:2,  dir:'down' },
+    { rank:19, name:'문채원',  role:'로스쿨 학생',   chats:'1.2k',  img:'/images/coming3.jpg', change:1,  dir:'up'   },
+    { rank:20, name:'신우혁',  role:'스타트업 CEO',  chats:'1.0k',  img:'/images/coming4.jpg', change:3,  dir:'down' },
+  ],
+  weekly: [
+    { rank:1,  name:'이화',    role:'프로파일러',    chats:'58.2k', img:'/images/ihwa.png',    change:2,  dir:'up'   },
+    { rank:2,  name:'박재헌',  role:'서울 사장',     chats:'41.7k', img:'/images/jaeheon.png', change:1,  dir:'down' },
+    { rank:3,  name:'지세현',  role:'메인 작가',     chats:'37.4k', img:'/images/sehyun.png',  change:0,  dir:'none' },
+    { rank:4,  name:'한윤서',  role:'심야 DJ',      chats:'29.1k', img:'/images/coming1.jpg', change:4,  dir:'up'   },
+    { rank:5,  name:'강도윤',  role:'형사',          chats:'22.6k', img:'/images/coming2.jpg', change:2,  dir:'down' },
+    { rank:6,  name:'오영일',  role:'소설 편집자',   chats:'19.3k', img:'/images/yujin.png',   change:1,  dir:'up'   },
+    { rank:7,  name:'최시원',  role:'사진작가',      chats:'17.8k', img:'/images/coming3.jpg', change:3,  dir:'down' },
+    { rank:8,  name:'한세아',  role:'소설가',        chats:'15.2k', img:'/images/coming4.jpg', change:0,  dir:'none' },
+    { rank:9,  name:'이준혁',  role:'인디 뮤지션',   chats:'13.9k', img:'/images/coming2.jpg', change:6,  dir:'up'   },
+    { rank:10, name:'김유진',  role:'바리스타',      chats:'12.1k', img:'/images/coming1.jpg', change:2,  dir:'down' },
+    { rank:11, name:'박소율',  role:'웹툰 작가',     chats:'10.8k', img:'/images/coming3.jpg', change:1,  dir:'up'   },
+    { rank:12, name:'서민준',  role:'변호사',        chats:'9.4k',  img:'/images/coming4.jpg', change:4,  dir:'down' },
+    { rank:13, name:'정하은',  role:'심리상담사',    chats:'8.7k',  img:'/images/ihwa.png',    change:0,  dir:'none' },
+    { rank:14, name:'윤재원',  role:'북카페 사장',   chats:'7.9k',  img:'/images/jaeheon.png', change:2,  dir:'up'   },
+    { rank:15, name:'류다현',  role:'야간 간호사',   chats:'7.1k',  img:'/images/sehyun.png',  change:1,  dir:'down' },
+    { rank:16, name:'임서진',  role:'건축 설계사',   chats:'6.3k',  img:'/images/yujin.png',   change:5,  dir:'up'   },
+    { rank:17, name:'강민서',  role:'유학생',        chats:'5.6k',  img:'/images/coming1.jpg', change:0,  dir:'none' },
+    { rank:18, name:'오지안',  role:'마케터',        chats:'4.9k',  img:'/images/coming2.jpg', change:3,  dir:'down' },
+    { rank:19, name:'문채원',  role:'로스쿨 학생',   chats:'4.2k',  img:'/images/coming3.jpg', change:1,  dir:'up'   },
+    { rank:20, name:'신우혁',  role:'스타트업 CEO',  chats:'3.7k',  img:'/images/coming4.jpg', change:2,  dir:'down' },
+  ],
+  monthly: [
+    { rank:1,  name:'박재헌',  role:'서울 사장',     chats:'198k',  img:'/images/jaeheon.png', change:0,  dir:'none' },
+    { rank:2,  name:'이화',    role:'프로파일러',    chats:'174k',  img:'/images/ihwa.png',    change:3,  dir:'up'   },
+    { rank:3,  name:'한윤서',  role:'심야 DJ',      chats:'142k',  img:'/images/coming1.jpg', change:1,  dir:'up'   },
+    { rank:4,  name:'지세현',  role:'메인 작가',     chats:'119k',  img:'/images/sehyun.png',  change:2,  dir:'down' },
+    { rank:5,  name:'강도윤',  role:'형사',          chats:'97k',   img:'/images/coming2.jpg', change:1,  dir:'down' },
+    { rank:6,  name:'이준혁',  role:'인디 뮤지션',   chats:'83k',   img:'/images/coming2.jpg', change:5,  dir:'up'   },
+    { rank:7,  name:'오영일',  role:'소설 편집자',   chats:'71k',   img:'/images/yujin.png',   change:2,  dir:'up'   },
+    { rank:8,  name:'최시원',  role:'사진작가',      chats:'64k',   img:'/images/coming3.jpg', change:0,  dir:'none' },
+    { rank:9,  name:'한세아',  role:'소설가',        chats:'58k',   img:'/images/coming4.jpg', change:3,  dir:'down' },
+    { rank:10, name:'서민준',  role:'변호사',        chats:'49k',   img:'/images/coming4.jpg', change:1,  dir:'up'   },
+    { rank:11, name:'김유진',  role:'바리스타',      chats:'43k',   img:'/images/coming1.jpg', change:2,  dir:'down' },
+    { rank:12, name:'정하은',  role:'심리상담사',    chats:'38k',   img:'/images/ihwa.png',    change:4,  dir:'up'   },
+    { rank:13, name:'박소율',  role:'웹툰 작가',     chats:'33k',   img:'/images/coming3.jpg', change:0,  dir:'none' },
+    { rank:14, name:'윤재원',  role:'북카페 사장',   chats:'28k',   img:'/images/jaeheon.png', change:1,  dir:'down' },
+    { rank:15, name:'임서진',  role:'건축 설계사',   chats:'24k',   img:'/images/yujin.png',   change:6,  dir:'up'   },
+    { rank:16, name:'류다현',  role:'야간 간호사',   chats:'21k',   img:'/images/sehyun.png',  change:2,  dir:'down' },
+    { rank:17, name:'강민서',  role:'유학생',        chats:'18k',   img:'/images/coming1.jpg', change:0,  dir:'none' },
+    { rank:18, name:'신우혁',  role:'스타트업 CEO',  chats:'15k',   img:'/images/coming2.jpg', change:3,  dir:'up'   },
+    { rank:19, name:'오지안',  role:'마케터',        chats:'12k',   img:'/images/coming3.jpg', change:1,  dir:'down' },
+    { rank:20, name:'문채원',  role:'로스쿨 학생',   chats:'9k',    img:'/images/coming4.jpg', change:2,  dir:'up'   },
+  ],
+};
+
+const _chartLabels = {
+  daily:   { eyebrow:'CHART.DAILY',   title:'TODAY · TOP 20',      date:() => { const d=new Date(); return `${d.getMonth()+1}.${String(d.getDate()).padStart(2,'0')}`; } },
+  weekly:  { eyebrow:'CHART.WEEKLY',  title:'THIS WEEK · TOP 20',  date:() => { const d=new Date(); const mon=new Date(d); mon.setDate(d.getDate()-d.getDay()+1); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return `${mon.getMonth()+1}.${String(mon.getDate()).padStart(2,'0')} — ${sun.getMonth()+1}.${String(sun.getDate()).padStart(2,'0')}`; } },
+  monthly: { eyebrow:'CHART.MONTHLY', title:'THIS MONTH · TOP 20', date:() => { const d=new Date(); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}`; } },
+};
+
+function switchExploreView(view) {
+  document.getElementById('explore-view-curation').style.display = view === 'curation' ? '' : 'none';
+  document.getElementById('explore-view-ranking').style.display  = view === 'ranking'  ? '' : 'none';
+  document.getElementById('explore-tab-curation').classList.toggle('active', view === 'curation');
+  document.getElementById('explore-tab-ranking').classList.toggle('active',  view === 'ranking');
+  if (view === 'ranking') _renderChart(_currentChartSort);
+}
+
+function switchChartSort(sort) {
+  _currentChartSort = sort;
+  ['daily','weekly','monthly'].forEach(s => {
+    document.getElementById(`chart-sort-${s}`).classList.toggle('active', s === sort);
+  });
+  _renderChart(sort);
+}
+
+function _renderChart(sort) {
+  const lbl  = _chartLabels[sort];
+  const data = _chartData[sort];
+
+  const eyebrowEl = document.querySelector('#explore-view-ranking .feed-eyebrow');
+  if (eyebrowEl) eyebrowEl.innerHTML = `<span class="feed-chevron">›</span> ${lbl.eyebrow}`;
+  const titleEl = document.querySelector('.chart-title');
+  if (titleEl) titleEl.textContent = lbl.title;
+  const dateEl = document.getElementById('chart-date-label');
+  if (dateEl) dateEl.textContent = lbl.date();
+
+  const list = document.getElementById('chart-list');
+  if (!list) return;
+  list.innerHTML = data.map(item => {
+    const changeHtml = item.dir === 'none'
+      ? `<span class="chart-change chart-change-none">—</span>`
+      : item.dir === 'up'
+        ? `<span class="chart-change chart-change-up">▲ ${item.change}</span>`
+        : `<span class="chart-change chart-change-down">▼ ${item.change}</span>`;
+    return `
+      <div class="chart-row">
+        <span class="chart-rank">#${item.rank}</span>
+        <img class="chart-avatar" src="${item.img}" alt="${item.name}">
+        <div class="chart-info">
+          <span class="chart-name">${item.name}</span>
+          <span class="chart-meta">${item.role} · ${item.chats} chats</span>
+        </div>
+        ${changeHtml}
+      </div>`;
+  }).join('');
+}
+
+// ─── Curation Sections ───────────────────────────────────
+let _curationData = null;
+
+async function loadCurationSections() {
+  try {
+    const res = await fetch('/api/curation');
+    _curationData = await res.json();
+    _renderLandingCuration(_curationData);
+    _renderExploreCuration(_curationData);
+  } catch (e) {
+    console.warn('큐레이션 로드 실패:', e);
+  }
+}
+
+function _renderLandingCuration(c) {
+  const secCreators = document.getElementById('section-creators');
+  if (secCreators && c.creators) {
+    secCreators.innerHTML = `
+      <div class="feed-header">
+        <div class="feed-header-top"><span class="feed-eyebrow"><span class="feed-chevron">›</span> TOP.creators</span></div>
+        <div class="feed-header-main"><h2 class="feed-title">이번 주 제작자</h2></div>
+      </div>
+      <div class="creator-row">
+        ${c.creators.map(cr => `
+          <div class="creator-card">
+            <div class="creator-avatar"><img src="${cr.img}" alt=""></div>
+            <span class="creator-handle">${cr.handle}</span>
+            <span class="creator-count">${cr.count}</span>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  const secGenres = document.getElementById('section-genres');
+  if (secGenres && c.genres) {
+    secGenres.innerHTML = `
+      <div class="feed-header">
+        <div class="feed-header-top"><span class="feed-eyebrow"><span class="feed-chevron">›</span> GENRE.catalog</span></div>
+        <div class="feed-header-main">
+          <h2 class="feed-title">장르로 찾아보기</h2>
+          <button class="feed-view-all" onclick="navigateTo('/explore')">ALL <span class="feed-arrow">→</span></button>
+        </div>
+      </div>
+      <div class="genre-row" id="genre-slider">
+        ${c.genres.map(g => `
+          <div class="genre-card" style="background-image:url('${g.img}')">
+            <div class="genre-card-overlay">
+              <span class="genre-card-label">${g.label}</span>
+              <span class="genre-card-title">${g.title}</span>
+              <span class="genre-card-count">${g.count}</span>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    initDragSlider(document.getElementById('genre-slider'));
+  }
+
+  const secUpcoming = document.getElementById('section-upcoming');
+  if (secUpcoming && c.upcoming) {
+    secUpcoming.innerHTML = `
+      <div class="feed-header">
+        <div class="feed-header-top"><span class="feed-eyebrow"><span class="feed-chevron">›</span> UPCOMING.feed</span></div>
+        <div class="feed-header-main"><h2 class="feed-title">다가오는 캐릭터</h2></div>
+      </div>
+      <div class="char-grid">
+        ${c.upcoming.map(u => `
+          <div class="char-card char-card-disabled">
+            <img class="char-card-img" src="${u.img}" alt="">
+            <div class="char-card-overlay">
+              <div class="char-card-name">${u.name}</div>
+              <div class="char-card-role">${u.role}</div>
+            </div>
+            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+          </div>`).join('')}
+      </div>`;
+  }
+}
+
+function _renderExploreCuration(c) {
+  const secBroadcast = document.getElementById('section-broadcast');
+  if (secBroadcast && c.broadcast) {
+    const bc = c.broadcast;
+    const titleHtml = bc.title.replace(/\n/g, '<br>');
+    secBroadcast.innerHTML = `
+      <div class="broadcast-banner">
+        <div class="broadcast-banner-img" style="background-image:url('${bc.img}')"></div>
+        <div class="broadcast-banner-inner">
+          <div class="broadcast-badge"><span class="broadcast-dot"></span>BROADCAST · NOW</div>
+          <h3 class="broadcast-title">${titleHtml}</h3>
+          <p class="broadcast-meta">${bc.subtitle}</p>
+        </div>
+      </div>`;
+  }
+
+  const secTags = document.getElementById('section-tags');
+  if (secTags && c.tags) {
+    secTags.innerHTML = `
+      <div class="tag-cloud-section">
+        <div class="feed-header">
+          <div class="feed-header-top"><span class="feed-eyebrow"><span class="feed-chevron">›</span> TAG.CLOUD</span></div>
+          <div class="feed-header-main"><h2 class="feed-title">지금 자주 쓰이는 태그</h2></div>
+        </div>
+        <div class="tag-cloud-pills">
+          ${c.tags.map(t => `<span class="tag-pill">${t}</span>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  const secCollections = document.getElementById('section-collections');
+  if (secCollections && c.collections) {
+    secCollections.innerHTML = `
+      <div class="editor-picks-section">
+        <div class="feed-header" style="margin-bottom:16px;">
+          <div class="feed-header-top"><span class="feed-eyebrow"><span class="feed-chevron">›</span> EDITOR.PICKS</span></div>
+          <div class="feed-header-main">
+            <h2 class="feed-title">이번 달의 큐레이션</h2>
+            <button class="feed-view-all">ARCHIVE <span class="feed-arrow">→</span></button>
+          </div>
+          <p class="editor-picks-sub">주제로 묶인 캐릭터 시리즈.</p>
+        </div>
+        <div class="collection-list">
+          ${c.collections.map(col => `
+            <div class="collection-card">
+              <div class="collection-card-img" style="background-image:url('${col.img}')"></div>
+              <div class="collection-card-inner">
+                <div>
+                  <div class="collection-num">${col.num}</div>
+                  <h3 class="collection-title">${col.title}</h3>
+                </div>
+                <p class="collection-meta">${col.meta}</p>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }
+}
+
+// ─── Drag Slider ─────────────────────────────────────────
+function initDragSlider(el) {
+  if (!el || el._dragInited) return;
+  el._dragInited = true;
+  let isDown = false, startX = 0, scrollLeft = 0;
+
+  el.addEventListener('mousedown', e => {
+    isDown = true;
+    el.classList.add('dragging');
+    startX = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+  });
+  el.addEventListener('mouseleave', () => { isDown = false; el.classList.remove('dragging'); });
+  el.addEventListener('mouseup',    () => { isDown = false; el.classList.remove('dragging'); });
+  el.addEventListener('mousemove',  e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x - startX);
+  });
 }
 
 // ─── Notice Carousel ─────────────────────────────────────

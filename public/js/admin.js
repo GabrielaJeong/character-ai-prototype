@@ -101,7 +101,7 @@ function handleRoute() {
   });
 
   // Show correct page panel
-  ['dashboard','eval','users','characters','moderation','notifications'].forEach(p => {
+  ['dashboard','eval','users','characters','moderation','notifications','curation'].forEach(p => {
     const el = document.getElementById(`page-${p}`);
     if (el) el.style.display = p === page ? '' : 'none';
   });
@@ -121,6 +121,7 @@ function handleRoute() {
     else     loadModeration();
   }
   else if (page === 'notifications') loadAdminNotifications();
+  else if (page === 'curation')      loadCuration();
 }
 
 function navigatePage(page) {
@@ -1058,6 +1059,191 @@ async function deleteAdminNotif(id) {
     loadAdminNotifications();
   } catch (e) {
     showToast(e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  Curation
+// ══════════════════════════════════════════════════════════
+let _curation = null;
+let _curTab = 'landing';
+
+function switchCurTab(tab) {
+  _curTab = tab;
+  document.getElementById('cur-panel-landing').style.display = tab === 'landing' ? '' : 'none';
+  document.getElementById('cur-panel-explore').style.display = tab === 'explore' ? '' : 'none';
+  document.getElementById('cur-tab-landing').classList.toggle('active', tab === 'landing');
+  document.getElementById('cur-tab-explore').classList.toggle('active', tab === 'explore');
+}
+
+const _subPanels = {
+  landing: ['creators', 'genres', 'upcoming'],
+  explore: ['broadcast', 'tags', 'collections'],
+};
+
+function switchCurSubTab(group, sub) {
+  _subPanels[group].forEach(key => {
+    document.getElementById(`cur-sub-panel-${key}`).style.display = key === sub ? '' : 'none';
+    document.getElementById(`cur-sub-${key}`).classList.toggle('active', key === sub);
+  });
+}
+
+async function loadCuration() {
+  try {
+    _curation = await api('/curation');
+    _renderCuration();
+  } catch (e) {
+    showToast('큐레이션 로드 실패: ' + e.message, 'error');
+  }
+}
+
+function _renderCuration() {
+  const c = _curation;
+  if (!c) return;
+
+  // BROADCAST
+  document.getElementById('bc-title').value    = (c.broadcast?.title    || '').replace(/\n/g, '\\n');
+  document.getElementById('bc-subtitle').value = c.broadcast?.subtitle  || '';
+  document.getElementById('bc-img').value      = c.broadcast?.img       || '';
+
+  // TAGS
+  const tagList = document.getElementById('cur-tag-list');
+  tagList.innerHTML = (c.tags || []).map((t, i) => `
+    <div class="cur-tag-item">
+      <input class="notif-form-input cur-tag-input" value="${esc(t)}" data-idx="${i}" onchange="_curUpdateTag(${i},this.value)" />
+      <button class="btn-icon cur-del-btn" onclick="_curDeleteTag(${i})" title="삭제">✕</button>
+    </div>`).join('');
+
+  // COLLECTIONS
+  _renderItemList('cur-collection-list', c.collections || [], [
+    { key:'num',   label:'번호',    placeholder:'COLLECTION.07' },
+    { key:'title', label:'제목',    placeholder:'비 오는 날의 대화' },
+    { key:'meta',  label:'메타',    placeholder:'9 characters · ...' },
+    { key:'img',   label:'이미지',  placeholder:'/images/ihwa.png' },
+  ], '_curDeleteCollection', '_curUpdateCollection', 'collections');
+
+  // CREATORS
+  _renderItemList('cur-creator-list', c.creators || [], [
+    { key:'handle', label:'핸들',       placeholder:'@midnight_atelier' },
+    { key:'count',  label:'캐릭터 수',  placeholder:'12 캐릭터' },
+    { key:'img',    label:'이미지',     placeholder:'/images/ihwa.png' },
+  ], '_curDeleteCreator', '_curUpdateCreator', 'creators');
+
+  // GENRES
+  _renderItemList('cur-genre-list', c.genres || [], [
+    { key:'label', label:'라벨',    placeholder:'OFFICE' },
+    { key:'title', label:'제목',    placeholder:'오피스 로맨스' },
+    { key:'count', label:'작품 수', placeholder:'248 작품' },
+    { key:'img',   label:'이미지',  placeholder:'/images/jaeheon.png' },
+  ], '_curDeleteGenre', '_curUpdateGenre', 'genres');
+
+  // UPCOMING
+  _renderItemList('cur-upcoming-list', c.upcoming || [], [
+    { key:'name', label:'이름', placeholder:'강도윤' },
+    { key:'role', label:'역할', placeholder:'로스쿨 학생' },
+    { key:'img',  label:'이미지', placeholder:'/images/coming1.jpg' },
+  ], '_curDeleteUpcoming', '_curUpdateUpcoming', 'upcoming');
+}
+
+function _renderItemList(containerId, items, fields, deleteFn, updateFn, dataKey) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = items.map((item, i) => `
+    <div class="cur-item-row" draggable="true" data-idx="${i}" data-key="${dataKey}">
+      <div class="cur-item-drag" title="드래그로 순서 변경">
+        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+          <circle cx="4" cy="3"  r="1.5"/><circle cx="8" cy="3"  r="1.5"/>
+          <circle cx="4" cy="8"  r="1.5"/><circle cx="8" cy="8"  r="1.5"/>
+          <circle cx="4" cy="13" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+        </svg>
+      </div>
+      <div class="cur-item-num">${i + 1}</div>
+      <div class="cur-item-fields">
+        ${fields.map(f => `
+          <div class="cur-item-field">
+            <label class="cur-item-label">${f.label}</label>
+            <input class="notif-form-input cur-item-input"
+              value="${esc(item[f.key] || '')}"
+              placeholder="${f.placeholder}"
+              onchange="${updateFn}(${i},'${f.key}',this.value)" />
+          </div>`).join('')}
+      </div>
+      <button class="btn-icon cur-del-btn" onclick="${deleteFn}(${i})" title="삭제">✕</button>
+    </div>`).join('');
+  _initDragDrop(el, dataKey);
+}
+
+function _initDragDrop(container, dataKey) {
+  let dragIdx = null;
+  container.querySelectorAll('.cur-item-row').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragIdx = +row.dataset.idx;
+      row.classList.add('cur-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('cur-dragging');
+      container.querySelectorAll('.cur-item-row').forEach(r => r.classList.remove('cur-drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      container.querySelectorAll('.cur-item-row').forEach(r => r.classList.remove('cur-drag-over'));
+      row.classList.add('cur-drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const dropIdx = +row.dataset.idx;
+      if (dragIdx === null || dragIdx === dropIdx) return;
+      const arr = _curation[dataKey];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(dropIdx, 0, moved);
+      _renderCuration();
+    });
+  });
+}
+
+// ── Tag ops ───────────────────────────────────────────────
+function _curUpdateTag(i, val)  { _curation.tags[i] = val; }
+function _curDeleteTag(i)       { _curation.tags.splice(i, 1); _renderCuration(); }
+function curAddTag()            { _curation.tags.push('#새태그'); _renderCuration(); }
+
+// ── Collection ops ────────────────────────────────────────
+function _curUpdateCollection(i, key, val) { _curation.collections[i][key] = val; }
+function _curDeleteCollection(i)           { _curation.collections.splice(i, 1); _renderCuration(); }
+function curAddCollection()                { _curation.collections.push({ num:'COLLECTION.00', title:'', meta:'', img:'' }); _renderCuration(); }
+
+// ── Creator ops ───────────────────────────────────────────
+function _curUpdateCreator(i, key, val) { _curation.creators[i][key] = val; }
+function _curDeleteCreator(i)           { _curation.creators.splice(i, 1); _renderCuration(); }
+function curAddCreator()                { _curation.creators.push({ handle:'@handle', count:'0 캐릭터', img:'' }); _renderCuration(); }
+
+// ── Genre ops ─────────────────────────────────────────────
+function _curUpdateGenre(i, key, val) { _curation.genres[i][key] = val; }
+function _curDeleteGenre(i)           { _curation.genres.splice(i, 1); _renderCuration(); }
+function curAddGenre()                { _curation.genres.push({ label:'GENRE', title:'', count:'0 작품', img:'' }); _renderCuration(); }
+
+// ── Upcoming ops ──────────────────────────────────────────
+function _curUpdateUpcoming(i, key, val) { _curation.upcoming[i][key] = val; }
+function _curDeleteUpcoming(i)           { _curation.upcoming.splice(i, 1); _renderCuration(); }
+function curAddUpcoming()                { _curation.upcoming.push({ name:'', role:'', img:'' }); _renderCuration(); }
+
+// ── Save ─────────────────────────────────────────────────
+async function saveCuration() {
+  // broadcast 제목의 \n 처리
+  _curation.broadcast = {
+    title:    document.getElementById('bc-title').value.replace(/\\n/g, '\n'),
+    subtitle: document.getElementById('bc-subtitle').value,
+    img:      document.getElementById('bc-img').value,
+  };
+  // tag input 값 동기화
+  document.querySelectorAll('.cur-tag-input').forEach(el => {
+    _curation.tags[+el.dataset.idx] = el.value;
+  });
+  try {
+    await api('/curation', { method:'PUT', body: JSON.stringify(_curation) });
+    showToast('큐레이션이 저장됐습니다');
+  } catch (e) {
+    showToast('저장 실패: ' + e.message, 'error');
   }
 }
 

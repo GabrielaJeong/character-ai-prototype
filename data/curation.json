@@ -1,0 +1,37 @@
+{
+  "broadcast": {
+    "title": "신작: 지하 서점의\n마지막 능력자",
+    "subtitle": "박재헌 · 3.2k 사용자가 읽는 중",
+    "img": "/images/jaeheon.png"
+  },
+  "tags": [
+    "#촌데레", "#재벌가", "#첫사랑", "#사랑", "#계약연애",
+    "#밤의_도서관", "#조선로맨스", "#룸메이트", "#편집자",
+    "#그녀", "#로펌", "#소설가", "#엇갈림", "#다크로맨스"
+  ],
+  "collections": [
+    { "num": "COLLECTION.07", "title": "비 오는 날의 대화", "meta": "9 characters · 서늘한 공기, 낮은 목소리", "img": "/images/ihwa.png" },
+    { "num": "COLLECTION.08", "title": "오피스 애프터 8PM",  "meta": "6 characters · 회의실 너머의 이야기",  "img": "/images/jaeheon.png" },
+    { "num": "COLLECTION.09", "title": "귀신이 아니라 사람이", "meta": "4 characters · 경계에 선 존재들", "img": "/images/sehyun.png" }
+  ],
+  "creators": [
+    { "handle": "@midnight_atelier", "count": "12 캐릭터", "img": "/images/ihwa.png" },
+    { "handle": "@paperlamp",        "count": "8 캐릭터",  "img": "/images/jaeheon.png" },
+    { "handle": "@silklamp",         "count": "14 캐릭터", "img": "/images/sehyun.png" },
+    { "handle": "@glass_hour",       "count": "6 캐릭터",  "img": "/images/yujin.png" },
+    { "handle": "@duskwriter",       "count": "9 캐릭터",  "img": "/images/coming1.jpg" }
+  ],
+  "genres": [
+    { "label": "OFFICE",   "title": "오피스 로맨스", "count": "248 작품", "img": "/images/jaeheon.png" },
+    { "label": "FANTASY",  "title": "판타지",       "count": "412 작품", "img": "/images/coming2.jpg" },
+    { "label": "MYSTERY",  "title": "미스터리",      "count": "187 작품", "img": "/images/coming3.jpg" },
+    { "label": "ROMANCE",  "title": "순수 로맨스",   "count": "331 작품", "img": "/images/coming4.jpg" },
+    { "label": "THRILLER", "title": "스릴러",        "count": "93 작품",  "img": "/images/coming1.jpg" }
+  ],
+  "upcoming": [
+    { "name": "강도윤", "role": "로스쿨 학생",      "img": "/images/coming1.jpg" },
+    { "name": "이준혁", "role": "인디 뮤지션",      "img": "/images/coming2.jpg" },
+    { "name": "최시원", "role": "프리랜서 사진작가", "img": "/images/coming3.jpg" },
+    { "name": "한세아", "role": "소설가",            "img": "/images/coming4.jpg" }
+  ]
+}

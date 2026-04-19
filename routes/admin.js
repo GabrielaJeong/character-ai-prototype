@@ -7,7 +7,8 @@ const { db, stmt } = require('../db');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const CHARS_DIR  = path.join(__dirname, '..', 'prompts', 'characters');
+const CHARS_DIR     = path.join(__dirname, '..', 'prompts', 'characters');
+const CURATION_FILE = path.join(__dirname, '..', 'data', 'curation.json');
 
 // ── Admin guard ───────────────────────────────────────────
 function requireAdmin(req, res, next) {
@@ -425,6 +426,26 @@ router.get('/moderation/:publicId', (req, res) => {
   const user = log.user_id ? stmt.getUserById.get(log.user_id) : null;
 
   res.json({ log, session, messages, user });
+});
+
+// ── Curation ──────────────────────────────────────────────
+router.get('/curation', (req, res) => {
+  try {
+    const data = JSON.parse(fs.readFileSync(CURATION_FILE, 'utf-8'));
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: '큐레이션 파일 읽기 실패' });
+  }
+});
+
+router.put('/curation', (req, res) => {
+  try {
+    const data = req.body;
+    fs.writeFileSync(CURATION_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '큐레이션 파일 저장 실패' });
+  }
 });
 
 module.exports = router;

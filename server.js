@@ -73,6 +73,15 @@ app.use('/api/bookmarks',        require('./routes/bookmarks'));
 app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/admin',            require('./routes/admin'));
 
+// ── Public curation read ───────────────────────────────────
+const fs   = require('fs');
+const CURATION_FILE = path.join(__dirname, 'data', 'curation.json');
+app.get('/api/curation', (_req, res) => {
+  try {
+    res.json(JSON.parse(fs.readFileSync(CURATION_FILE, 'utf-8')));
+  } catch { res.status(500).json({ error: '큐레이션 로드 실패' }); }
+});
+
 // Admin dashboard (serves separate HTML, no 430px constraint)
 app.get('/admin', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));

@@ -54,65 +54,77 @@
       </div>
 
       <div class="page-body">
-        <div class="feed-header">
-          <div class="feed-header-top">
-            <span class="feed-eyebrow"><span class="feed-chevron">›</span> RECOMMENDED.feed</span>
+
+        <!-- ── RECOMMENDED ── -->
+        <section class="landing-section">
+          <div class="feed-header">
+            <div class="feed-header-top">
+              <span class="feed-eyebrow"><span class="feed-chevron">›</span> RECOMMENDED.feed</span>
+            </div>
+            <div class="feed-header-main">
+              <h2 class="feed-title">추천 캐릭터</h2>
+              <button class="feed-view-all" onclick="navigateTo('/explore')">VIEW ALL <span class="feed-arrow">→</span></button>
+            </div>
           </div>
-          <div class="feed-header-main">
-            <h2 class="feed-title">추천 캐릭터</h2>
-            <button class="feed-view-all" onclick="navigateTo('/explore')">VIEW ALL <span class="feed-arrow">→</span></button>
+          <div id="char-grid" class="char-grid">
+            <p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>
           </div>
-        </div>
-        <div id="char-grid" class="char-grid">
-          <p style="font-size:13px;color:var(--text-dim);">불러오는 중...</p>
-        </div>
+        </section>
 
         <!-- ── 공지 캐러셀 ── -->
-        <div class="notice-carousel-wrap" style="margin-top:28px;">
-          <div class="notice-carousel" id="notice-carousel">
-            <div class="notice-slide"><a href="https://drive.google.com/file/d/11p9oWB9VQk1lVP9JDXXDQNHWhYaBhqYH/view?usp=drive_link" target="_blank" rel="noopener noreferrer" style="display:block;width:100%;height:100%;"><img src="/images/banner.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></a></div>
-            <div class="notice-slide"></div>
-            <div class="notice-slide"></div>
+        <section class="landing-section">
+          <div class="notice-carousel-wrap">
+            <div class="notice-carousel" id="notice-carousel">
+              <div class="notice-slide"><a href="https://drive.google.com/file/d/11p9oWB9VQk1lVP9JDXXDQNHWhYaBhqYH/view?usp=drive_link" target="_blank" rel="noopener noreferrer" style="display:block;width:100%;height:100%;"><img src="/images/banner.png" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"></a></div>
+              <div class="notice-slide"></div>
+              <div class="notice-slide"></div>
+            </div>
+            <div class="notice-pagination" id="notice-pagination">1 / 3</div>
           </div>
-          <div class="notice-pagination" id="notice-pagination">1 / 3</div>
-        </div>
+        </section>
 
-        <!-- ── 준비중 캐릭터 ── -->
-        <p class="section-label" style="margin-top:28px;">다가오는 캐릭터</p>
-        <div class="char-grid" style="margin-top:10px;">
-          <div class="char-card char-card-disabled">
-            <img class="char-card-img" src="/images/coming1.jpg" alt="">
-            <div class="char-card-overlay">
-              <div class="char-card-name">강도윤</div>
-              <div class="char-card-role">로스쿨 학생</div>
-            </div>
-            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+        <!-- ── TOP.creators ── -->
+        <section class="landing-section" id="section-creators"></section>
+
+        <!-- ── GENRE.catalog ── -->
+        <section class="landing-section" id="section-genres"></section>
+
+        <!-- ── UPCOMING ── -->
+        <section class="landing-section" id="section-upcoming"></section>
+
+        <!-- ── SITE FOOTER ── -->
+        <footer class="site-footer">
+          <div class="site-footer-brand">
+            <span class="site-footer-logo">Folio.</span>
+            <span class="site-footer-build">V2.6 · BUILD 1428</span>
           </div>
-          <div class="char-card char-card-disabled">
-            <img class="char-card-img" src="/images/coming2.jpg" alt="">
-            <div class="char-card-overlay">
-              <div class="char-card-name">이준혁</div>
-              <div class="char-card-role">인디 뮤지션</div>
+          <p class="site-footer-tagline">창작자와 독자가 함께 쓰는 한국어 캐릭터 시고.</p>
+          <div class="site-footer-cols">
+            <div class="site-footer-col">
+              <span class="site-footer-col-title">LEGAL</span>
+              <ul class="site-footer-links">
+                <li><a href="#">이용약관</a></li>
+                <li><a href="#">개인정보처리방침</a></li>
+                <li><a href="#">커뮤니티 가이드</a></li>
+                <li><a href="#">청소년 보호정책</a></li>
+              </ul>
             </div>
-            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
-          </div>
-          <div class="char-card char-card-disabled">
-            <img class="char-card-img" src="/images/coming3.jpg" alt="">
-            <div class="char-card-overlay">
-              <div class="char-card-name">최시원</div>
-              <div class="char-card-role">프리랜서 사진작가</div>
+            <div class="site-footer-col">
+              <span class="site-footer-col-title">SUPPORT</span>
+              <ul class="site-footer-links">
+                <li><a href="#">도움말</a></li>
+                <li><a href="#">신고하기</a></li>
+                <li><a href="#">피드백</a></li>
+                <li><a href="#">서비스 상태</a></li>
+              </ul>
             </div>
-            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
           </div>
-          <div class="char-card char-card-disabled">
-            <img class="char-card-img" src="/images/coming4.jpg" alt="">
-            <div class="char-card-overlay">
-              <div class="char-card-name">한세아</div>
-              <div class="char-card-role">소설가</div>
-            </div>
-            <div class="char-card-pending-overlay"><span class="char-card-pending-label">준비중</span></div>
+          <div class="site-footer-legal">
+            <p>© 2026 Folio Studio · 서울특별시 동작구 보라매로7가길</p>
+            <p>사업자등록번호 123-45-67890 · 대표 정소채 · 통신판매업신고 제 2025-서울동작-0000호</p>
           </div>
-        </div>
+        </footer>
+
       </div>
     </div>
   </div>
@@ -122,13 +134,6 @@
     <div class="page-wrap">
       <div class="tab-header">
         <span class="tab-title">대화</span>
-        <button class="btn-icon" onclick="navigateTo('/mypage')">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
-            <circle cx="3.5" cy="9" r="1.6"/>
-            <circle cx="9"   cy="9" r="1.6"/>
-            <circle cx="14.5" cy="9" r="1.6"/>
-          </svg>
-        </button>
       </div>
       <div class="history-action-bar">
         <div id="history-default-actions" class="history-actions">
@@ -400,9 +405,6 @@
       <div class="tab-header tab-header-with-subtitle">
         <div class="tab-header-title-row">
           <span class="tab-title">캐릭터 제작</span>
-          <span class="btn-icon" style="visibility:hidden;pointer-events:none;" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 18 18"><rect width="18" height="18" fill="none"/></svg>
-          </span>
         </div>
         <p class="content-header-desc">어떤 방식으로 만들까요?</p>
       </div>
@@ -670,25 +672,55 @@
     <div class="page-wrap">
       <div class="tab-header">
         <span class="tab-title">탐색</span>
-        <button class="btn-icon" onclick="navigateTo('/mypage')">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
-            <circle cx="3.5" cy="9" r="1.6"/>
-            <circle cx="9"   cy="9" r="1.6"/>
-            <circle cx="14.5" cy="9" r="1.6"/>
-          </svg>
-        </button>
       </div>
-      <div class="explore-search-wrap">
-        <div class="search-input-row">
-          <svg class="search-icon-inline" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-            <circle cx="7.5" cy="7.5" r="5"/><line x1="11.5" y1="11.5" x2="16" y2="16"/>
-          </svg>
-          <input type="text" id="explore-search-input" class="search-input" placeholder="이름, 태그, 설명 검색" autocomplete="off" />
+
+      <!-- ── 큐레이션 / 랭킹 탭바 ── -->
+      <div class="explore-view-tabs">
+        <button class="explore-view-tab active" id="explore-tab-curation" onclick="switchExploreView('curation')">큐레이션</button>
+        <button class="explore-view-tab" id="explore-tab-ranking" onclick="switchExploreView('ranking')">랭킹</button>
+      </div>
+
+      <!-- ── 큐레이션 뷰 ── -->
+      <div id="explore-view-curation">
+        <div class="explore-search-wrap">
+          <div class="search-input-row">
+            <svg class="search-icon-inline" width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="7.5" cy="7.5" r="5"/><line x1="11.5" y1="11.5" x2="16" y2="16"/>
+            </svg>
+            <input type="text" id="explore-search-input" class="search-input" placeholder="이름, 태그, 설명 검색" autocomplete="off" />
+          </div>
+        </div>
+        <div class="explore-tag-bar" id="explore-tag-bar"></div>
+
+        <!-- ── BROADCAST 배너 ── -->
+        <div id="section-broadcast"></div>
+
+        <!-- ── TAG.CLOUD ── -->
+        <div id="section-tags"></div>
+
+        <!-- ── EDITOR.PICKS 큐레이션 ── -->
+        <div id="section-collections"></div>
+
+        <div class="tab-body">
+          <div id="explore-grid" class="char-grid"></div>
         </div>
       </div>
-      <div class="explore-tag-bar" id="explore-tag-bar"></div>
-      <div class="tab-body">
-        <div id="explore-grid" class="char-grid"></div>
+
+      <!-- ── 랭킹 뷰 ── -->
+      <div id="explore-view-ranking" style="display:none;margin:0 20px;">
+        <div class="chart-header">
+          <div class="feed-header-top">
+            <span class="feed-eyebrow"><span class="feed-chevron">›</span> CHART.WEEKLY</span>
+          </div>
+          <h2 class="chart-title">THIS WEEK · TOP 5</h2>
+          <p class="chart-date" id="chart-date-label"></p>
+        </div>
+        <div class="chart-sort-bar">
+          <button class="chart-sort-btn" id="chart-sort-daily" onclick="switchChartSort('daily')">일간</button>
+          <button class="chart-sort-btn active" id="chart-sort-weekly" onclick="switchChartSort('weekly')">주간</button>
+          <button class="chart-sort-btn" id="chart-sort-monthly" onclick="switchChartSort('monthly')">월간</button>
+        </div>
+        <div class="chart-list" id="chart-list"></div>
       </div>
     </div>
   </div>
@@ -865,9 +897,6 @@
     <div class="page-wrap">
       <div class="tab-header">
         <span class="tab-title">마이페이지</span>
-        <span class="btn-icon" style="visibility:hidden;pointer-events:none;" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 18 18"><rect width="18" height="18" fill="none"/></svg>
-        </span>
       </div>
       <div class="tab-body">
         <!-- 프로필 -->
