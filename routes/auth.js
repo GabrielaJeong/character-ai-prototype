@@ -26,13 +26,37 @@ const registerSchema = Joi.object({
                 'string.pattern.base':  '닉네임은 2~12자, 특수문자 없이 입력해주세요',
                 'any.required':         '닉네임을 입력해주세요',
               }),
+  username: Joi.string().min(3).max(20).pattern(/^[a-z0-9_]+$/).required()
+              .messages({
+                'string.min':          '@아이디는 3~20자, 영문 소문자/숫자/언더바만 가능합니다',
+                'string.max':          '@아이디는 3~20자, 영문 소문자/숫자/언더바만 가능합니다',
+                'string.pattern.base': '@아이디는 3~20자, 영문 소문자/숫자/언더바만 가능합니다',
+                'any.required':        '@아이디를 입력해주세요',
+              }),
 });
 
 const loginSchema = Joi.object({
-  email:    Joi.string().email({ tlds: { allow: false } }).required()
-              .messages({ 'string.email': '이메일 형식이 올바르지 않습니다', 'any.required': '이메일을 입력해주세요' }),
+  identifier: Joi.string().min(1).required()
+                .messages({ 'any.required': '이메일 또는 @아이디를 입력해주세요', 'string.empty': '이메일 또는 @아이디를 입력해주세요' }),
   password: Joi.string().min(1).required()
               .messages({ 'any.required': '비밀번호를 입력해주세요', 'string.empty': '비밀번호를 입력해주세요' }),
+});
+
+// ── GET /api/auth/check-username ─────────────────────────
+router.get('/check-username', (req, res) => {
+  const { username } = req.query;
+  if (!username) return res.status(400).json({ error: '아이디를 입력해주세요' });
+
+  const lower = username.toLowerCase();
+  const { error } = Joi.string().min(3).max(20).pattern(/^[a-z0-9_]+$/).validate(lower);
+  if (error) return res.json({ available: false, error: '@아이디는 3~20자, 영문 소문자/숫자/언더바만 가능합니다' });
+
+  // Reserved usernames
+  const reserved = ['admin', 'folio', 'system', 'support', 'help', 'mod', 'moderator', 'official', 'staff'];
+  if (reserved.includes(lower)) return res.json({ available: false, error: '사용할 수 없는 아이디입니다' });
+
+  const existing = stmt.getUserByUsername.get(lower);
+  res.json({ available: !existing });
 });
 
 // ── POST /api/auth/register ───────────────────────────────
@@ -40,15 +64,19 @@ router.post('/register', async (req, res) => {
   const { error, value } = registerSchema.validate(req.body, { abortEarly: true });
   if (error) return res.status(400).json({ error: error.message });
 
-  const { email, password, nickname } = value;
+  const { email, password, nickname, username } = value;
+  const lowerUsername = username.toLowerCase();
 
   if (stmt.getUserByEmail.get(email)) {
     return res.status(409).json({ error: '이미 사용 중인 이메일입니다' });
   }
+  if (stmt.getUserByUsername.get(lowerUsername)) {
+    return res.status(409).json({ error: '이미 사용 중인 @아이디입니다' });
+  }
 
   try {
     const hash = await bcrypt.hash(password, 12);
-    const info = stmt.createUser.run(email, hash, nickname, randomUUID());
+    const info = stmt.createUser.run(email, hash, nickname, randomUUID(), lowerUsername);
     const user = stmt.getUserById.get(info.lastInsertRowid);
     req.session.userId = user.id;
     res.json({ user });
@@ -63,13 +91,19 @@ router.post('/login', async (req, res) => {
   const { error, value } = loginSchema.validate(req.body, { abortEarly: true });
   if (error) return res.status(400).json({ error: error.message });
 
-  const { email, password } = value;
-  const row = stmt.getUserByEmail.get(email);
-  if (!row) return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' });
+  const { identifier, password } = value;
+
+  // Determine if identifier is email or username
+  const isEmail = identifier.includes('@') && identifier.includes('.');
+  const row = isEmail
+    ? stmt.getUserByEmail.get(identifier)
+    : stmt.getUserByUsername.get(identifier.toLowerCase().replace(/^@/, ''));
+
+  if (!row) return res.status(401).json({ error: '아이디/이메일 또는 비밀번호가 올바르지 않습니다' });
 
   try {
     const ok = await bcrypt.compare(password, row.password_hash);
-    if (!ok) return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다' });
+    if (!ok) return res.status(401).json({ error: '아이디/이메일 또는 비밀번호가 올바르지 않습니다' });
 
     req.session.userId = row.id;
     const user = stmt.getUserById.get(row.id);
@@ -99,7 +133,18 @@ router.get('/me', (req, res) => {
 router.patch('/me', async (req, res) => {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
 
-  const { nickname, email, currentPassword, newPassword, avatarData } = req.body;
+  const { nickname, email, username, currentPassword, newPassword, avatarData } = req.body;
+
+  if (username !== undefined) {
+    const lower = username.toLowerCase();
+    const { error: uErr } = Joi.string().min(3).max(20).pattern(/^[a-z0-9_]+$/).validate(lower);
+    if (uErr) return res.status(400).json({ error: '@아이디는 3~20자, 영문 소문자/숫자/언더바만 가능합니다' });
+    const existing = stmt.getUserByUsername.get(lower);
+    if (existing && existing.id !== req.session.userId) {
+      return res.status(409).json({ error: '이미 사용 중인 @아이디입니다' });
+    }
+    stmt.updateUsername.run(lower, req.session.userId);
+  }
 
   if (nickname !== undefined) {
     const { error } = Joi.string().min(2).max(12)

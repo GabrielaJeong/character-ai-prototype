@@ -72,6 +72,7 @@ app.use('/api/personas',         require('./routes/personas'));
 app.use('/api/bookmarks',        require('./routes/bookmarks'));
 app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/admin',            require('./routes/admin'));
+app.use('/api/creator',          require('./routes/creator'));
 
 // ── Public curation read ───────────────────────────────────
 const fs   = require('fs');

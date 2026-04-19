@@ -305,9 +305,15 @@ function buildCharCard(char, index) {
   const stats = char.stats;
   const info = document.createElement('div');
   info.className = 'char-card-info';
+  // Creator tag — only for user-created chars that have an owner with a username
+  const creatorTag = (char.id?.startsWith('char_') && char.owner_username)
+    ? `<div class="char-card-creator" onclick="event.stopPropagation();navigateTo('/creator/@${char.owner_username}')">@${char.owner_username}</div>`
+    : '';
+
   info.innerHTML = `
     <div class="char-card-name">${char.name}</div>
     <div class="char-card-role">${char.role || char.team || ''}</div>
+    ${creatorTag}
     ${stats ? `<div class="char-card-stats">
       <span class="char-stat"><span class="char-stat-icon">▲</span>${fmtK(stats.sessions)}</span>
       <span class="char-stat"><span class="char-stat-icon">♥</span>${fmtK(stats.bookmarks)}</span>
@@ -763,6 +769,7 @@ const ROUTES = [
   { pattern: /^\/login$/,                       handler: ()  => _routeLogin()                      },
   { pattern: /^\/reset-password$/,              handler: ()  => _routeResetPassword()              },
   { pattern: /^\/mypage$/,                      handler: ()  => _routeMypage()                     },
+  { pattern: /^\/creator\/@([^/]+)$/,           handler: (m) => _routeCreator(m[1])                },
   { pattern: /^\/$/,                            handler: ()  => showScreen('screen-landing')       },
 ];
 
@@ -995,6 +1002,120 @@ function _routeMypage() {
   }
   loadMypage();
   showScreen('screen-mypage');
+}
+
+function _routeCreator(username) {
+  showScreen('screen-creator');
+  loadCreatorProfile(username);
+}
+
+async function loadCreatorProfile(username) {
+  const body = document.getElementById('creator-page-body');
+  const navLabel = document.getElementById('creator-nav-username');
+  body.innerHTML = '<p style="padding:40px 20px;text-align:center;color:var(--text-muted);">불러오는 중...</p>';
+  if (navLabel) navLabel.textContent = '@' + username;
+
+  try {
+    const res  = await fetch(`/api/creator/${encodeURIComponent(username)}`);
+    if (!res.ok) {
+      body.innerHTML = '<p style="padding:60px 20px;text-align:center;color:var(--text-muted);">크리에이터를 찾을 수 없습니다.</p>';
+      return;
+    }
+    const { user, characters, isOwner } = await res.json();
+
+    // Stats aggregation
+    const totalWorks  = characters.length;
+    const totalChats  = characters.reduce((s, c) => s + (c.stats?.sessions || 0), 0);
+    const totalLikes  = characters.reduce((s, c) => s + (c.stats?.bookmarks || 0), 0);
+
+    // Avatar HTML
+    const avatarHtml = user.avatar
+      ? `<img src="${user.avatar}" class="creator-avatar-img" alt="">`
+      : `<div class="creator-avatar-letter">${(user.nickname || '?')[0].toUpperCase()}</div>`;
+
+    // Action button
+    const actionBtn = isOwner
+      ? `<button class="creator-action-btn" onclick="openMypageModal('info')">프로필 편집</button>`
+      : `<button class="creator-action-btn creator-follow-btn">팔로우</button>`;
+
+    // Character cards
+    const pinnedChars = characters.filter(c => c.pinned);
+    const allChars    = characters;
+
+    function creatorCharCard(c) {
+      const pinBtn = isOwner
+        ? `<button class="creator-pin-btn ${c.pinned ? 'pinned' : ''}" onclick="toggleCreatorPin('${c.id}','${username}')" title="${c.pinned ? '핀 해제' : '핀 고정'}">
+            ${c.pinned ? '⊛' : '⊙'}
+           </button>`
+        : '';
+      return `
+        <div class="creator-char-card" onclick="navigateTo('/character/${c.id}')">
+          ${c.image
+            ? `<img src="${c.image}" class="creator-char-img" alt="">`
+            : `<div class="creator-char-img creator-char-img-empty">✦</div>`}
+          ${pinBtn}
+          <div class="creator-char-info">
+            <div class="creator-char-name">${c.name}</div>
+            <div class="creator-char-role">${c.role || ''}</div>
+            <div class="creator-char-stats">
+              <span>▲ ${fmtK(c.stats?.sessions || 0)}</span>
+              <span>♥ ${fmtK(c.stats?.bookmarks || 0)}</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    body.innerHTML = `
+      <div class="creator-header">
+        <div class="creator-avatar-wrap">${avatarHtml}</div>
+        <div class="creator-header-info">
+          <div class="creator-nickname">${user.nickname}</div>
+          <div class="creator-handle">@${user.username}</div>
+        </div>
+        <div class="creator-header-actions">${actionBtn}</div>
+      </div>
+
+      <div class="creator-stats-bar">
+        <div class="creator-stat">
+          <span class="creator-stat-val">${totalWorks}</span>
+          <span class="creator-stat-label">WORKS</span>
+        </div>
+        <div class="creator-stat">
+          <span class="creator-stat-val">${fmtK(totalChats)}</span>
+          <span class="creator-stat-label">CHATS</span>
+        </div>
+        <div class="creator-stat">
+          <span class="creator-stat-val">${fmtK(totalLikes)}</span>
+          <span class="creator-stat-label">LIKES</span>
+        </div>
+      </div>
+
+      ${pinnedChars.length ? `
+      <div class="creator-section">
+        <div class="creator-section-label"><span class="creator-section-prefix">&gt;</span> PINNED.WORK</div>
+        <div class="creator-char-list">
+          ${pinnedChars.map(creatorCharCard).join('')}
+        </div>
+      </div>` : ''}
+
+      <div class="creator-section">
+        <div class="creator-section-label"><span class="creator-section-prefix">&gt;</span> ALL.WORKS</div>
+        ${allChars.length
+          ? `<div class="creator-char-list">${allChars.map(creatorCharCard).join('')}</div>`
+          : `<p class="creator-empty">아직 공개된 작품이 없습니다.</p>`}
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = '<p style="padding:60px 20px;text-align:center;color:var(--text-muted);">오류가 발생했습니다.</p>';
+  }
+}
+
+async function toggleCreatorPin(charId, username) {
+  try {
+    const res = await fetch(`/api/creator/${charId}/pin`, { method: 'PATCH' });
+    if (!res.ok) return;
+    loadCreatorProfile(username);
+  } catch (_) {}
 }
 
 // ── Persona mode state ────────────────────────────────────
@@ -3285,14 +3406,19 @@ async function submitResetPassword(e) {
 
 async function submitLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const pw    = document.getElementById('login-pw').value;
+  const identifier = document.getElementById('login-identifier').value.trim();
+  const pw         = document.getElementById('login-pw').value;
   document.getElementById('login-global-err').textContent = '';
+
+  if (!identifier) {
+    document.getElementById('login-global-err').textContent = '이메일 또는 @아이디를 입력해주세요';
+    return;
+  }
 
   try {
     const res  = await fetch('/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pw }),
+      body: JSON.stringify({ identifier, password: pw }),
     });
     const data = await res.json();
     if (!res.ok) { document.getElementById('login-global-err').textContent = data.error; return; }
@@ -3306,12 +3432,69 @@ async function submitLogin(e) {
   }
 }
 
+// ── Username availability check (debounced) ───────────────
+let _usernameDebounce = null;
+let _usernameValid = false;
+
+function onUsernameInput(input) {
+  const val = input.value.trim().toLowerCase();
+  const statusEl = document.getElementById('reg-username-status');
+  _usernameValid = false;
+
+  // Clear debounce
+  clearTimeout(_usernameDebounce);
+
+  if (!val) { statusEl.textContent = ''; statusEl.className = 'field-feedback'; return; }
+
+  // Local format check
+  if (!/^[a-z0-9_]{3,20}$/.test(val)) {
+    statusEl.textContent = '영문 소문자/숫자/언더바 3~20자';
+    statusEl.className = 'field-feedback error';
+    return;
+  }
+
+  statusEl.textContent = '확인 중...';
+  statusEl.className = 'field-feedback checking';
+
+  _usernameDebounce = setTimeout(async () => {
+    try {
+      const res  = await fetch(`/api/auth/check-username?username=${encodeURIComponent(val)}`);
+      const data = await res.json();
+      if (data.available) {
+        statusEl.textContent = '사용 가능한 아이디입니다';
+        statusEl.className = 'field-feedback ok';
+        _usernameValid = true;
+      } else {
+        statusEl.textContent = data.error || '이미 사용 중인 아이디입니다';
+        statusEl.className = 'field-feedback error';
+        _usernameValid = false;
+      }
+    } catch (_) {
+      statusEl.textContent = '';
+      statusEl.className = 'field-feedback';
+    }
+  }, 400);
+}
+
 async function submitRegister(e) {
   e.preventDefault();
   const emailOk = validateField('reg-email', 'reg-email-err', 'email');
   const pwOk    = validateField('reg-pw',    'reg-pw-err',    'password');
   const nickOk  = validateField('reg-nick',  'reg-nick-err',  'nickname');
   if (!emailOk || !pwOk || !nickOk) return;
+
+  const username = document.getElementById('reg-username').value.trim().toLowerCase();
+  const statusEl = document.getElementById('reg-username-status');
+  if (!username) {
+    statusEl.textContent = '@아이디를 입력해주세요';
+    statusEl.className = 'field-feedback error';
+    return;
+  }
+  if (!_usernameValid) {
+    statusEl.textContent = statusEl.textContent || '아이디를 확인해주세요';
+    statusEl.className = 'field-feedback error';
+    return;
+  }
 
   const email    = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-pw').value;
@@ -3321,7 +3504,7 @@ async function submitRegister(e) {
   try {
     const res  = await fetch('/api/auth/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, nickname }),
+      body: JSON.stringify({ email, password, nickname, username }),
     });
     const data = await res.json();
     if (!res.ok) { document.getElementById('reg-global-err').textContent = data.error; return; }
@@ -3347,9 +3530,24 @@ async function logoutUser() {
 // ═══════════════════════════════════════════════════════════
 async function loadMypage() {
   if (!_currentUser) return;
-  document.getElementById('mypage-nickname').textContent      = _currentUser.nickname;
+  document.getElementById('mypage-nickname').textContent = _currentUser.nickname;
+
+  const usernameEl = document.getElementById('mypage-username');
+  if (usernameEl) {
+    if (_currentUser.username) {
+      usernameEl.textContent = '@' + _currentUser.username;
+      usernameEl.style.display = '';
+    } else {
+      usernameEl.textContent = '';
+      usernameEl.style.display = 'none';
+    }
+  }
+
   document.getElementById('mypage-email').textContent         = _currentUser.email;
   document.getElementById('mypage-avatar-letter').textContent = _currentUser.nickname[0].toUpperCase();
+
+  const creatorBtn = document.getElementById('btn-creator-profile');
+  if (creatorBtn) creatorBtn.style.display = _currentUser.username ? '' : 'none';
 
   const img     = document.getElementById('mypage-avatar-img');
   const letterW = document.getElementById('mypage-avatar-letter-wrap');
@@ -3636,6 +3834,10 @@ function openMypageModal(type) {
   const inputStyle = 'padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-btn);color:var(--text);font-size:14px;font-family:var(--font);width:100%;box-sizing:border-box;';
 
   if (type === 'info') {
+    const atWrapStyle = `display:flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-btn);overflow:hidden;`;
+    const atPrefixStyle = `padding:0 10px;font-size:15px;font-weight:600;color:#A8B5C8;background:var(--surface);border-right:1px solid var(--border);height:40px;display:flex;align-items:center;flex-shrink:0;`;
+    const atInputStyle = `flex:1;border:none;background:transparent;padding:10px 12px;font-size:14px;font-family:var(--font);color:var(--text);outline:none;`;
+
     body.innerHTML = `
       <p class="delete-modal-title" style="margin-bottom:16px;">내 정보 수정</p>
 
@@ -3645,6 +3847,15 @@ function openMypageModal(type) {
           <input type="text" id="modal-nickname" value="${_currentUser.nickname}" placeholder="2~12자"
             style="${inputStyle}" oninput="validateField('modal-nickname','modal-nick-err','nickname')" />
           <p class="field-error" id="modal-nick-err"></p>
+        </div>
+        <div class="form-group">
+          <label style="font-size:12px;color:var(--text-muted);">@아이디</label>
+          <div style="${atWrapStyle}">
+            <span style="${atPrefixStyle}">@</span>
+            <input type="text" id="modal-username" value="${_currentUser.username || ''}" placeholder="my_username"
+              style="${atInputStyle}" oninput="onModalUsernameInput(this)" />
+          </div>
+          <p class="field-feedback" id="modal-username-status" style="font-size:12px;margin-top:4px;"></p>
         </div>
         <div class="form-group">
           <label style="font-size:12px;color:var(--text-muted);">이메일</label>
@@ -3677,17 +3888,80 @@ function closeMypageModal(e) {
   document.getElementById('mypage-modal-overlay').classList.remove('open');
 }
 
+let _modalUsernameDebounce = null;
+let _modalUsernameValid = true; // true if unchanged from current value
+
+function onModalUsernameInput(input) {
+  const val = input.value.trim().toLowerCase();
+  const statusEl = document.getElementById('modal-username-status');
+
+  clearTimeout(_modalUsernameDebounce);
+
+  // Same as current username → always valid
+  if (val === (_currentUser?.username || '')) {
+    statusEl.textContent = '';
+    statusEl.className = 'field-feedback';
+    _modalUsernameValid = true;
+    return;
+  }
+
+  _modalUsernameValid = false;
+
+  if (!val) {
+    statusEl.textContent = '';
+    statusEl.className = 'field-feedback';
+    _modalUsernameValid = false;
+    return;
+  }
+
+  if (!/^[a-z0-9_]{3,20}$/.test(val)) {
+    statusEl.textContent = '영문 소문자/숫자/언더바 3~20자';
+    statusEl.className = 'field-feedback error';
+    return;
+  }
+
+  statusEl.textContent = '확인 중...';
+  statusEl.className = 'field-feedback checking';
+
+  _modalUsernameDebounce = setTimeout(async () => {
+    try {
+      const res  = await fetch(`/api/auth/check-username?username=${encodeURIComponent(val)}`);
+      const data = await res.json();
+      if (data.available) {
+        statusEl.textContent = '사용 가능한 아이디입니다';
+        statusEl.className = 'field-feedback ok';
+        _modalUsernameValid = true;
+      } else {
+        statusEl.textContent = data.error || '이미 사용 중인 아이디입니다';
+        statusEl.className = 'field-feedback error';
+        _modalUsernameValid = false;
+      }
+    } catch (_) {}
+  }, 400);
+}
+
 async function saveInfo() {
   const nickOk  = validateField('modal-nickname', 'modal-nick-err',   'nickname');
   const emailOk = validateField('modal-email',    'modal-email-err',  'email');
   if (!nickOk || !emailOk) return;
 
   const nickname        = document.getElementById('modal-nickname').value.trim();
+  const usernameInput   = document.getElementById('modal-username');
+  const username        = usernameInput ? usernameInput.value.trim().toLowerCase() : null;
   const email           = document.getElementById('modal-email').value.trim();
   const currentPassword = document.getElementById('modal-cur-pw').value;
   const newPassword     = document.getElementById('modal-new-pw').value;
   const globalErr       = document.getElementById('modal-info-global-err');
   globalErr.textContent = '';
+
+  // Validate username if changed
+  if (username !== null && username !== (_currentUser?.username || '')) {
+    if (!_modalUsernameValid) {
+      const statusEl = document.getElementById('modal-username-status');
+      if (statusEl) { statusEl.textContent = statusEl.textContent || '아이디를 확인해주세요'; statusEl.className = 'field-feedback error'; }
+      return;
+    }
+  }
 
   if (newPassword) {
     if (!validateField('modal-new-pw', 'modal-pw-err', 'password')) return;
@@ -3695,6 +3969,7 @@ async function saveInfo() {
   }
 
   const payload = { nickname, email };
+  if (username !== null && username !== (_currentUser?.username || '')) payload.username = username;
   if (newPassword) { payload.currentPassword = currentPassword; payload.newPassword = newPassword; }
 
   const res  = await fetch('/api/auth/me', {

@@ -67,8 +67,16 @@ router.get('/', (req, res) => {
             ? (config.badge_override || null)
             : isNew ? 'NEW' : isHot ? 'HOT' : isUp ? 'UP' : null;
 
+          // Resolve owner username for user-created characters
+          let owner_username = null;
+          if (id.startsWith('char_') && config.owner_user_id) {
+            const owner = stmt.getUserById.get(config.owner_user_id);
+            owner_username = owner?.username || null;
+          }
+
           return {
             ...config,
+            owner_username,
             badge,
             stats: {
               sessions:  sessionTotals[id]  || 0,

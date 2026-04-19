@@ -3130,6 +3130,12 @@ body {
   color: var(--text);
 }
 
+.mypage-username {
+  font-size: 13px;
+  color: #A8B5C8;
+  margin-top: 2px;
+  font-weight: 500;
+}
 .mypage-email {
   font-size: 13px;
   color: var(--text-dim);
@@ -4144,4 +4150,238 @@ body {
   font-family: var(--font);
   color: #4a4a5a;
   line-height: 1.6;
+}
+
+/* ── @ prefix input (register username) ─────────────────── */
+.at-input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  overflow: hidden;
+}
+.at-prefix {
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #A8B5C8;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.at-input-wrap input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--text);
+  outline: none;
+}
+.field-feedback {
+  font-size: 12px;
+  margin-top: 4px;
+  min-height: 16px;
+}
+.field-feedback.ok       { color: #4ade80; }
+.field-feedback.error    { color: #f87171; }
+.field-feedback.checking { color: var(--text-muted); }
+
+/* ── Character card creator tag ──────────────────────────── */
+.char-card-creator {
+  font-size: 10px;
+  color: #A8B5C8;
+  margin-top: 2px;
+  cursor: pointer;
+  display: inline-block;
+}
+.char-card-creator:hover { text-decoration: underline; }
+
+/* ── Creator profile page ────────────────────────────────── */
+.creator-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 20px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.creator-avatar-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.creator-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.creator-avatar-letter {
+  font-size: 22px;
+  font-weight: 700;
+  color: #A8B5C8;
+}
+.creator-header-info {
+  flex: 1;
+  min-width: 0;
+}
+.creator-nickname {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.creator-handle {
+  font-size: 12px;
+  color: #A8B5C8;
+  margin-top: 2px;
+}
+.creator-header-actions {
+  flex-shrink: 0;
+}
+.creator-action-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font);
+  padding: 6px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.creator-follow-btn {
+  border-color: #5B8FB9;
+  color: #5B8FB9;
+}
+.creator-follow-btn:hover { background: rgba(91,143,185,0.1); }
+.creator-action-btn:hover { background: rgba(255,255,255,0.05); }
+
+.creator-stats-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.creator-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 3px;
+  border-right: 1px solid var(--border);
+}
+.creator-stat:last-child { border-right: none; }
+.creator-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.creator-stat-label {
+  font-size: 10px;
+  color: #A8B5C8;
+  letter-spacing: 0.06em;
+}
+
+.creator-section {
+  padding: 20px 20px 0;
+}
+.creator-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #A8B5C8;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.creator-section-prefix {
+  color: var(--accent);
+  margin-right: 6px;
+}
+.creator-char-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 20px;
+}
+.creator-char-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.creator-char-card:hover { border-color: rgba(91,143,185,0.4); }
+.creator-char-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.creator-char-img-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-dim);
+}
+.creator-char-info { flex: 1; min-width: 0; }
+.creator-char-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.creator-char-role {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.creator-char-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.creator-pin-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.creator-pin-btn.pinned { color: #A8B5C8; }
+.creator-pin-btn:hover { color: var(--text); }
+.creator-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 20px 0 30px;
+  text-align: center;
 }

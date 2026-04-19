@@ -168,6 +168,8 @@ try { db.exec(`ALTER TABLE users ADD COLUMN adult_content_enabled INTEGER NOT NU
 try { db.exec(`ALTER TABLE users ADD COLUMN adult_verified        INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN role      TEXT NOT NULL DEFAULT 'user'`); } catch (_) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN public_id TEXT`); } catch (_) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN username TEXT`); } catch (_) {}
+try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL`); } catch (_) {}
 try { db.exec(`ALTER TABLE moderation_logs ADD COLUMN public_id TEXT`); } catch (_) {}
 
 // ── Backfill public_ids ───────────────────────────────────
@@ -230,10 +232,12 @@ const stmt = {
   saveNote: db.prepare(`UPDATE sessions SET note = ? WHERE id = ?`),
 
   // ── Users ────────────────────────────────────────────────
-  createUser:          db.prepare('INSERT INTO users (email, password_hash, nickname, public_id) VALUES (?, ?, ?, ?)'),
+  createUser:          db.prepare('INSERT INTO users (email, password_hash, nickname, public_id, username) VALUES (?, ?, ?, ?, ?)'),
   getUserByEmail:      db.prepare('SELECT * FROM users WHERE email = ?'),
-  getUserById:         db.prepare('SELECT id, email, nickname, avatar, role, public_id, default_persona_id, adult_content_enabled, adult_verified, created_at FROM users WHERE id = ?'),
-  getUserByPublicId:   db.prepare('SELECT id, email, nickname, avatar, role, public_id, default_persona_id, adult_content_enabled, adult_verified, created_at FROM users WHERE public_id = ?'),
+  getUserByUsername:   db.prepare('SELECT id, email, nickname, username, avatar, role, public_id, default_persona_id, adult_content_enabled, adult_verified, created_at FROM users WHERE username = ?'),
+  getUserById:         db.prepare('SELECT id, email, nickname, username, avatar, role, public_id, default_persona_id, adult_content_enabled, adult_verified, created_at FROM users WHERE id = ?'),
+  getUserByPublicId:   db.prepare('SELECT id, email, nickname, username, avatar, role, public_id, default_persona_id, adult_content_enabled, adult_verified, created_at FROM users WHERE public_id = ?'),
+  updateUsername:      db.prepare('UPDATE users SET username = ? WHERE id = ?'),
   updateAvatar:        db.prepare('UPDATE users SET avatar = ? WHERE id = ?'),
   updateNickname:      db.prepare('UPDATE users SET nickname = ? WHERE id = ?'),
   updateEmail:         db.prepare('UPDATE users SET email = ? WHERE id = ?'),
@@ -332,7 +336,7 @@ const stmt = {
 
   // ── Admin — Users ─────────────────────────────────────────
   listAllUsers: db.prepare(`
-    SELECT u.id, u.email, u.nickname, u.role, u.avatar, u.public_id,
+    SELECT u.id, u.email, u.nickname, u.username, u.role, u.avatar, u.public_id,
            u.adult_verified, u.adult_content_enabled, u.created_at,
            COUNT(s.id) AS session_count
     FROM users u

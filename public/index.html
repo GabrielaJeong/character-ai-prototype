@@ -96,9 +96,9 @@
         <footer class="site-footer">
           <div class="site-footer-brand">
             <span class="site-footer-logo">Folio.</span>
-            <span class="site-footer-build">V2.6 · BUILD 1428</span>
+            <span class="site-footer-build">v0.19</span>
           </div>
-          <p class="site-footer-tagline">창작자와 독자가 함께 쓰는 한국어 캐릭터 시고.</p>
+          <p class="site-footer-tagline">모두의 폴리오, 모두의 책장</p>
           <div class="site-footer-cols">
             <div class="site-footer-col">
               <span class="site-footer-col-title">LEGAL</span>
@@ -770,9 +770,9 @@
           <p class="content-header-title">로그인</p>
           <form id="login-form" onsubmit="submitLogin(event)" style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
             <div class="form-group">
-              <label>이메일</label>
-              <input type="email" id="login-email" placeholder="hello@example.com" autocomplete="email" />
-              <p class="field-error" id="login-email-err"></p>
+              <label>이메일 또는 @아이디</label>
+              <input type="text" id="login-identifier" placeholder="이메일 또는 @아이디" autocomplete="username" />
+              <p class="field-error" id="login-identifier-err"></p>
             </div>
             <div class="form-group">
               <label>비밀번호</label>
@@ -821,6 +821,15 @@
               <input type="text" id="reg-nick" placeholder="2~12자, 특수문자 없이"
                 oninput="validateField('reg-nick','reg-nick-err','nickname')" />
               <p class="field-error" id="reg-nick-err"></p>
+            </div>
+            <div class="form-group">
+              <label>@아이디 <span style="font-size:11px;color:var(--text-muted);">영문 소문자·숫자·언더바 3~20자</span></label>
+              <div class="at-input-wrap">
+                <span class="at-prefix">@</span>
+                <input type="text" id="reg-username" placeholder="my_username" autocomplete="off"
+                  oninput="onUsernameInput(this)" />
+              </div>
+              <p class="field-feedback" id="reg-username-status"></p>
             </div>
             <p class="field-error" id="reg-global-err"></p>
             <button type="submit" class="btn-primary">가입하기</button>
@@ -911,6 +920,7 @@
           </div>
           <div>
             <p class="mypage-nickname" id="mypage-nickname"></p>
+            <p class="mypage-username" id="mypage-username"></p>
             <p class="mypage-email" id="mypage-email"></p>
           </div>
         </div>
@@ -919,6 +929,9 @@
         <div class="mypage-section" style="margin-top:24px;">
           <button class="mypage-row" onclick="openMypageModal('info')">
             <span>내 정보 수정하기</span><span class="mypage-row-arrow">›</span>
+          </button>
+          <button class="mypage-row" id="btn-creator-profile" style="display:none;" onclick="navigateTo('/creator/@' + (_currentUser?.username || ''))">
+            <span>크리에이터 프로필 보기</span><span class="mypage-row-arrow">›</span>
           </button>
           <div class="mypage-row mypage-row-toggle">
             <div>
@@ -1013,6 +1026,19 @@
       <div class="delete-modal-actions">
         <button class="btn-ghost delete-modal-cancel" onclick="closeDeleteAccount()">취소</button>
         <button class="btn-delete-confirm" onclick="confirmDeleteAccount()">탈퇴</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN: Creator Profile ─────────────────────────── -->
+  <div id="screen-creator" class="screen">
+    <div class="page-wrap">
+      <div class="page-nav">
+        <button class="btn-back" onclick="goBack('/')">←</button>
+        <span class="nav-label" id="creator-nav-username"></span>
+      </div>
+      <div class="page-body" id="creator-page-body" style="padding:0;">
+        <!-- dynamically rendered -->
       </div>
     </div>
   </div>
