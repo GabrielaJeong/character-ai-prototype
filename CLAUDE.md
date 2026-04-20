@@ -36,7 +36,10 @@ character-ai-prototype/
 │
 ├── docs/
 │   ├── DECISIONS.md                 # 주요 설계 결정
-│   └── LESSONS.md                   # 실수 패턴 + 재발 방지
+│   ├── LESSONS.md                   # 실수 패턴 + 재발 방지
+│   ├── CONVENTIONS.md               # 코딩 규칙 상세
+│   ├── SESSION_CHECKLIST.md         # 세션 시작/종료 체크리스트
+│   └── CURRENT_STATE.md             # 프로젝트 현재 상태 스냅샷
 │
 ├── db/
 │   ├── index.js                     # SQLite 스키마, prepared statements
@@ -135,15 +138,17 @@ character-ai-prototype/
   "tags": ["#로맨스", "#연인", "#감성"],
   "about": {
     "world": "noir",
-    "chapter": "03",
+    "avg_length": "18min",
     "tone": "분석적 · 차가운 듯 다정한",
     "traits": ["분석적", "차가운 듯 다정한"],
     "opening_line": "..."
   },
   "notes": {
     "creator_note": "...",
-    "rules": [{"title": "...", "desc": "..."}],
-    "tip": "..."
+    "rules": ["관찰 가능한 특성 문자열", "..."],
+    "tip": "...",
+    "notes_by": "@creator_username",
+    "notes_date": "YYYY.MM.DD"
   }
 }
 ```
