@@ -27,11 +27,14 @@ router.get('/:id', (req, res) => {
 
   const messages = stmt.getMessages.all(req.params.id);
   res.json({
-    id:           session.id,
-    character_id: session.character_id,
-    persona:      JSON.parse(session.persona),
+    id:            session.id,
+    character_id:  session.character_id,
+    safety:        session.safety || 'on',
+    model:         session.model,
+    persona:       JSON.parse(session.persona),
+    message_count: messages.length,
     messages,
-    created_at:   session.created_at,
+    created_at:    session.created_at,
   });
 });
 

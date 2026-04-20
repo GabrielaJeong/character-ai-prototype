@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 9d8aa2937e58477dff248a0f54616465fbd47056 -->
-<!-- changelog-last-version: 0.21 -->
+<!-- changelog-last-commit: caf803aa398e276136f8b20770438e04dd4d0778 -->
+<!-- changelog-last-version: 0.22 -->
+
 
 
 
@@ -9,6 +10,22 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.22 — 2026-04-21
+**테스트 인프라 구축 + L-001 버그 수정 (v0.22)**
+- Jest + supertest 설치, CI/CD GitHub Actions 설정
+- tests/api/characters.test.js — 필수 필드 검증 (L-001 재발 방지)
+- tests/api/auth.test.js — 회원가입/로그인 플로우 검증
+- tests/api/sessions.test.js — list/detail 필드 동기화 검증
+- tests/api/creator.test.js — 크리에이터 프로필 응답 검증
+- tests/unit/buildSystemPrompt.test.js — 3층 프롬프트 아키텍처 검증
+- routes/sessions.js: GET /:id 응답에 safety, model, message_count 누락 수정 (L-001)
+- server.js: require.main 조건부 listen + module.exports 분리
+- docs/CONVENTIONS.md, docs/LESSONS.md, CLAUDE.md 문서 정비
+- ESLint, Prettier devDependency 추가
+- 테스트 총 41개, 커버리지 전체 34.79%
 
 ---
 

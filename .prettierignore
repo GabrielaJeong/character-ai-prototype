@@ -1,0 +1,5 @@
+node_modules/
+public/uploads/
+db/chat.db*
+*.md
+prompts/**/*.md
