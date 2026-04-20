@@ -148,6 +148,15 @@ if (!meaningful.length) {
   process.exit(0);
 }
 
+// [release] 태그가 없으면 새 버전 생성 안 함 (L-006: 커밋마다 버전 생성 방지)
+const hasRelease = meaningful.some(c =>
+  run(`git log -1 --format="%s %b" ${c.hash}`).includes('[release]')
+);
+if (!hasRelease) {
+  console.log('ℹ [release] 태그 없음 — CHANGELOG 업데이트 건너뜀');
+  process.exit(0);
+}
+
 const newVersion = nextVersion(meta.ver);
 const entry      = formatEntry(meaningful, newVersion);
 const headHash   = run('git rev-parse HEAD');

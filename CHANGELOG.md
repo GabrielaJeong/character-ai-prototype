@@ -1,7 +1,5 @@
-<!-- changelog-last-commit: 15abdf579feb5fa619c1f73ad7a798b404cecbfb -->
-<!-- changelog-last-version: 0.25 -->
-
-
+<!-- changelog-last-commit: 3da559db388cdf9a98ae0075136aff0ee6c3e950 -->
+<!-- changelog-last-version: 0.22 -->
 
 # Folio — 업데이트 로그
 
@@ -10,44 +8,20 @@
 
 ---
 
-## v0.25 — 2026-04-21
-**GitHub Actions workflow 추가**
-- GitHub Actions workflow 추가
-
----
-
-## v0.24 — 2026-04-21
-**exclude ci.yml until workflow scope is granted**
-- exclude ci.yml until workflow scope is granted
-
----
-
-## v0.23 — 2026-04-21
-**테스트 인프라 구축 + 하네스 문서 완성 (v0.22)**
-- Jest + supertest 설치, GitHub Actions CI 설정
-- tests/ 5개 파일, 41개 테스트 전체 통과
-- routes/sessions.js GET /:id — safety/model/message_count 누락 수정 (L-001)
+## v0.22 — 2026-04-21
+**테스트 인프라 구축 + 하네스 엔지니어링 완성**
+- Jest + supertest 설치, 41개 테스트 전체 통과
+  - tests/api/ (characters, auth, sessions, creator)
+  - tests/unit/buildSystemPrompt
+- GitHub Actions CI 구축 (push/PR 자동 실행, 통과 확인)
+- routes/sessions.js GET /:id — safety/model/message_count 누락 수정 (L-001 실재 버그)
 - server.js — require.main 조건부 listen + module.exports 분리
 - ESLint + Prettier + .editorconfig 추가
-- docs/CONVENTIONS.md, LESSONS.md, SESSION_CHECKLIST.md, CURRENT_STATE.md 신규
-- CLAUDE.md 코딩 규칙 섹션 CONVENTIONS.md 참조로 축약
-- 커버리지: 전체 34.79% (sessions.js 80%, buildSystemPrompt.js 100%)
-
----
-
-## v0.22 — 2026-04-21
-**테스트 인프라 구축 + L-001 버그 수정 (v0.22)**
-- Jest + supertest 설치, CI/CD GitHub Actions 설정
-- tests/api/characters.test.js — 필수 필드 검증 (L-001 재발 방지)
-- tests/api/auth.test.js — 회원가입/로그인 플로우 검증
-- tests/api/sessions.test.js — list/detail 필드 동기화 검증
-- tests/api/creator.test.js — 크리에이터 프로필 응답 검증
-- tests/unit/buildSystemPrompt.test.js — 3층 프롬프트 아키텍처 검증
-- routes/sessions.js: GET /:id 응답에 safety, model, message_count 누락 수정 (L-001)
-- server.js: require.main 조건부 listen + module.exports 분리
-- docs/CONVENTIONS.md, docs/LESSONS.md, CLAUDE.md 문서 정비
-- ESLint, Prettier devDependency 추가
-- 테스트 총 41개, 커버리지 전체 34.79%
+- 문서 정비
+  - CLAUDE.md 코딩 규칙을 CONVENTIONS.md 참조로 축약
+  - docs/CONVENTIONS.md, LESSONS.md (L-001~L-006), DECISIONS.md (D-001~D-010) 신규
+  - docs/SESSION_CHECKLIST.md, CURRENT_STATE.md 신규
+- 커버리지: 전체 34.79%, sessions.js 80%, buildSystemPrompt.js 100%
 
 ---
 
