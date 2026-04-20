@@ -1,10 +1,5 @@
-<!-- changelog-last-commit: daca5bcffa8910ff63217ba30921749440f92c0c -->
-<!-- changelog-last-version: 0.24 -->
-
-
-
-
-
+<!-- changelog-last-commit: 15abdf579feb5fa619c1f73ad7a798b404cecbfb -->
+<!-- changelog-last-version: 0.25 -->
 
 
 
@@ -12,6 +7,12 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.25 — 2026-04-21
+**GitHub Actions workflow 추가**
+- GitHub Actions workflow 추가
 
 ---
 
