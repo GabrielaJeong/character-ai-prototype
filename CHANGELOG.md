@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: c737a006feff49d7545b8f8d324a67a9df9a6db5 -->
-<!-- changelog-last-version: 0.23 -->
+<!-- changelog-last-commit: daca5bcffa8910ff63217ba30921749440f92c0c -->
+<!-- changelog-last-version: 0.24 -->
+
 
 
 
@@ -11,6 +12,12 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.24 — 2026-04-21
+**exclude ci.yml until workflow scope is granted**
+- exclude ci.yml until workflow scope is granted
 
 ---
 
