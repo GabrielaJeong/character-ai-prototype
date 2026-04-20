@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: caf803aa398e276136f8b20770438e04dd4d0778 -->
-<!-- changelog-last-version: 0.22 -->
+<!-- changelog-last-commit: c737a006feff49d7545b8f8d324a67a9df9a6db5 -->
+<!-- changelog-last-version: 0.23 -->
+
 
 
 
@@ -10,6 +11,19 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.23 — 2026-04-21
+**테스트 인프라 구축 + 하네스 문서 완성 (v0.22)**
+- Jest + supertest 설치, GitHub Actions CI 설정
+- tests/ 5개 파일, 41개 테스트 전체 통과
+- routes/sessions.js GET /:id — safety/model/message_count 누락 수정 (L-001)
+- server.js — require.main 조건부 listen + module.exports 분리
+- ESLint + Prettier + .editorconfig 추가
+- docs/CONVENTIONS.md, LESSONS.md, SESSION_CHECKLIST.md, CURRENT_STATE.md 신규
+- CLAUDE.md 코딩 규칙 섹션 CONVENTIONS.md 참조로 축약
+- 커버리지: 전체 34.79% (sessions.js 80%, buildSystemPrompt.js 100%)
 
 ---
 
