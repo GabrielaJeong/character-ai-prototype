@@ -61,7 +61,7 @@ describe('세션 소유권 — 게스트 격리', () => {
   const cookieSig = require('cookie-signature');
   const { stmt, db } = require('../../db');
 
-  const SESSION_SECRET = 'folio-dev-secret-change-in-prod';
+  const SESSION_SECRET = process.env.SESSION_SECRET || 'folio-dev-secret-change-in-prod';
   const PERSONA = JSON.stringify({ name: '테스트', description: '테스트 페르소나' });
 
   function extractGuestId(setCookieHeader) {
