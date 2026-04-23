@@ -1,10 +1,11 @@
 require('dotenv').config();
-const express    = require('express');
-const session    = require('express-session');
-const path       = require('path');
-const helmet     = require('helmet');
-const rateLimit  = require('express-rate-limit');
-const { db, stmt } = require('./db');
+const express        = require('express');
+const session        = require('express-session');
+const path           = require('path');
+const helmet         = require('helmet');
+const rateLimit      = require('express-rate-limit');
+const { randomUUID } = require('crypto');
+const { db, stmt }   = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -105,6 +106,14 @@ app.use(session({
   },
 }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ── Guest ID 발급 — 비로그인 세션 소유권 추적용 ──────────
+app.use((req, res, next) => {
+  if (!req.session.userId && !req.session.guestId) {
+    req.session.guestId = randomUUID();
+  }
+  next();
+});
 
 // ── Page View tracking (HTML 페이지 요청만 로깅) ──────────
 const STATIC_EXT = /\.(css|js|png|jpg|jpeg|gif|ico|webp|woff2?|ttf|svg|map)$/i;

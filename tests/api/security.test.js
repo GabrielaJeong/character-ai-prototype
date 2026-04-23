@@ -53,3 +53,65 @@ describe('Session Cookie', () => {
     }
   });
 });
+
+// ── 세션 소유권 — 게스트 격리 ──────────────────────────────
+
+describe('세션 소유권 — 게스트 격리', () => {
+  const { randomUUID } = require('crypto');
+  const cookieSig = require('cookie-signature');
+  const { stmt, db } = require('../../db');
+
+  const SESSION_SECRET = 'folio-dev-secret-change-in-prod';
+  const PERSONA = JSON.stringify({ name: '테스트', description: '테스트 페르소나' });
+
+  function extractGuestId(setCookieHeader) {
+    const header = Array.isArray(setCookieHeader) ? setCookieHeader[0] : setCookieHeader;
+    if (!header) return null;
+    const match = header.match(/folio\.sid=([^;]+)/);
+    if (!match) return null;
+    const encoded = decodeURIComponent(match[1]);
+    const val = encoded.startsWith('s:') ? encoded.slice(2) : encoded;
+    const sid = cookieSig.unsign(val, SESSION_SECRET);
+    if (!sid) return null;
+    const row = db.prepare('SELECT sess FROM auth_sessions WHERE sid = ?').get(sid);
+    return row ? JSON.parse(row.sess).guestId : null;
+  }
+
+  it('존재하지 않는 세션 → 404', async () => {
+    const res = await request(app).get(`/api/sessions/${randomUUID()}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('다른 게스트 쿠키로 타 세션 접근 → 403', async () => {
+    const sessionId = randomUUID();
+    const ownerGuestId = randomUUID();
+    // DB에 직접 세션 생성 (AI 호출 없이)
+    stmt.createSession.run(sessionId, PERSONA, 'claude-sonnet-4-6', 'ihwa', 'on', null, ownerGuestId);
+
+    try {
+      const agentB = request.agent(app);
+      await agentB.get('/api/sessions'); // guestId 발급 트리거
+      const res = await agentB.get(`/api/sessions/${sessionId}`);
+      expect(res.status).toBe(403);
+    } finally {
+      stmt.deleteSession.run(sessionId);
+    }
+  });
+
+  it('자신의 게스트 세션 접근 → 200', async () => {
+    const agentA = request.agent(app);
+    const init = await agentA.get('/api/sessions');
+    const guestId = extractGuestId(init.headers['set-cookie']);
+    expect(guestId).toBeTruthy();
+
+    const sessionId = randomUUID();
+    stmt.createSession.run(sessionId, PERSONA, 'claude-sonnet-4-6', 'ihwa', 'on', null, guestId);
+
+    try {
+      const res = await agentA.get(`/api/sessions/${sessionId}`);
+      expect(res.status).toBe(200);
+    } finally {
+      stmt.deleteSession.run(sessionId);
+    }
+  });
+});

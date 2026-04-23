@@ -2,6 +2,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
+const { verifyOwnership } = require('../lib/sessionOwnership');
 
 const anthropic         = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
@@ -26,8 +27,8 @@ module.exports = async (req, res) => {
   const { sessionId } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
-  const session = stmt.getSession.get(sessionId);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const session = verifyOwnership(sessionId, req, res);
+  if (!session) return;
 
   const lastMsg = stmt.getLastMessage.get(sessionId);
   if (!lastMsg || lastMsg.role !== 'assistant') {
@@ -44,8 +45,8 @@ module.exports = async (req, res) => {
   const noteRow      = stmt.getNote.get(sessionId);
   const charId       = session.character_id || DEFAULT_CHARACTER;
   const safety       = session.safety || 'on';
-  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety, model);
   const model        = session.model || DEFAULT_MODEL;
+  const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety, model);
 
   try {
     const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });

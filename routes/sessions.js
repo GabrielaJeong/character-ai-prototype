@@ -1,13 +1,14 @@
 const express = require('express');
 const router  = express.Router();
 const { stmt } = require('../db');
+const { verifyOwnership } = require('../lib/sessionOwnership');
 
 // GET /api/sessions — list sessions (filtered by auth state)
 router.get('/', (req, res) => {
   const uid  = req.session?.userId || null;
   const rows = uid
     ? stmt.listSessionsByUser.all(uid)
-    : stmt.listSessionsGuest.all();
+    : stmt.listSessionsByGuest.all(req.session?.guestId || '');
   const sessions = rows.map(s => ({
     id:            s.id,
     character_id:  s.character_id,
@@ -22,8 +23,8 @@ router.get('/', (req, res) => {
 
 // GET /api/sessions/:id — get session + full message history
 router.get('/:id', (req, res) => {
-  const session = stmt.getSession.get(req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const session = verifyOwnership(req.params.id, req, res);
+  if (!session) return;
 
   const messages = stmt.getMessages.all(req.params.id);
   res.json({
@@ -51,8 +52,8 @@ router.put('/:id/safety', (req, res) => {
   if (safety !== 'on' && safety !== 'off') {
     return res.status(400).json({ error: 'safety must be "on" or "off"' });
   }
-  const session = stmt.getSession.get(req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const session = verifyOwnership(req.params.id, req, res);
+  if (!session) return;
   stmt.updateSessionSafety.run(safety, req.params.id);
   res.json({ ok: true, safety });
 });

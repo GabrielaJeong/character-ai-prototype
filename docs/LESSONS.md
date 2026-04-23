@@ -282,6 +282,34 @@
 
 ---
 
+## L-010: UUID 세션 ID를 소유권 증명으로 오인 — Security Through Obscurity
+
+**날짜**: 2026-04-23
+**위험도**: 높음 (타 유저 세션 무단 접근·수정 가능)
+
+**발생 맥락**:
+- 세션 UUID는 추측하기 어렵지만 알게 되면 누구나 접근 가능 (로그 유출, 어깨너머 등)
+- `GET /api/sessions/:id`, `PUT /:id/safety`, `POST /api/chat`, `POST /api/chat/regenerate`, `GET|PUT /api/sessions/:id/note` — 소유권 미검증
+- 게스트 세션 목록 `GET /api/sessions`이 `guest_id` 없이 전체 게스트 세션 반환
+
+**재발 이유**:
+- UUID가 "어차피 모름" → 인증 불필요로 잘못 인식
+- 세션 표에 `user_id`는 있었으나 guest 구분 컬럼 부재
+
+**해결**:
+- `sessions` 테이블에 `guest_id TEXT` 컬럼 추가 (마이그레이션 try/catch)
+- `createSession` 7번째 파라미터로 guestId 저장
+- server.js에 guestId 자동 발급 미들웨어 추가 (비로그인 세션 최초 요청 시)
+- `lib/sessionOwnership.js` — `verifyOwnership()` 헬퍼로 로그인/게스트 양쪽 소유권 검증
+- `GET /api/sessions`는 게스트의 경우 `stmt.listSessionsByGuest.all(guestId)`로 격리
+
+**강화 규칙**:
+1. 🚩 UUID를 알면 접근 가능한 리소스 라우트 → `verifyOwnership()` 또는 동등 검증 필수
+2. 게스트 접근 허용 리소스라도 "누구나"가 아니라 "해당 게스트만" 원칙
+3. `createSession` 호출 위치 추가 시 guestId 7번째 인자 전달 확인
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시

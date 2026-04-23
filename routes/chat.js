@@ -5,6 +5,7 @@ const Anthropic  = require('@anthropic-ai/sdk');
 const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
+const { verifyOwnership } = require('../lib/sessionOwnership');
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -44,18 +45,23 @@ router.post('/', async (req, res) => {
   const model       = ALLOWED_MODELS.has(rawModel) ? rawModel : DEFAULT_MODEL;
   const characterId = rawCharId || DEFAULT_CHARACTER;
 
-  // Create session if new
+  // Create session if new, otherwise verify ownership
   let session = stmt.getSession.get(sessionId);
   if (!session) {
     if (!persona) {
       return res.status(400).json({ error: 'persona is required for new sessions' });
     }
-    const safety = rawSafety === 'off' ? 'off' : 'on';
-    const userId = req.session?.userId || null;
-    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId, safety, userId);
+    const safety  = rawSafety === 'off' ? 'off' : 'on';
+    const userId  = req.session?.userId || null;
+    const guestId = userId ? null : (req.session?.guestId || null);
+    stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId, safety, userId, guestId);
     session = stmt.getSession.get(sessionId);
-  } else if (session.model !== model) {
-    stmt.updateSessionModel.run(model, sessionId);
+  } else {
+    const owned = verifyOwnership(sessionId, req, res);
+    if (!owned) return;
+    if (session.model !== model) {
+      stmt.updateSessionModel.run(model, sessionId);
+    }
   }
 
   const persona_data = typeof session.persona === 'string'

@@ -158,6 +158,7 @@ db.exec(`
 `);
 
 // ── Migrations (idempotent) ───────────────────────────────
+try { db.exec(`ALTER TABLE sessions ADD COLUMN guest_id     TEXT`);                          } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN note         TEXT NOT NULL DEFAULT ''`);       } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN model        TEXT NOT NULL DEFAULT 'claude-sonnet-4-6'`); } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN character_id TEXT NOT NULL DEFAULT 'ihwa'`);   } catch (_) {}
@@ -188,7 +189,7 @@ db.transaction(() => {
 // ── Prepared statements ───────────────────────────────────
 const stmt = {
   // ── Chat sessions ────────────────────────────────────────
-  createSession:        db.prepare('INSERT INTO sessions (id, persona, model, character_id, safety, user_id) VALUES (?, ?, ?, ?, ?, ?)'),
+  createSession:        db.prepare('INSERT INTO sessions (id, persona, model, character_id, safety, user_id, guest_id) VALUES (?, ?, ?, ?, ?, ?, ?)'),
   getSession:           db.prepare('SELECT * FROM sessions WHERE id = ?'),
   deleteSession:        db.prepare('DELETE FROM sessions WHERE id = ?'),
   updateSessionModel:   db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
@@ -210,6 +211,16 @@ const stmt = {
     FROM sessions s
     LEFT JOIN messages m ON m.session_id = s.id
     WHERE s.user_id IS NULL
+    GROUP BY s.id ORDER BY s.created_at DESC
+  `),
+  // guest_id 기반 격리 목록 (소유한 세션만 반환)
+  listSessionsByGuest: db.prepare(`
+    SELECT s.id, s.persona, s.model, s.character_id, s.safety, s.created_at,
+      COUNT(m.id) AS message_count,
+      (SELECT content FROM messages WHERE session_id = s.id ORDER BY created_at DESC LIMIT 1) AS last_message
+    FROM sessions s
+    LEFT JOIN messages m ON m.session_id = s.id
+    WHERE s.guest_id = ?
     GROUP BY s.id ORDER BY s.created_at DESC
   `),
 

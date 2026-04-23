@@ -51,6 +51,14 @@
 - 세션 기반 인증 (`express-session` + SQLite 세션 스토어)
 - 역할 체크: `user.role === 'admin'` 기준 (username 하드코딩 금지)
 
+### 세션 소유권 검증
+- `lib/sessionOwnership.js` — `verifyOwnership(sessionId, req, res)` 헬퍼
+  - 로그인 유저: `session.user_id === req.session.userId` 일치 여부 검증
+  - 게스트: `session.user_id IS NULL` + `session.guest_id === req.session.guestId` 검증
+- server.js 미들웨어: 비로그인 최초 요청 시 `randomUUID()` guestId 자동 발급 (서버 세션 저장)
+- 적용 엔드포인트: `GET /api/sessions/:id`, `PUT /:id/safety`, `POST /api/chat` (기존 세션), `POST /api/chat/regenerate`, `GET|PUT /api/sessions/:id/note`
+- 게스트 세션 목록: `listSessionsByGuest` — `guest_id = ?` 조건으로 본인 세션만 반환
+
 ### 정보 노출 방지
 - `public_id` (UUID v4) 사용 — 내부 DB `id` 미노출
 - production 환경 스택 트레이스 숨김 (글로벌 에러 핸들러)
@@ -77,3 +85,4 @@
 - helmet 헤더 검증 (X-Content-Type-Options, X-Frame-Options, CSP)
 - 로그인 rate limit 429 검증
 - session cookie httpOnly 플래그 검증
+- 세션 소유권: 존재하지 않는 세션 404, 타 게스트 세션 403, 자신의 세션 200
