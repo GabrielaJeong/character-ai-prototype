@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 584a4765d2244715c82647c1a5e595a21247a573 -->
-<!-- changelog-last-version: 0.24 -->
+<!-- changelog-last-commit: 2868345d3bbf7acc735d68341905fe46ce9e7ecd -->
+<!-- changelog-last-version: 0.25 -->
+
 
 
 
@@ -7,6 +8,22 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.25 — 2026-04-23
+**v0.25 [release] 인증 게이트 루프 수정 및 보안 패치**
+
+### 버그 수정
+- CI 환경 SESSION_SECRET 하드코딩 → 환경변수 참조로 수정
+- goToLogin(): replaceState로 /mypage를 /login?redirect=... 로 교체
+- _authGateIntendedPath를 goToLogin() 진입 시 null 처리
+- submitLogin/submitRegister: redirect URL 파라미터 우선 읽기,
+- index.html: auth gate 버튼 onclick → goToLogin()으로 교체
+- docs: L-011 추가
+
+### 기타
+- v0.25 [release] 인증 게이트 루프 수정 및 보안 패치
 
 ---
 
