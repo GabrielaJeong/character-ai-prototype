@@ -62,6 +62,7 @@ try {
 ### SQL 실행 방식
 - **모든 SQL은 `stmt` 객체의 prepared statement로만 실행.**
 - 라우터에서 `db.prepare()` 직접 호출 금지. `stmt.XXX`로만 접근.
+- 단, strftime format·테이블명 등 파라미터화 불가능한 동적 쿼리는 `db/index.js`에 헬퍼 함수로 분리하고 export. (→ D-011)
 
 ### 마이그레이션 패턴
 ```js
