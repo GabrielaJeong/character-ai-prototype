@@ -207,6 +207,9 @@ character-ai-prototype/
 7. 🚩 `express-rate-limit` 추가 또는 수정 중
    → `app.set('trust proxy', 1)` 설정 여부 확인 (Railway 등 프록시 환경에서 미설정 시 전체 유저 IP 공유 → 한도 즉시 소진, L-008)
 
+8. 🚩 helmet CSP `directives` 커스텀 설정 중
+   → `scriptSrcAttr` 명시 여부 확인. helmet 기본값 `'none'`이 병합되어 `onclick="..."` 속성 핸들러 전부 차단됨. `scriptSrcAttr: ["'unsafe-inline'"]` 필수 (L-009)
+
 ## 자주 발생한 버그 패턴 (과거 학습)
 
 | 패턴 | 해결 |
