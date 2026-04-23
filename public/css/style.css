@@ -716,6 +716,10 @@ body {
   font-size: 5px;
   line-height: 1;
 }
+.badge-label {
+  line-height: 1;
+  transform: translateY(0.5px); /* Pretendard 소형 텍스트 ascender 편향 보정 */
+}
 .badge-new {
   background: rgba(30, 160, 90, 0.7);
   color: rgba(255, 255, 255, 0.9);

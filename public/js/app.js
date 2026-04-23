@@ -296,7 +296,7 @@ function buildCharCard(char, index) {
       ? `<img src="${char.image}" alt="${escapeHtml(char.name)}" class="char-card-img" />`
       : `<div class="char-card-img-placeholder">${escapeHtml(char.name[0])}</div>`}
     <span class="char-card-number">#B${numStr}</span>
-    ${b ? `<span class="char-card-status-badge ${b.cls}"><span class="status-dot">${b.dot}</span>${b.label}</span>` : ''}
+    ${b ? `<span class="char-card-status-badge ${b.cls}"><span class="status-dot">${b.dot}</span><span class="badge-label">${b.label}</span></span>` : ''}
     <div class="char-card-overlay">${tagsHtml}</div>
     ${isComingSoon ? `<div class="char-card-coming-overlay"></div><span class="char-card-soon-badge">Coming Soon</span>` : ''}
   `;
