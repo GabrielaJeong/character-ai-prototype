@@ -17,12 +17,13 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc:  ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-      styleSrc:   ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-      imgSrc:     ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
-      fontSrc:    ["'self'", "data:"],
+      defaultSrc:    ["'self'"],
+      scriptSrc:     ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      scriptSrcAttr: ["'unsafe-inline'"], // helmet 기본값 'none'이 onclick 속성 전부 차단 → 명시적 허용
+      styleSrc:      ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      imgSrc:        ["'self'", "data:", "https:"],
+      connectSrc:    ["'self'"],
+      fontSrc:       ["'self'", "data:", "cdn.jsdelivr.net"], // Pretendard 폰트
     },
   },
   crossOriginEmbedderPolicy: false, // 이미지 업로드 호환성
