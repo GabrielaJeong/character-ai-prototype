@@ -1,10 +1,38 @@
-<!-- changelog-last-commit: 3da559db388cdf9a98ae0075136aff0ee6c3e950 -->
-<!-- changelog-last-version: 0.22 -->
+<!-- changelog-last-commit: af98efb1683590027a2fe2957124c3d5b288b132 -->
+<!-- changelog-last-version: 0.23 -->
+
 
 # Folio — 업데이트 로그
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.23 — 2026-04-23
+**[release] v0.23: 보안 프레임워크 전면 적용**
+
+### 문서
+- docs/ 트리에 CONVENTIONS.md, SESSION_CHECKLIST.md, CURRENT_STATE.md 추가
+- config.json 예시: chapter → avg_length, rules string 배열로 수정, notes_by/notes_date 추가
+- README 업데이트, DECISION.md → DECISIONS.md 리네임
+- D-011 동적 SQL 헬퍼 함수 분리 결정 추가, CONVENTIONS.md 보완
+
+### 리팩터링
+- db/index.js: adminDashPV/UV/DAU/MAU, adminCharSessionCount, countBroadcastNotifs stmt 추가
+- db/index.js: adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter 헬퍼 함수 추가 및 export
+- routes/admin.js: db.prepare() 직접 호출 7곳 → stmt + 헬퍼로 교체
+- 310: charSessionCounts (기존 stmt 재사용)
+- 424: getAllMessages (기존 stmt 재사용)
+- routes/notifications.js: require('../db').db.prepare() → stmt.countBroadcastNotifs
+
+### 기타
+- server.js: helmet(CSP/보안헤더), express-rate-limit(auth 10회/api 200회), cookie secure/httpOnly, 글로벌 에러 핸들러
+- app.js: escapeHtml() 5종 이스케이프 강화 + innerHTML 10개소 적용 (닉네임, 아이디, 이메일, 캐릭터명/태그/역할, 페르소나명, input value)
+- routes/admin.js: 업로드 base64 크기 5MB 제한
+- tests/api/security.test.js: helmet 헤더, rate limit 429, cookie httpOnly 검증 (46개 통과)
+- docs/SECURITY.md 신규, DECISIONS.md D-012, LESSONS.md L-007 추가
+- .env.example SESSION_SECRET 항목 추가
 
 ---
 
