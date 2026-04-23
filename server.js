@@ -9,6 +9,10 @@ const { db, stmt } = require('./db');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Railway 등 역방향 프록시 뒤에서 실제 클라이언트 IP를 신뢰
+// (없으면 rate limiter가 모든 유저를 프록시 IP 하나로 묶음)
+app.set('trust proxy', 1);
+
 // ── Security headers (helmet) ─────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
