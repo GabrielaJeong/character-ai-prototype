@@ -19,7 +19,16 @@
   - 크리에이터 프로필 닉네임·핸들
   - 정보 수정 모달 input value 속성
 - `escapeHtml()`: `&`, `<`, `>`, `"`, `'` 5종 이스케이프
-- CSP 헤더 적용 (helmet) — defaultSrc self, scriptSrc unsafe-inline 최소화 예정
+- CSP 헤더 적용 (helmet)
+
+| 디렉티브 | 허용 출처 | 이유 |
+|---------|----------|------|
+| `script-src` | `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net` | Chart.js (어드민 대시보드) |
+| `script-src-attr` | `'unsafe-inline'` | app.js 인라인 onclick 핸들러 (helmet 기본값 `'none'` 명시 재정의) |
+| `style-src` | `'self'`, `'unsafe-inline'`, `cdn.jsdelivr.net` | Pretendard CSS @import |
+| `font-src` | `'self'`, `data:`, `cdn.jsdelivr.net` | Pretendard 웹폰트 파일 |
+| `img-src` | `'self'`, `data:`, `https:` | 외부 이미지 허용 |
+| `connect-src` | `'self'` | API 호출 동일 출처만 |
 
 ### CSRF
 - `express-session` `sameSite: 'lax'` 설정

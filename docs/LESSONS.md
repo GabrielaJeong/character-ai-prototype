@@ -227,6 +227,36 @@
 
 ---
 
+## L-009: helmet CSP 기본값 `script-src-attr: none` — onclick 전면 차단
+
+**날짜**: 2026-04-23
+**위험도**: 높음 (프로덕션 클릭 이벤트 전체 불능)
+
+**발생 맥락**:
+- helmet에 커스텀 `directives`를 지정해도 helmet의 기본 directives가 **병합**됨
+- 기본값 `script-src-attr: 'none'`이 HTML 속성 이벤트 핸들러(`onclick="..."` 등)를 전부 차단
+- `scriptSrc`에 `'unsafe-inline'`이 있어도 `scriptSrcAttr`는 별개 디렉티브라 효과 없음
+- app.js 전체에 `onclick=` 인라인 핸들러가 수십 개 → 프로덕션 전체 클릭 불능
+
+**재발 이유**:
+- helmet 기본 병합 동작을 인지하지 못함
+- 로컬 브라우저 캐시로 인해 재현 안 됨 (헤더가 캐시에서 미적용)
+
+**해결**: `scriptSrcAttr: ["'unsafe-inline'"]` 명시적 추가.
+
+**강화 규칙**:
+1. 🚩 Red Flag: helmet CSP 커스텀 `directives` 설정 중
+   → `script-src-attr` 포함 여부 확인 (`'none'`이 기본값으로 병합됨)
+2. helmet 기본 directives 목록 주요 항목:
+   - `script-src-attr: 'none'` — onclick 등 속성 이벤트 핸들러 차단
+   - `object-src: 'none'` — Flash 등 차단
+   - `base-uri: 'self'` — base 태그 제한
+3. 커스텀 CSP 배포 후 체크리스트:
+   - [ ] 브라우저 DevTools → Console에서 CSP 위반 오류 확인
+   - [ ] 클릭/입력 이벤트 동작 수동 확인
+
+---
+
 ## L-008: 역방향 프록시 환경에서 rate limiter IP 오인식
 
 **날짜**: 2026-04-23
