@@ -284,7 +284,7 @@ function buildCharCard(char, index) {
   // 태그
   const visibleTags = Array.isArray(char.tags) ? char.tags.slice(0, 3) : [];
   const tagsHtml = visibleTags.length
-    ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${t}</span>`).join('')}</div>`
+    ? `<div class="char-card-tags">${visibleTags.map(t => `<span class="char-card-tag">#${escapeHtml(t)}</span>`).join('')}</div>`
     : '';
 
   // 이미지 카드
@@ -293,8 +293,8 @@ function buildCharCard(char, index) {
   if (!isComingSoon) card.onclick = () => selectCharacter(char.id);
   card.innerHTML = `
     ${char.image
-      ? `<img src="${char.image}" alt="${char.name}" class="char-card-img" />`
-      : `<div class="char-card-img-placeholder">${char.name[0]}</div>`}
+      ? `<img src="${char.image}" alt="${escapeHtml(char.name)}" class="char-card-img" />`
+      : `<div class="char-card-img-placeholder">${escapeHtml(char.name[0])}</div>`}
     <span class="char-card-number">#B${numStr}</span>
     ${b ? `<span class="char-card-status-badge ${b.cls}"><span class="status-dot">${b.dot}</span>${b.label}</span>` : ''}
     <div class="char-card-overlay">${tagsHtml}</div>
@@ -311,8 +311,8 @@ function buildCharCard(char, index) {
     : '';
 
   info.innerHTML = `
-    <div class="char-card-name">${char.name}</div>
-    <div class="char-card-role">${char.role || char.team || ''}</div>
+    <div class="char-card-name">${escapeHtml(char.name)}</div>
+    <div class="char-card-role">${escapeHtml(char.role || char.team || '')}</div>
     ${creatorTag}
     ${stats ? `<div class="char-card-stats">
       <span class="char-stat"><span class="char-stat-icon">▲</span>${fmtK(stats.sessions)}</span>
@@ -683,7 +683,7 @@ async function loadSessionList() {
           <span class="session-date">${dateStr}</span>
         </div>
         <p class="session-preview">${session.last_message ? escapeHtml(session.last_message) : '대화 없음'}</p>
-        <span class="session-persona-tag">${session.persona.name || '알 수 없음'}</span>
+        <span class="session-persona-tag">${escapeHtml(session.persona.name || '알 수 없음')}</span>
       `;
 
       card.appendChild(pennant);
@@ -1125,8 +1125,8 @@ async function loadCreatorProfile(username) {
             : `<div class="creator-char-img creator-char-img-empty">✦</div>`}
           ${pinBtn}
           <div class="creator-char-info">
-            <div class="creator-char-name">${c.name}</div>
-            <div class="creator-char-role">${c.role || ''}</div>
+            <div class="creator-char-name">${escapeHtml(c.name)}</div>
+            <div class="creator-char-role">${escapeHtml(c.role || '')}</div>
             <div class="creator-char-stats">
               <span>▲ ${fmtK(c.stats?.sessions || 0)}</span>
               <span>♥ ${fmtK(c.stats?.bookmarks || 0)}</span>
@@ -1139,8 +1139,8 @@ async function loadCreatorProfile(username) {
       <div class="creator-header">
         <div class="creator-avatar-wrap">${avatarHtml}</div>
         <div class="creator-header-info">
-          <div class="creator-nickname">${user.nickname}</div>
-          <div class="creator-handle">@${user.username}</div>
+          <div class="creator-nickname">${escapeHtml(user.nickname)}</div>
+          <div class="creator-handle">@${escapeHtml(user.username)}</div>
         </div>
         <div class="creator-header-actions">${actionBtn}</div>
       </div>
@@ -2620,7 +2620,13 @@ function setInputDisabled(disabled) {
 }
 
 function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function autoResize(el) {
@@ -3636,8 +3642,8 @@ async function loadMypage() {
   const emailEl = document.getElementById('mypage-email');
   if (emailEl) {
     emailEl.innerHTML = _currentUser.username
-      ? `<span class="mp-email-username">@${_currentUser.username}</span><span class="mp-email-sep"> · </span>${_currentUser.email}`
-      : _currentUser.email;
+      ? `<span class="mp-email-username">@${escapeHtml(_currentUser.username)}</span><span class="mp-email-sep"> · </span>${escapeHtml(_currentUser.email)}`
+      : escapeHtml(_currentUser.email);
   }
   document.getElementById('mypage-avatar-letter').textContent = _currentUser.nickname[0].toUpperCase();
 
@@ -3985,7 +3991,7 @@ function openMypageModal(type) {
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="form-group">
           <label style="font-size:12px;color:var(--text-muted);">닉네임</label>
-          <input type="text" id="modal-nickname" value="${_currentUser.nickname}" placeholder="2~12자"
+          <input type="text" id="modal-nickname" value="${escapeHtml(_currentUser.nickname)}" placeholder="2~12자"
             style="${inputStyle}" oninput="validateField('modal-nickname','modal-nick-err','nickname')" />
           <p class="field-error" id="modal-nick-err"></p>
         </div>
@@ -3993,7 +3999,7 @@ function openMypageModal(type) {
           <label style="font-size:12px;color:var(--text-muted);">@아이디</label>
           <div style="${atWrapStyle}">
             <span style="${atPrefixStyle}">@</span>
-            <input type="text" id="modal-username" value="${_currentUser.username || ''}" placeholder="my_username"
+            <input type="text" id="modal-username" value="${escapeHtml(_currentUser.username || '')}" placeholder="my_username"
               style="${atInputStyle}" oninput="onModalUsernameInput(this)" />
           </div>
           <p class="field-feedback" id="modal-username-status" style="font-size:12px;margin-top:4px;"></p>

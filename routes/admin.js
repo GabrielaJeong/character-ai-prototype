@@ -422,6 +422,8 @@ router.post('/upload', (req, res) => {
     const safeExt = (ext || '').toLowerCase().replace(/[^a-z]/g, '');
     if (!allowed.includes(safeExt)) return res.status(400).json({ error: '허용되지 않는 파일 형식' });
     if (!data) return res.status(400).json({ error: 'data 필수' });
+    // base64 크기 제한: 5MB 실파일 → base64 ~6.7MB → 7MB 문자열 길이로 체크
+    if (data.length > 7 * 1024 * 1024) return res.status(400).json({ error: '파일 크기는 5MB 이하여야 합니다.' });
     if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     const filename = `bc_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${safeExt}`;
     fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(data, 'base64'));

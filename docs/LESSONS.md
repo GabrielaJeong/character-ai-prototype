@@ -199,6 +199,34 @@
 
 ---
 
+## L-007: escapeHtml 미적용 — innerHTML 유저 입력 XSS
+
+**날짜**: 2026-04-23
+**위험도**: 높음 (유저 생성 콘텐츠 XSS 가능)
+
+**발생 맥락**:
+- 채팅 메시지(`escapeHtml(text)`)와 세션 미리보기(`escapeHtml(session.last_message)`)는 이스케이프 적용
+- 캐릭터 이름·태그·역할, 닉네임·아이디·이메일, 페르소나 이름, input value 속성은 미적용
+- 유저 빌더로 생성한 캐릭터(`char_` prefix)는 name·role·tags가 완전히 유저 입력값
+
+**재발 이유**:
+- `textContent` 사용처는 안전하나 `innerHTML` 템플릿 리터럴과 혼용해 경계 불명확
+- escapeHtml이 파일 하단에 정의되어 "이미 있다"는 인식 부족
+
+**해결**: `escapeHtml()` 5종 이스케이프(`&`, `<`, `>`, `"`, `'`)로 강화 + innerHTML 10개소 적용.
+
+**강화 규칙**:
+1. 🚩 Red Flag: 템플릿 리터럴 `innerHTML` 안에 `${변수}` 삽입 중
+   → 이 값이 유저 입력(DB 저장값 포함)인가? → 맞으면 `${escapeHtml(변수)}`
+2. 안전한 것: `textContent`, `setAttribute('alt', ...)` 직접 할당
+3. `value="${...}"` 속성도 `"` 포함 시 attribute injection → `escapeHtml` 필수
+4. 신규 렌더링 함수 추가 시 체크리스트:
+   - [ ] innerHTML 사용하는가?
+   - [ ] 삽입 데이터가 서버 응답(유저 입력 가능성)인가?
+   - [ ] escapeHtml 거치는가?
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시

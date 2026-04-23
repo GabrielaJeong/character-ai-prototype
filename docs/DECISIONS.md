@@ -276,3 +276,27 @@
 - 헬퍼 함수 인자에 테이블명·컬럼명을 그대로 받으므로 SQL injection 주의 필요 → 라우터에서 whitelist 검증 후 전달
 
 ---
+
+## D-012: 보안 프레임워크 일괄 적용 (helmet + rate-limit)
+
+**날짜**: 2026-04-23
+**버전**: v0.23
+**상태**: 적용 중
+
+**결정**: helmet(보안 헤더), express-rate-limit(속도 제한), cookie secure/httpOnly 플래그를 일괄 적용. csurf는 제외하고 SameSite=lax로 CSRF 방어.
+
+**대안**:
+1. csurf 적용 — 2023년 deprecated, 유지보수 중단. SameSite=lax가 동일 기능 커버하므로 제외
+2. rate-limit 인메모리 대신 Redis — 프로토타입 규모에서 오버엔지니어링, 단일 서버 배포라 불필요
+3. check-username에 authLimiter(10회) 동일 적용 — 실시간 타이핑 UX 파괴, 별도 30회 limiter 분리
+
+**근거**:
+- 포트폴리오 제출 전 기본 보안 체계 확립
+- helmet은 설정 한 줄로 10+ 헤더를 일괄 적용, 비용 대비 효과 최대
+- SameSite=lax는 CSRF의 가장 큰 공격 벡터(cross-origin form POST)를 차단
+
+**트레이드오프**:
+- CSP `unsafe-inline` 허용 — 현재 인라인 스크립트/스타일 다수 사용, nonce 방식으로 전환 시 리팩터링 필요
+- rate-limit 스토어가 인메모리 — 서버 재시작 시 초기화, 분산 환경 미지원
+
+---

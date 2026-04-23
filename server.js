@@ -1,13 +1,61 @@
 require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const path    = require('path');
+const express    = require('express');
+const session    = require('express-session');
+const path       = require('path');
+const helmet     = require('helmet');
+const rateLimit  = require('express-rate-limit');
 const { db, stmt } = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── SQLite session store (uses existing better-sqlite3 DB) ─
+// ── Security headers (helmet) ─────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      styleSrc:   ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      imgSrc:     ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc:    ["'self'", "data:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // 이미지 업로드 호환성
+}));
+
+// ── Rate Limiting ─────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: '너무 많은 시도입니다. 잠시 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// check-username은 실시간 타이핑 중 hit → 별도 완화 limiter (반박: authLimiter 10회는 너무 빡셈)
+const checkUsernameLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: '요청이 너무 많습니다.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { error: '요청이 너무 많습니다.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/auth/login',          authLimiter);
+app.use('/api/auth/register',       authLimiter);
+app.use('/api/auth/check-username', checkUsernameLimiter);
+app.use('/api/',                    apiLimiter);
+
+// ── SQLite session store ──────────────────────────────────
 const { Store } = session;
 class SQLiteStore extends Store {
   constructor() { super(); }
@@ -32,17 +80,23 @@ class SQLiteStore extends Store {
   }
 }
 
+const sessionSecret = process.env.SESSION_SECRET || 'folio-dev-secret-change-in-prod';
+if (!process.env.SESSION_SECRET) {
+  console.warn('[WARN] SESSION_SECRET not set — using insecure default (dev only)');
+}
+
 app.use(express.json({ limit: '10mb' }));
 app.use(session({
   store:             new SQLiteStore(),
   name:              'folio.sid',
-  secret:            process.env.SESSION_SECRET || 'folio-dev-secret-change-in-prod',
+  secret:            sessionSecret,
   resave:            false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge:   7 * 24 * 60 * 60 * 1000,
   },
 }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -50,8 +104,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── Page View tracking (HTML 페이지 요청만 로깅) ──────────
 const STATIC_EXT = /\.(css|js|png|jpg|jpeg|gif|ico|webp|woff2?|ttf|svg|map)$/i;
 app.use((req, res, next) => {
-  if (STATIC_EXT.test(req.path)) return next(); // 정적 파일 제외
-  if (req.path.startsWith('/api/')) return next(); // 모든 API 제외
+  if (STATIC_EXT.test(req.path)) return next();
+  if (req.path.startsWith('/api/')) return next();
   try {
     const userId       = req.session?.userId || null;
     const sessionToken = req.sessionID || null;
@@ -60,7 +114,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes — regenerate must be registered before /api/chat router (Express 5 path matching)
+// ── Routes ────────────────────────────────────────────────
 app.post('/api/chat/regenerate', require('./routes/regenerate'));
 app.use('/api/chat',             require('./routes/chat'));
 app.use('/api/sessions',         require('./routes/sessions'));
@@ -74,7 +128,7 @@ app.use('/api/notifications',    require('./routes/notifications'));
 app.use('/api/admin',            require('./routes/admin'));
 app.use('/api/creator',          require('./routes/creator'));
 
-// ── Public curation read ───────────────────────────────────
+// ── Public curation read ──────────────────────────────────
 const fs   = require('fs');
 const CURATION_FILE = path.join(__dirname, 'data', 'curation.json');
 app.get('/api/curation', (_req, res) => {
@@ -83,7 +137,7 @@ app.get('/api/curation', (_req, res) => {
   } catch { res.status(500).json({ error: '큐레이션 로드 실패' }); }
 });
 
-// Admin dashboard (serves separate HTML, no 430px constraint)
+// ── Admin pages ───────────────────────────────────────────
 app.get('/admin', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
@@ -91,9 +145,19 @@ app.get('/admin/{*splat}', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Fallback: serve index.html for all non-API routes
+// ── SPA fallback ──────────────────────────────────────────
 app.get('/{*splat}', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ── Global error handler ──────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  if (process.env.NODE_ENV === 'production') {
+    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+  } else {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
 });
 
 if (require.main === module) {
