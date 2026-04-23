@@ -1,11 +1,40 @@
-<!-- changelog-last-commit: af98efb1683590027a2fe2957124c3d5b288b132 -->
-<!-- changelog-last-version: 0.23 -->
+<!-- changelog-last-commit: 584a4765d2244715c82647c1a5e595a21247a573 -->
+<!-- changelog-last-version: 0.24 -->
+
 
 
 # Folio — 업데이트 로그
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.24 — 2026-04-23
+**v0.24 [release] 세션 소유권 검증 + 게스트 세션 격리 보안 패치**
+
+### 버그 수정
+- trust proxy 설정 추가 — Railway 프록시 뒤 rate limit IP 오인식 수정
+- CSP scriptSrcAttr 추가 — helmet 기본값이 onclick 속성 전부 차단하던 문제 수정
+
+### 문서
+- LESSONS.md L-008 추가 — 역방향 프록시 rate limit IP 오인식
+- CLAUDE.md Red Flags에 rate limit trust proxy 항목 추가 (L-008)
+- SECURITY.md CSP 정책 표 추가, LESSONS.md L-009 추가
+- CLAUDE.md Red Flags에 CSP scriptSrcAttr 항목 추가 (L-009)
+
+### 기타
+- lib/sessionOwnership.js: verifyOwnership() 헬퍼 신규 추가
+- 로그인 유저: user_id 일치 검증
+- 게스트: guest_id 일치 + user_id IS NULL 검증
+- db/index.js: sessions.guest_id 컬럼 마이그레이션, createSession 7번째 파라미터, listSessionsByGuest 추가
+- server.js: randomUUID 임포트, 비로그인 최초 요청 시 guestId 자동 발급 미들웨어
+- routes/sessions.js: GET / 게스트 격리, GET|PUT /:id 소유권 검증 적용
+- routes/chat.js: 기존 세션 접근 시 소유권 검증, createSession에 guestId 전달
+- routes/regenerate.js: 소유권 검증 추가, model 선언 순서 버그 수정
+- routes/notes.js: GET|PUT 소유권 검증 적용
+- tests: 소유권 테스트 3종 추가 (404/403/200), 총 49개 통과
+- docs: L-010 추가, SECURITY.md 세션 소유권 섹션 이동
 
 ---
 
