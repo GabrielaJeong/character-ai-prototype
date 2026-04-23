@@ -310,6 +310,32 @@
 
 ---
 
+## L-011: 인증 게이트 → 로그인 → 뒤로가기 무한 루프
+
+**날짜**: 2026-04-23
+**위험도**: 높음 (핵심 UX 파괴, 탈출 불가)
+
+**발생 맥락**:
+- `/mypage` 등 인증 필요 경로 → `showAuthGate()` → 유저가 "로그인하기" 클릭
+- `navigateTo('/login')` (pushState) → history: [..., /mypage, /login]
+- 로그인 화면에서 뒤로가기 → `/mypage` → 비로그인 → auth gate 재발동 → 루프
+- 추가로: 버튼 onclick이 `_authGateIntendedPath=null`로 초기화 → 로그인 성공 후 `/`로 이동 (의도한 경로 소실)
+
+**해결**:
+- `goToLogin()` 함수: `replaceState`로 `/mypage` 기록을 `/login?redirect=%2Fmypage`로 교체 → 뒤로가기 시 `/mypage` 기록 없음
+- `_authGateIntendedPath` null 처리를 `goToLogin()` 진입 시 수행 → `closeAuthGate`의 `navigateTo('/')` 오발 방지
+- `submitLogin`/`submitRegister`: `redirect` URL 파라미터 우선 읽기, `replaceState` + `renderRoute`로 `/login?redirect=...` 기록도 제거
+
+**강화 규칙**:
+1. 🚩 Red Flag: 인증 필요 화면에서 `/login` 이동 핸들러 작성 중
+   → `pushState` 대신 `replaceState` 사용 여부 확인
+2. 로그인 성공 후 복귀 경로: URL `redirect` 파라미터 → `_authGateIntendedPath` → `/` 우선순위로 처리
+3. `redirect` 파라미터는 반드시 `/` 시작 검증 (open redirect 방지)
+4. `closeAuthGate`에 side-effect(`navigateTo('/')`)가 있으므로, 직접 모달 닫기 전 `_authGateIntendedPath` 상태 관리 필수
+5. 라우팅 플로우 변경 시 반드시 뒤로가기 시나리오 수동 테스트
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시

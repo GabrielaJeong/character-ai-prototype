@@ -3422,6 +3422,16 @@ function closeAuthGate(e) {
     navigateTo('/');
   }
 }
+function goToLogin() {
+  const intended = _authGateIntendedPath || (location.pathname + location.search);
+  // _authGateIntendedPath을 먼저 null로 — closeAuthGate가 navigateTo('/')를 호출하지 않도록
+  _authGateIntendedPath = null;
+  document.getElementById('auth-gate-overlay').classList.remove('open');
+  // pushState 대신 replaceState: 현재 경로(/mypage 등)를 history에서 교체 → 뒤로가기 루프 방지
+  history.replaceState({ folio: true }, '', '/login?redirect=' + encodeURIComponent(intended));
+  showAuthView('login');
+  showScreen('screen-login');
+}
 
 // ── Login / Register screens ──────────────────────────────
 function showAuthView(view) {
@@ -3529,9 +3539,13 @@ async function submitLogin(e) {
     if (!res.ok) { document.getElementById('login-global-err').textContent = data.error; return; }
     _currentUser = data.user;
     updateAuthUI();
-    const dest = _authGateIntendedPath || '/';
+    const redirectParam = new URLSearchParams(location.search).get('redirect');
+    const dest = (redirectParam && redirectParam.startsWith('/')) ? redirectParam
+               : (_authGateIntendedPath || '/');
     _authGateIntendedPath = null;
-    navigateTo(dest);
+    // replaceState로 /login?redirect=... 기록도 제거 후 목적지 렌더
+    history.replaceState({ folio: true }, '', dest);
+    renderRoute(dest);
   } catch (_) {
     document.getElementById('login-global-err').textContent = '로그인에 실패했습니다.';
   }
@@ -3615,9 +3629,12 @@ async function submitRegister(e) {
     if (!res.ok) { document.getElementById('reg-global-err').textContent = data.error; return; }
     _currentUser = data.user;
     updateAuthUI();
-    const dest = _authGateIntendedPath || '/';
+    const redirectParam = new URLSearchParams(location.search).get('redirect');
+    const dest = (redirectParam && redirectParam.startsWith('/')) ? redirectParam
+               : (_authGateIntendedPath || '/');
     _authGateIntendedPath = null;
-    navigateTo(dest);
+    history.replaceState({ folio: true }, '', dest);
+    renderRoute(dest);
   } catch (_) {
     document.getElementById('reg-global-err').textContent = '회원가입에 실패했습니다.';
   }
