@@ -227,6 +227,31 @@
 
 ---
 
+## L-008: 역방향 프록시 환경에서 rate limiter IP 오인식
+
+**날짜**: 2026-04-23
+**위험도**: 높음 (프로덕션 전체 클릭 이벤트 불능)
+
+**발생 맥락**:
+- Railway 배포 후 모든 클릭/API 호출이 429로 막힘
+- `express-rate-limit` 추가 직후 발생
+- Railway는 역방향 프록시 구조 → 모든 요청의 `req.ip`가 프록시 내부 IP 하나로 집계
+- 200회/15분 한도를 전체 유저가 공유하여 즉시 소진
+
+**재발 이유**:
+- 로컬에서는 프록시 없이 직접 접속하므로 문제 재현 안 됨
+- rate limiter 설정 시 프록시 환경 고려 누락
+
+**해결**: `app.set('trust proxy', 1)` 추가 → `X-Forwarded-For` 헤더로 실제 클라이언트 IP 사용.
+
+**강화 규칙**:
+1. 🚩 Red Flag: rate limiter 또는 IP 기반 로직 추가 중 + 프록시 뒤 배포 환경
+   → `app.set('trust proxy', 1)` 설정 여부 확인
+2. Railway / Heroku / Nginx 프록시 뒤에서는 항상 trust proxy 필수
+3. 로컬 테스트만으로는 재현 불가 — 배포 직후 rate limit 동작 수동 확인
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시
