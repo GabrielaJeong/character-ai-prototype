@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
 router.get('/unread-count', (req, res) => {
   const userId = req.session?.userId || null;
   if (!userId) {
-    const { cnt } = require('../db').db.prepare('SELECT COUNT(*) AS cnt FROM notifications WHERE user_id IS NULL').get();
+    const { cnt } = stmt.countBroadcastNotifs.get();
     return res.json({ count: cnt });
   }
   const { cnt } = stmt.countUnread.get(userId, userId);

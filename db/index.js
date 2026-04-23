@@ -351,6 +351,12 @@ const stmt = {
   countUsers:             db.prepare('SELECT COUNT(*) AS cnt FROM users'),
   countCharSessions:      db.prepare('SELECT COUNT(*) AS cnt FROM sessions WHERE created_at >= ?'),
   countModerationLogs7d:  db.prepare('SELECT COUNT(*) AS cnt FROM moderation_logs WHERE created_at >= ?'),
+  adminDashPV:            db.prepare('SELECT COUNT(*) AS cnt FROM page_views WHERE created_at >= ?'),
+  adminDashUV:            db.prepare('SELECT COUNT(DISTINCT session_token) AS cnt FROM page_views WHERE created_at >= ?'),
+  adminDashDAU:           db.prepare('SELECT COUNT(DISTINCT user_id) AS cnt FROM page_views WHERE user_id IS NOT NULL AND created_at >= ?'),
+  adminDashMAU:           db.prepare('SELECT COUNT(DISTINCT user_id) AS cnt FROM page_views WHERE user_id IS NOT NULL AND created_at >= ?'),
+  adminCharSessionCount:  db.prepare('SELECT COUNT(*) AS cnt FROM sessions WHERE character_id = ?'),
+  countBroadcastNotifs:   db.prepare('SELECT COUNT(*) AS cnt FROM notifications WHERE user_id IS NULL'),
 
   // ── Admin — Moderation Logs ───────────────────────────────
   insertModerationLog: db.prepare(`
@@ -376,4 +382,24 @@ const stmt = {
   `),
 };
 
-module.exports = { db, stmt };
+// ── Dynamic query helpers (db.prepare는 여기서만 허용) ────
+// strftime format·table·column은 SQL 파라미터화 불가 → 헬퍼로 분리
+function adminGraphSeries(fmt, since, table, col = 'created_at') {
+  return db.prepare(`
+    SELECT strftime('${fmt}', ${col}, 'unixepoch') AS period, COUNT(*) AS cnt
+    FROM ${table} WHERE ${col} >= ${since} GROUP BY period ORDER BY period
+  `).all();
+}
+
+function adminGraphSeriesDistinct(fmt, since, table, col, groupCol) {
+  return db.prepare(`
+    SELECT strftime('${fmt}', ${col}, 'unixepoch') AS period, COUNT(DISTINCT ${groupCol}) AS cnt
+    FROM ${table} WHERE ${col} >= ${since} GROUP BY period ORDER BY period
+  `).all();
+}
+
+function adminModerationFilter(sql, params) {
+  return db.prepare(sql).all(...params);
+}
+
+module.exports = { db, stmt, adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter };

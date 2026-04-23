@@ -3,7 +3,7 @@ const router     = express.Router();
 const fs         = require('fs');
 const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
-const { db, stmt } = require('../db');
+const { db, stmt, adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter } = require('../db');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -97,10 +97,10 @@ router.get('/stats', (req, res) => {
   const totalChars    = loadAllCharacters().length;
   const modLogs7d     = stmt.countModerationLogs7d.get(sevenDaysAgo).cnt;
 
-  const todayPV = db.prepare('SELECT COUNT(*) AS cnt FROM page_views WHERE created_at >= ?').get(todayStart).cnt;
-  const todayUV = db.prepare('SELECT COUNT(DISTINCT session_token) AS cnt FROM page_views WHERE created_at >= ?').get(todayStart).cnt;
-  const dau     = db.prepare('SELECT COUNT(DISTINCT user_id) AS cnt FROM page_views WHERE user_id IS NOT NULL AND created_at >= ?').get(todayStart).cnt;
-  const mau     = db.prepare('SELECT COUNT(DISTINCT user_id) AS cnt FROM page_views WHERE user_id IS NOT NULL AND created_at >= ?').get(thirtyDaysAgo).cnt;
+  const todayPV = stmt.adminDashPV.get(todayStart).cnt;
+  const todayUV = stmt.adminDashUV.get(todayStart).cnt;
+  const dau     = stmt.adminDashDAU.get(todayStart).cnt;
+  const mau     = stmt.adminDashMAU.get(thirtyDaysAgo).cnt;
 
   res.json({ totalUsers, todaySessions, totalChars, modLogs7d, todayPV, todayUV, dau, mau });
 });
@@ -113,26 +113,12 @@ router.get('/stats/graph', (req, res) => {
   const { fmt, days } = periodConfig(period);
   const since = Math.floor(Date.now() / 1000) - days * 24 * 60 * 60;
 
-  const q = (table, col = 'created_at') => db.prepare(`
-    SELECT strftime('${fmt}', ${col}, 'unixepoch') AS period, COUNT(*) AS cnt
-    FROM ${table}
-    WHERE ${col} >= ${since}
-    GROUP BY period ORDER BY period
-  `).all();
-
-  const qDistinct = (table, col, groupCol) => db.prepare(`
-    SELECT strftime('${fmt}', ${col}, 'unixepoch') AS period, COUNT(DISTINCT ${groupCol}) AS cnt
-    FROM ${table}
-    WHERE ${col} >= ${since}
-    GROUP BY period ORDER BY period
-  `).all();
-
-  const labels   = generateLabels(period);
-  const users    = buildTimeSeries(q('users'), labels);
-  const sessions = buildTimeSeries(q('sessions'), labels);
-  const pv       = buildTimeSeries(q('page_views'), labels);
-  const uv       = buildTimeSeries(qDistinct('page_views', 'created_at', 'session_token'), labels);
-  const moderation = buildTimeSeries(q('moderation_logs'), labels);
+  const labels     = generateLabels(period);
+  const users      = buildTimeSeries(adminGraphSeries(fmt, since, 'users'), labels);
+  const sessions   = buildTimeSeries(adminGraphSeries(fmt, since, 'sessions'), labels);
+  const pv         = buildTimeSeries(adminGraphSeries(fmt, since, 'page_views'), labels);
+  const uv         = buildTimeSeries(adminGraphSeriesDistinct(fmt, since, 'page_views', 'created_at', 'session_token'), labels);
+  const moderation = buildTimeSeries(adminGraphSeries(fmt, since, 'moderation_logs'), labels);
 
   res.json({ labels, users, sessions, pv, uv, moderation });
 });
@@ -307,7 +293,7 @@ router.delete('/users/:publicId', (req, res) => {
 // ══════════════════════════════════════════════════════════
 router.get('/characters', (req, res) => {
   const chars = loadAllCharacters();
-  const counts = db.prepare('SELECT character_id, COUNT(*) AS cnt FROM sessions GROUP BY character_id').all();
+  const counts = stmt.charSessionCounts.all();
   const countMap = Object.fromEntries(counts.map(r => [r.character_id, r.cnt]));
   res.json(chars.map(c => ({ ...c, sessionCount: countMap[c.id] || 0 })));
 });
@@ -320,7 +306,7 @@ router.get('/characters/:id', (req, res) => {
 
   const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
   const system = fs.existsSync(sysPath) ? fs.readFileSync(sysPath, 'utf-8') : '';
-  const sessionCount = db.prepare('SELECT COUNT(*) AS cnt FROM sessions WHERE character_id = ?').get(id)?.cnt || 0;
+  const sessionCount = stmt.adminCharSessionCount.get(id)?.cnt || 0;
   res.json({ config, system, sessionCount });
 });
 
@@ -384,7 +370,7 @@ router.get('/moderation', (req, res) => {
   if (triggerStep) { sql += ' AND ml.trigger_step = ?'; params.push(parseInt(triggerStep, 10)); }
   sql += ' ORDER BY ml.created_at DESC LIMIT 500';
   try {
-    res.json(db.prepare(sql).all(...params));
+    res.json(adminModerationFilter(sql, params));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -420,9 +406,7 @@ router.get('/moderation/:publicId', (req, res) => {
   if (!log) return res.status(404).json({ error: '없음' });
 
   const session  = log.session_id ? stmt.getSession.get(log.session_id) : null;
-  const messages = log.session_id
-    ? db.prepare('SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC').all(log.session_id)
-    : [];
+  const messages = log.session_id ? stmt.getAllMessages.all(log.session_id) : [];
   const user = log.user_id ? stmt.getUserById.get(log.user_id) : null;
 
   res.json({ log, session, messages, user });
