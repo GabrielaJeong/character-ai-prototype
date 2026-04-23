@@ -204,6 +204,9 @@ character-ai-prototype/
 6. 🚩 `notes.rules` 항목에 프롬프트 구조 언급
    → 관찰 가능한 캐릭터 특성만 허용 (프롬프트 노하우 공개 금지)
 
+7. 🚩 `express-rate-limit` 추가 또는 수정 중
+   → `app.set('trust proxy', 1)` 설정 여부 확인 (Railway 등 프록시 환경에서 미설정 시 전체 유저 IP 공유 → 한도 즉시 소진, L-008)
+
 ## 자주 발생한 버그 패턴 (과거 학습)
 
 | 패턴 | 해결 |
