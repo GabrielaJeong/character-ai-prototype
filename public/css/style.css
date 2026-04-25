@@ -66,6 +66,8 @@
 
 /* ─── Reset ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* iOS 탭 하이라이트 제거 */
+* { -webkit-tap-highlight-color: transparent; }
 html { height: 100%; }
 
 body {
@@ -187,6 +189,8 @@ body {
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 .explore-tag-bar::-webkit-scrollbar { display: none; }
 .explore-tag-chip {
@@ -408,6 +412,8 @@ body {
   scrollbar-width: none;
   cursor: grab;
   user-select: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 .creator-row.dragging {
   cursor: grabbing;
@@ -460,6 +466,8 @@ body {
   scrollbar-width: none;
   cursor: grab;
   user-select: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 .genre-row.dragging {
   cursor: grabbing;
@@ -1255,6 +1263,14 @@ body {
   outline: none;
   transition: border-color 0.15s;
   line-height: 1.5;
+}
+/* iOS 포커스 시 자동 줌인 방지 (font-size < 16px 트리거) */
+@supports (-webkit-touch-callout: none) {
+  .form-group input,
+  .form-group textarea,
+  .chat-input {
+    font-size: 16px;
+  }
 }
 
 .form-group input:focus,
@@ -3309,7 +3325,11 @@ body {
   padding: 14px 18px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.notif-tabs::-webkit-scrollbar { display: none; }
 .notif-tab {
   padding: 4px 11px;
   background: transparent;

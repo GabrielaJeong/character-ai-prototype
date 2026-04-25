@@ -1971,6 +1971,7 @@ function initDragSlider(el) {
   el._dragInited = true;
   let isDown = false, startX = 0, scrollLeft = 0;
 
+  // Mouse (desktop)
   el.addEventListener('mousedown', e => {
     isDown = true;
     el.classList.add('dragging');
@@ -1985,6 +1986,19 @@ function initDragSlider(el) {
     const x = e.pageX - el.offsetLeft;
     el.scrollLeft = scrollLeft - (x - startX);
   });
+
+  // Touch (mobile)
+  el.addEventListener('touchstart', e => {
+    isDown = true;
+    startX = e.touches[0].pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+  }, { passive: true });
+  el.addEventListener('touchend',   () => { isDown = false; });
+  el.addEventListener('touchmove',  e => {
+    if (!isDown) return;
+    const x = e.touches[0].pageX - el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x - startX);
+  }, { passive: true });
 }
 
 // ─── Notice Carousel ─────────────────────────────────────
