@@ -310,6 +310,30 @@
 
 ---
 
+## L-012: 모바일 인터랙션 전반 미고려 — 다수 버튼 미동작
+
+**날짜**: 2026-04-23
+**위험도**: 높음 (핵심 플로우 버튼들 iOS Safari에서 반응 없음)
+
+**발생 맥락**:
+- `<button onclick="...">` 요소임에도 iOS Safari에서 뒤로가기·MARK ALL 등 다수 버튼 미반응
+- 300ms 클릭 딜레이: iOS는 더블탭 감지를 위해 탭 후 300ms 대기. `touch-action: manipulation` 없으면 유저가 탭해도 반응 없는 것처럼 느껴짐
+- 소형 터치 타겟: `.notif-back-btn`(~18px), `.btn-back`(~24px), `.notif-mark-all-btn`(~23px) — iOS 권장 최소 44px 미달
+- `:active` 피드백 없음: `:hover` 만 있어 터치 시 시각 피드백 없음 → "눌렸는지 모름"
+
+**해결**:
+- `button, a { touch-action: manipulation }` 전역 적용으로 300ms 딜레이 제거
+- 소형 버튼 `min-height: 44px` + `display: flex; align-items: center` 적용
+- `button:active { opacity: 0.65 }` 전역 + 주요 div/span 인터랙티브 요소 `:active` 추가
+- `touch-action: pan-x` 컨테이너(explore-tag-bar, creator-row, genre-row) 내 자식에 `manipulation` 명시
+
+**강화 규칙**:
+1. 🚩 새 버튼/인터랙티브 요소 추가 시 3종 체크: `touch-action: manipulation` / `min-height: 44px` / `:active` 피드백
+2. iOS Safari 수동 검증 필수 (Chrome DevTools 모바일 에뮬레이션 ≠ 실기기)
+3. 터치 딜레이는 마우스 클릭 테스트로 재현 불가 — 실기기 또는 Safari 원격 디버깅으로만 확인 가능
+
+---
+
 ## L-011: 인증 게이트 → 로그인 → 뒤로가기 무한 루프
 
 **날짜**: 2026-04-23

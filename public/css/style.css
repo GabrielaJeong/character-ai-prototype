@@ -68,6 +68,17 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 /* iOS 탭 하이라이트 제거 */
 * { -webkit-tap-highlight-color: transparent; }
+/* iOS 300ms 클릭 딜레이 제거 */
+button, a { touch-action: manipulation; }
+/* 터치 :active 피드백 — hover만 있는 버튼들 보완 */
+button:active, a:active { opacity: 0.65; }
+.char-card:active,
+.notif-row:active,
+.creator-card:active,
+.genre-card:active,
+.explore-tag-chip:active,
+.mypage-p-card:active,
+.creator-char-card:active { opacity: 0.7; }
 html { height: 100%; }
 
 body {
@@ -205,6 +216,10 @@ body {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   white-space: nowrap;
+  touch-action: manipulation; /* pan-x 컨테이너 내 클릭 충돌 방지 */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .explore-tag-chip:hover {
   color: var(--text);
@@ -427,6 +442,7 @@ body {
   flex-shrink: 0;
   width: 72px;
   cursor: pointer;
+  touch-action: manipulation; /* pan-x 컨테이너 내 클릭 충돌 방지 */
 }
 .creator-avatar {
   width: 64px;
@@ -483,6 +499,7 @@ body {
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  touch-action: manipulation; /* pan-x 컨테이너 내 클릭 충돌 방지 */
 }
 .genre-card-overlay {
   position: absolute;
@@ -1635,10 +1652,14 @@ body {
   color: var(--text-muted);
   font-size: 16px;
   cursor: pointer;
-  padding: 4px 6px 4px 0;
+  padding: 0 6px 0 0;
   flex-shrink: 0;
   transition: color 0.15s;
   font-family: var(--font);
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
 }
 .btn-back:hover { color: var(--text); }
 
@@ -3269,6 +3290,11 @@ body {
   padding: 0;
   line-height: 1;
   flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 .notif-header-center {
   flex: 1;
@@ -3311,6 +3337,9 @@ body {
   padding: 5px 11px;
   flex-shrink: 0;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 .notif-mark-all-btn:hover {
   color: var(--text);
@@ -3343,6 +3372,9 @@ body {
   font-family: var(--font);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 .notif-tab.active {
   background: color-mix(in srgb, var(--accent) 12%, transparent);

@@ -172,6 +172,18 @@ character-ai-prototype/
 - 비밀번호는 반드시 bcryptjs 해싱
 - 입력 밸리데이션: Joi, 외부 경계에서만
 
+## 반박·수정 정책
+
+**유저가 제시한 코드/계획에 문제가 있으면 반드시 반박 후 수정안을 제시하고 진행한다.**
+
+반박이 필요한 경우:
+- 제시된 코드가 버그·보안 이슈·레이아웃 파괴를 일으킬 수 있을 때
+- 더 나은 패턴이 존재할 때 (성능, 가독성, 유지보수)
+- CLAUDE.md의 절대 금지 사항 또는 Red Flags에 걸릴 때
+
+반박 형식: "반박: [이유]. [수정안] 으로 진행합니다."
+반박 없이 그냥 실행하는 것은 금지. 문제가 없으면 그냥 진행.
+
 ## 절대 금지 사항
 
 1. **이용 정책 위반 콘텐츠 생성** — Safety 시스템 우회 시도 금지
@@ -209,6 +221,15 @@ character-ai-prototype/
 
 8. 🚩 helmet CSP `directives` 커스텀 설정 중
    → `scriptSrcAttr` 명시 여부 확인. helmet 기본값 `'none'`이 병합되어 `onclick="..."` 속성 핸들러 전부 차단됨. `scriptSrcAttr: ["'unsafe-inline'"]` 필수 (L-009)
+
+9. 🚩 새 버튼 또는 클릭 가능한 요소 추가 중
+   → **3종 체크**: `touch-action: manipulation` (div/span이면 직접 추가, button/a는 자동) / `min-height: 44px` / `:active` 피드백 (L-012)
+
+10. 🚩 100vh 사용 중
+    → `100dvh`로 변경. iOS Safari에서 100vh는 주소창 포함 전체 높이 → 레이아웃 overflow. fallback으로 100vh도 함께 선언.
+
+11. 🚩 새 input/textarea 추가 중
+    → `font-size: 16px` 이상 확인 (iOS 포커스 시 자동 줌인 방지). iOS 전용이면 `@supports (-webkit-touch-callout: none)` 사용.
 
 ## 자주 발생한 버그 패턴 (과거 학습)
 

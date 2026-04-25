@@ -130,6 +130,15 @@ CSS 변수를 직접 쓰지 말고 토큰 변수 사용:
 - 모바일 단일 뷰 기준 (430px). 미디어 쿼리 없음.
 - 섹션 구분: `/* ── 섹션명 ─── */`
 
+### 모바일(iOS Safari) 필수 체크리스트
+새 버튼 또는 인터랙티브 요소 추가 시 **3종 필수** 확인:
+
+1. **`touch-action: manipulation`** — `<button>`, `<a>`는 전역 rule로 자동 적용. `div`/`span`에 onclick 붙이면 직접 추가.
+2. **터치 타겟 최소 44×44px** — `min-height: 44px` + `display: flex; align-items: center`. 시각 크기는 padding으로 유지.
+3. **`:active` 피드백** — `:hover`만 있으면 안 됨. `button:active { opacity: 0.65 }` 전역 rule 있음. div/span 인터랙티브 요소는 별도 `:active` 추가.
+4. **`input font-size: 16px`** — iOS Safari에서 `font-size < 16px` 인풋 포커스 시 자동 줌인. iOS 전용 `@supports (-webkit-touch-callout: none)` 조건 사용.
+5. **`pan-x` 컨테이너 내 자식** — 부모가 `touch-action: pan-x`면 자식 클릭 가능 요소에 `touch-action: manipulation` 명시.
+
 ---
 
 ## 6. 캐릭터 (`prompts/characters/`)
