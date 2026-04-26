@@ -38,6 +38,7 @@ character-ai-prototype/
 │   ├── DECISIONS.md                 # 주요 설계 결정
 │   ├── LESSONS.md                   # 실수 패턴 + 재발 방지
 │   ├── CONVENTIONS.md               # 코딩 규칙 상세
+│   ├── DESIGN_SYSTEM.md             # 디자인 시스템 (토큰·컴포넌트·인터랙션)
 │   ├── SECURITY.md                  # 보안 정책 및 방어 기법
 │   ├── SESSION_CHECKLIST.md         # 세션 시작/종료 체크리스트
 │   └── CURRENT_STATE.md             # 프로젝트 현재 상태 스냅샷
@@ -301,6 +302,7 @@ Stop-Process -Id <PID>
 ## 참고 문서
 
 - `docs/CONVENTIONS.md` — 코딩 규칙 상세
+- `docs/DESIGN_SYSTEM.md` — 컬러 토큰, 버튼, 카드, 모달, 인터랙션 규칙
 - `docs/DECISIONS.md` — 주요 설계 결정사항
 - `docs/LESSONS.md` — 실수 패턴 + 재발 방지 규칙
 - `CHANGELOG.md` — 버전 이력
