@@ -275,6 +275,20 @@ character-ai-prototype/
 - 커밋 메시지에 버전 번호 포함
 - Railway 자동 배포 확인
 
+## Git 브랜치 전략
+
+- **작업 브랜치**: `dev` — 모든 커밋은 dev에.
+- **main**: 릴리즈 전용. dev → main merge로만 업데이트.
+- **직접 main 커밋 금지.**
+
+```bash
+# 현재 브랜치 확인
+git branch
+
+# dev로 전환 (잘못 main에 있을 경우)
+git checkout dev
+```
+
 ## 자주 쓰는 명령어
 
 ```bash

@@ -165,6 +165,8 @@
 
   <!-- ── SCREEN 2: Character Intro (dynamic) ────────────── -->
   <div id="screen-intro" class="screen">
+    <!-- Scrollable area: hero + content together -->
+    <div class="intro-wrapper">
     <!-- Hero image -->
     <div class="intro-hero">
       <img id="intro-img" src="" alt="" class="intro-hero-img" />
@@ -272,7 +274,9 @@
       </div>
     </div>
 
-    <!-- Fixed bottom bar -->
+    </div><!-- /.intro-wrapper -->
+
+    <!-- Bottom bar: screen 레벨에 고정 -->
     <div class="intro-bottom-bar">
       <button class="intro-start-btn" onclick="openPersonaSetup()">대화 시작 →</button>
     </div>

@@ -2337,6 +2337,14 @@ body {
 }
 
 /* ── Hero image ── */
+.intro-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
 .intro-hero {
   position: relative;
   flex-shrink: 0;
@@ -2446,11 +2454,9 @@ body {
 
 /* ── Scrollable section below hero ── */
 .intro-scroll {
-  flex: 1;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding-bottom: 80px; /* space for bottom bar */
+  padding-bottom: 16px;
 }
 
 /* ── Identity block ── */

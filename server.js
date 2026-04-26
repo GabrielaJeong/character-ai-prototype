@@ -18,15 +18,17 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-      scriptSrcAttr: ["'unsafe-inline'"], // helmet 기본값 'none'이 onclick 속성 전부 차단 → 명시적 허용
-      styleSrc:      ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
-      imgSrc:        ["'self'", "data:", "https:"],
-      connectSrc:    ["'self'"],
-      fontSrc:       ["'self'", "data:", "cdn.jsdelivr.net"], // Pretendard 폰트
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      scriptSrcAttr:  ["'unsafe-inline'"], // helmet 기본값 'none'이 onclick 속성 전부 차단 → 명시적 허용
+      styleSrc:       ["'self'", "'unsafe-inline'", "cdn.jsdelivr.net"],
+      imgSrc:         ["'self'", "data:", "https:"],
+      connectSrc:     ["'self'"],
+      fontSrc:        ["'self'", "data:", "cdn.jsdelivr.net"], // Pretendard 폰트
+      frameAncestors: ["'self'", "https://gabby-pm-portfolio.vercel.app"], // 포트폴리오 iframe 허용
     },
   },
+  frameguard: false, // frameAncestors CSP로 제어하므로 X-Frame-Options 비활성화
   crossOriginEmbedderPolicy: false, // 이미지 업로드 호환성
 }));
 
