@@ -179,6 +179,8 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+    // 서버 시작 시 새 버전 감지 → 자동 알림 생성
+    require('./lib/releaseNotify').checkAndNotify().catch(() => {});
   });
 }
 
