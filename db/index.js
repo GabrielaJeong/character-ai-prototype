@@ -157,6 +157,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_pv_user    ON page_views(user_id, created_at);
 `);
 
+// ── Long-term Memory ─────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS memories (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    character_id TEXT    NOT NULL,
+    summary      TEXT    NOT NULL,
+    created_at   INTEGER DEFAULT (unixepoch()),
+    UNIQUE(user_id, character_id)
+  )
+`);
+
 // ── Migrations (idempotent) ───────────────────────────────
 try { db.exec(`ALTER TABLE sessions ADD COLUMN guest_id     TEXT`);                          } catch (_) {}
 try { db.exec(`ALTER TABLE sessions ADD COLUMN note         TEXT NOT NULL DEFAULT ''`);       } catch (_) {}
@@ -241,6 +253,19 @@ const stmt = {
 
   getNote:  db.prepare(`SELECT note FROM sessions WHERE id = ?`),
   saveNote: db.prepare(`UPDATE sessions SET note = ? WHERE id = ?`),
+
+  // ── Long-term Memory ──────────────────────────────────────
+  getMemory:    db.prepare(`SELECT summary FROM memories WHERE user_id = ? AND character_id = ?`),
+  upsertMemory: db.prepare(`
+    INSERT INTO memories (user_id, character_id, summary)
+    VALUES (?, ?, ?)
+    ON CONFLICT(user_id, character_id) DO UPDATE SET summary = excluded.summary, created_at = unixepoch()
+  `),
+  getPrevSessions: db.prepare(`
+    SELECT s.id FROM sessions s
+    WHERE s.user_id = ? AND s.character_id = ? AND s.id != ?
+    ORDER BY s.created_at DESC LIMIT 8
+  `),
 
   // ── Users ────────────────────────────────────────────────
   createUser:          db.prepare('INSERT INTO users (email, password_hash, nickname, public_id, username) VALUES (?, ?, ?, ?, ?)'),
