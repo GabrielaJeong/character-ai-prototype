@@ -93,7 +93,7 @@ router.post('/', async (req, res) => {
     memory = memRow?.summary || '';
     if (isNew) {
       // 백그라운드에서 이전 세션 요약 갱신 (레이턴시 없음)
-      generateMemory(userId, charId, sessionId).catch(() => {});
+      generateMemory(userId, charId, sessionId, model).catch(() => {});
     }
   }
 
