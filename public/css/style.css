@@ -2339,6 +2339,7 @@ body {
 /* ── Hero image ── */
 .intro-hero {
   position: relative;
+  flex-shrink: 0;
   height: 420px;
   background: var(--card);
 }
@@ -2445,6 +2446,7 @@ body {
 
 /* ── Scrollable section below hero ── */
 .intro-scroll {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   padding-bottom: 16px;
