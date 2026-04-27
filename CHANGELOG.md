@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: 6c0b1243eaa88c9bfe3eaf2ae8a18003a948246a -->
-<!-- changelog-last-version: 0.26 -->
+<!-- changelog-last-commit: a86cd0728ef4c1fd3255caa53e3c48b654c3dde3 -->
+<!-- changelog-last-version: 0.27 -->
+
 
 
 
@@ -9,6 +10,36 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.27 — 2026-04-28
+**업데이트 자동 알림 시스템 (ReleaseNotify), 포트폴리오 데모 모드 — 로그인 없이 체험하기**
+
+### 주요 기능
+- lib/releaseNotify.js: 버전 파싱, AI 문구 생성(Gemini→Anthropic 폴백), DB 삽입
+- server.js: 서버 시작 시 checkAndNotify() 비동기 호출
+- data/release-notify.json: 마지막 알림 버전 상태 저장
+- GET /api/auth/demo-available: 프론트 버튼 표시 여부
+- POST /api/auth/demo-login: 데모 계정 자동 생성 + 세션 발급
+- GET /api/auth/me: isDemo 필드 추가
+- 인증 게이트에 '로그인 없이 체험하기 →' 버튼 (데모 모드일 때만 표시)
+- 체험 중 하단 고정 배너 + '체험 종료' 버튼
+- 데모 계정: demo@folio.app / nickname: 체험 유저
+
+### 버그 수정
+- 마크다운 코드블록 제거 후 직접 JSON.parse, 실패 시 indexOf/lastIndexOf로 추출
+- maxTokens 200→1024: Gemini thinking 토큰 여유 확보 (기존엔 JSON 중간에 잘림)
+- data/release-notify.json: v0.26 알림 완료 상태 저장
+- 비로그인 또는 role != admin → / 리다이렉트
+- admin.html/admin.js 소스 비인가자 노출 차단
+- 어드민 계정 탈취 시 대량 데이터 추출 차단
+
+### UI
+- 어드민 대시보드 그래프 2열 병렬 배치
+
+### 기타
+- v0.27 [release] 데모 모드, 어드민 보안, 장기기억, 자동 알림
 
 ---
 
