@@ -1144,6 +1144,12 @@
     </div>
   </div>
 
+  <!-- ── Demo banner (체험 모드일 때만 표시) ──────────────── -->
+  <div id="demo-banner" style="display:none">
+    <span>체험 모드로 둘러보는 중</span>
+    <button onclick="logoutUser()">체험 종료</button>
+  </div>
+
   <!-- ── Auth gate modal (로그인 유도) ────────────────────── -->
   <div id="auth-gate-overlay" class="auth-gate-overlay" onclick="closeAuthGate(event)">
     <div class="auth-gate-panel">
@@ -1153,6 +1159,9 @@
         <button class="btn-ghost" onclick="closeAuthGate()">닫기</button>
         <button class="btn-primary auth-gate-btn" onclick="goToLogin()">로그인하기</button>
       </div>
+      <button class="demo-login-btn" id="demo-login-btn" style="display:none" onclick="demoLogin()">
+        로그인 없이 체험하기 →
+      </button>
     </div>
   </div>
 

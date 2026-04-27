@@ -58,9 +58,18 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { error: '어드민 요청이 너무 많습니다.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/auth/login',          authLimiter);
 app.use('/api/auth/register',       authLimiter);
 app.use('/api/auth/check-username', checkUsernameLimiter);
+app.use('/api/admin',               adminLimiter);
 app.use('/api/',                    apiLimiter);
 
 // ── SQLite session store ──────────────────────────────────
@@ -153,11 +162,18 @@ app.get('/api/curation', (_req, res) => {
   } catch { res.status(500).json({ error: '큐레이션 로드 실패' }); }
 });
 
-// ── Admin pages ───────────────────────────────────────────
-app.get('/admin', (_req, res) => {
+// ── Admin pages (서버사이드 role 검증) ───────────────────
+function adminPageGuard(req, res, next) {
+  const userId = req.session?.userId;
+  if (!userId) return res.redirect('/');
+  const user = stmt.getUserById.get(userId);
+  if (!user || user.role !== 'admin') return res.redirect('/');
+  next();
+}
+app.get('/admin', adminPageGuard, (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
-app.get('/admin/{*splat}', (_req, res) => {
+app.get('/admin/{*splat}', adminPageGuard, (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
@@ -179,6 +195,8 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+    // 서버 시작 시 새 버전 감지 → 자동 알림 생성
+    require('./lib/releaseNotify').checkAndNotify().catch(() => {});
   });
 }
 

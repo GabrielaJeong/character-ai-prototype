@@ -9,9 +9,10 @@ describe('Security Headers (helmet)', () => {
     expect(res.headers['x-content-type-options']).toBe('nosniff');
   });
 
-  it('X-Frame-Options 설정됨', async () => {
+  it('frame-ancestors CSP 설정됨 (X-Frame-Options 대체)', async () => {
     const res = await request(app).get('/');
-    expect(res.headers['x-frame-options']).toBeDefined();
+    // frameguard 비활성화 대신 CSP frame-ancestors로 iframe 출처 제어
+    expect(res.headers['content-security-policy']).toContain('frame-ancestors');
   });
 
   it('Content-Security-Policy 설정됨', async () => {

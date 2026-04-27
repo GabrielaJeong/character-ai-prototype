@@ -6,6 +6,7 @@ const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
+const { generateMemory }  = require('../lib/memory');
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -46,7 +47,8 @@ router.post('/', async (req, res) => {
   const characterId = rawCharId || DEFAULT_CHARACTER;
 
   // Create session if new, otherwise verify ownership
-  let session = stmt.getSession.get(sessionId);
+  let session  = stmt.getSession.get(sessionId);
+  let isNew    = false;
   if (!session) {
     if (!persona) {
       return res.status(400).json({ error: 'persona is required for new sessions' });
@@ -56,6 +58,7 @@ router.post('/', async (req, res) => {
     const guestId = userId ? null : (req.session?.guestId || null);
     stmt.createSession.run(sessionId, JSON.stringify(persona), model, characterId, safety, userId, guestId);
     session = stmt.getSession.get(sessionId);
+    isNew   = true;
   } else {
     const owned = verifyOwnership(sessionId, req, res);
     if (!owned) return;
@@ -79,9 +82,22 @@ router.post('/', async (req, res) => {
     content: m.content,
   }));
 
-  const noteRow      = stmt.getNote.get(sessionId);
-  const safety       = session.safety || 'on';
-  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '', safety, model);
+  const noteRow  = stmt.getNote.get(sessionId);
+  const safety   = session.safety || 'on';
+  const userId   = session.user_id;
+
+  // Long-term memory: 로그인 유저의 새 세션에서만 로드 + 백그라운드 재생성
+  let memory = '';
+  if (userId) {
+    const memRow = stmt.getMemory.get(userId, charId);
+    memory = memRow?.summary || '';
+    if (isNew) {
+      // 백그라운드에서 이전 세션 요약 갱신 (레이턴시 없음)
+      generateMemory(userId, charId, sessionId, model).catch(() => {});
+    }
+  }
+
+  const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '', safety, model, memory);
 
   try {
     const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });

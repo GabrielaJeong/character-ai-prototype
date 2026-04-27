@@ -1,5 +1,7 @@
-<!-- changelog-last-commit: 2868345d3bbf7acc735d68341905fe46ce9e7ecd -->
-<!-- changelog-last-version: 0.25 -->
+<!-- changelog-last-commit: a86cd0728ef4c1fd3255caa53e3c48b654c3dde3 -->
+<!-- changelog-last-version: 0.27 -->
+
+
 
 
 
@@ -8,6 +10,84 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.27 — 2026-04-28
+**업데이트 자동 알림 시스템 (ReleaseNotify), 포트폴리오 데모 모드 — 로그인 없이 체험하기**
+
+### 주요 기능
+- lib/releaseNotify.js: 버전 파싱, AI 문구 생성(Gemini→Anthropic 폴백), DB 삽입
+- server.js: 서버 시작 시 checkAndNotify() 비동기 호출
+- data/release-notify.json: 마지막 알림 버전 상태 저장
+- GET /api/auth/demo-available: 프론트 버튼 표시 여부
+- POST /api/auth/demo-login: 데모 계정 자동 생성 + 세션 발급
+- GET /api/auth/me: isDemo 필드 추가
+- 인증 게이트에 '로그인 없이 체험하기 →' 버튼 (데모 모드일 때만 표시)
+- 체험 중 하단 고정 배너 + '체험 종료' 버튼
+- 데모 계정: demo@folio.app / nickname: 체험 유저
+
+### 버그 수정
+- 마크다운 코드블록 제거 후 직접 JSON.parse, 실패 시 indexOf/lastIndexOf로 추출
+- maxTokens 200→1024: Gemini thinking 토큰 여유 확보 (기존엔 JSON 중간에 잘림)
+- data/release-notify.json: v0.26 알림 완료 상태 저장
+- 비로그인 또는 role != admin → / 리다이렉트
+- admin.html/admin.js 소스 비인가자 노출 차단
+- 어드민 계정 탈취 시 대량 데이터 추출 차단
+
+### UI
+- 어드민 대시보드 그래프 2열 병렬 배치
+
+### 기타
+- v0.27 [release] 데모 모드, 어드민 보안, 장기기억, 자동 알림
+
+---
+
+## v0.26 — 2026-04-27
+**캐릭터 장기기억(Long-term Memory) 구현**
+
+### 문서
+- D-013 환경 분리 전략 결정사항 추가
+- DESIGN_SYSTEM.md 신규 생성
+- Git 브랜치 전략 추가 (dev 브랜치 운영 정책)
+- D-014 React 마이그레이션 보류 결정 및 준비 전략 기록
+
+### 버그 수정
+- NEW/UP 배지 텍스트 상단 쏠림 수정
+- iOS Safari 네비바 미표시 — 100vh → 100dvh
+- -webkit-tap-highlight-color: transparent 전역 적용 (iOS 탭 회색 플래시 제거)
+- iOS input 자동 줌인 방지: @supports(-webkit-touch-callout) 조건으로 font-size: 16px
+- notif-tabs overflow-x: auto 추가 (탭 슬라이드 불가 버그 수정)
+- creator-row, genre-row, explore-tag-bar: touch-action: pan-x + -webkit-overflow-scrolling: touch
+- initDragSlider: touchstart/touchmove/touchend 이벤트 추가
+- button, a { touch-action: manipulation } 전역 적용 (300ms 딜레이 제거)
+- 소형 버튼 44px 터치 타겟 확보: notif-back-btn / btn-back / notif-mark-all-btn / notif-tab
+- button:active { opacity: 0.65 } 전역 + div/span 인터랙티브 요소 :active 추가
+- explore-tag-chip, creator-card, genre-card: touch-action: manipulation 명시 (pan-x 충돌 방지)
+- explore-tag-chip: min-height: 44px 추가
+- docs/CONVENTIONS.md: 모바일 3종 체크리스트 추가
+- docs/LESSONS.md: L-012 추가
+- CLAUDE.md: Red Flags 9-11 추가, 반박·수정 정책 명시
+- 캐릭터 상세 페이지 이미지 스크롤 개선
+- 캐릭터 상세 이미지 스크롤 수정 — flex-shrink: 0 복구
+- 캐릭터 상세 스크롤 — intro-wrapper로 명시적 scroll container 분리
+- 포트폴리오 iframe 임베딩 허용
+
+### 주요 기능
+- db/index.js: memories 테이블 추가 (user_id × character_id unique)
+- lib/memory.js: generateMemory() — 이전 세션 메시지 요약 후 저장
+- buildSystemPrompt.js: memory 파라미터 추가
+- routes/chat.js: 새 세션 시작 시 기존 기억 로드 + 백그라운드 재생성
+- tests: X-Frame-Options → frame-ancestors CSP 검증으로 업데이트
+
+### 리팩터링
+- Gemini 세션 → gemini-2.5-flash 요약, 실패 시 claude-haiku 폴백
+- Anthropic 세션 → claude-haiku 요약, 실패 시 gemini-2.5-flash 폴백
+- generateMemory에 sessionModel 파라미터 추가
+- API 키 미설정 시에도 반대쪽 제공사로 자동 폴백
+
+### 기타
+- v0.26 [release] 장기기억 + iframe 임베딩 + 모바일 호환성 개선
 
 ---
 

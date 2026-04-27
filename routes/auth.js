@@ -126,7 +126,13 @@ router.post('/logout', (req, res) => {
 router.get('/me', (req, res) => {
   if (!req.session.userId) return res.json({ user: null });
   const user = stmt.getUserById.get(req.session.userId);
-  res.json({ user: user || null });
+  if (!user) return res.json({ user: null });
+  res.json({
+    user: {
+      ...user,
+      isDemo: process.env.DEMO_MODE && user.email === 'demo@folio.app',
+    },
+  });
 });
 
 // ── PATCH /api/auth/me ────────────────────────────────────
@@ -273,6 +279,40 @@ router.delete('/me', async (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('folio.sid');
     res.json({ ok: true });
+  });
+});
+
+// ── GET /api/auth/demo-available — 데모 모드 활성화 여부 ──
+router.get('/demo-available', (_req, res) => {
+  res.json({ available: !!process.env.DEMO_MODE });
+});
+
+// ── POST /api/auth/demo-login — 포트폴리오 체험용 ─────────
+// DEMO_MODE=true 환경변수 설정 시에만 활성화
+router.post('/demo-login', (req, res) => {
+  if (!process.env.DEMO_MODE) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const DEMO_EMAIL = 'demo@folio.app';
+  let user = stmt.getUserByEmail.get(DEMO_EMAIL);
+
+  if (!user) {
+    stmt.createUser.run(DEMO_EMAIL, 'demo-account-no-password', '체험 유저', randomUUID(), 'demo_user');
+    user = stmt.getUserByEmail.get(DEMO_EMAIL);
+  }
+
+  req.session.userId = user.id;
+  res.json({
+    user: {
+      id:         user.public_id,
+      email:      user.email,
+      nickname:   user.nickname,
+      username:   user.username,
+      avatar:     user.avatar || null,
+      role:       user.role,
+      isDemo:     true,
+    },
   });
 });
 

@@ -3,7 +3,7 @@ const path = require('path');
 
 const PROMPTS_DIR = __dirname;
 
-function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model = '') {
+function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model = '', memory = '') {
   const guardrails = fs.readFileSync(
     path.join(PROMPTS_DIR, 'common', 'guardrails.md'),
     'utf-8'
@@ -59,7 +59,17 @@ Treat these as established facts in the conversation:
 ${note.trim()}
 ` : '';
 
-  return charPrompt + '\n\n' + guardrails + modelCorrections + safetyBlock + personaBlock + noteBlock;
+  const memoryBlock = memory.trim() ? `
+---
+
+## Long-term Memory (what you remember about this user from past conversations)
+
+${memory.trim()}
+
+Naturally weave this into the conversation where relevant — do not recite it verbatim.
+` : '';
+
+  return charPrompt + '\n\n' + guardrails + modelCorrections + safetyBlock + personaBlock + noteBlock + memoryBlock;
 }
 
 module.exports = { buildSystemPrompt };
