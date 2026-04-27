@@ -684,6 +684,11 @@ td.matrix-worst {
 .stat-value-sm { font-size: 26px; }
 
 /* ─── Chart card ────────────────────────────────────────── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
 .chart-card {}
 .chart-card-header {
   display: flex;
@@ -704,6 +709,7 @@ td.matrix-worst {
 }
 .chart-wrap canvas {
   width: 100% !important;
+  max-height: 220px;
 }
 
 /* ─── Period tabs ───────────────────────────────────────── */
@@ -834,6 +840,7 @@ td.matrix-worst {
 
 /* ─── Responsive tweaks ─────────────────────────────────── */
 @media (max-width: 900px) {
+  .charts-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .eval-result-grid { grid-template-columns: repeat(3, 1fr); }
   .chart-card-header { flex-direction: column; align-items: flex-start; }
