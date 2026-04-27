@@ -3226,12 +3226,15 @@ async function initAuth() {
   try {
     const res  = await fetch('/api/auth/me');
     const data = await res.json();
-    _currentUser = data.user || null;
+    // demoLogin()이 먼저 완료된 경우 덮어쓰지 않음 (race condition 방지)
+    if (!_currentUser) {
+      _currentUser = data.user || null;
+    }
     updateAuthUI();
     updateAdultToggleUI();
     if (_currentUser) loadBookmarks();
   } catch (_) {}
-  checkDemoMode(); // 데모 버튼 표시 여부 확인 (비동기, 블로킹 안 함)
+  checkDemoMode();
 }
 
 // ── Adult Content System ───────────────────────────────────
