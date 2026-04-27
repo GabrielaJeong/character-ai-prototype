@@ -3219,6 +3219,7 @@ async function initAuth() {
     updateAdultToggleUI();
     if (_currentUser) loadBookmarks();
   } catch (_) {}
+  checkDemoMode(); // 데모 버튼 표시 여부 확인 (비동기, 블로킹 안 함)
 }
 
 // ── Adult Content System ───────────────────────────────────
@@ -3403,7 +3404,38 @@ async function toggleBookmark() {
 }
 
 function updateAuthUI() {
-  // Nav tab label stays fixed as "마이페이지"
+  // 체험 모드 배너
+  const banner = document.getElementById('demo-banner');
+  if (banner) banner.style.display = _currentUser?.isDemo ? '' : 'none';
+}
+
+let _demoModeEnabled = false;
+
+async function checkDemoMode() {
+  try {
+    const res = await fetch('/api/auth/demo-available');
+    _demoModeEnabled = (await res.json()).available;
+  } catch (_) { _demoModeEnabled = false; }
+  const btn = document.getElementById('demo-login-btn');
+  if (btn) btn.style.display = _demoModeEnabled ? '' : 'none';
+}
+
+async function demoLogin() {
+  try {
+    const res  = await fetch('/api/auth/demo-login', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || '체험 로그인 실패'); return; }
+    _currentUser = data.user;
+    updateAuthUI();
+    if (_authGateIntendedPath) loadBookmarks();
+    const dest = _authGateIntendedPath || '/';
+    _authGateIntendedPath = null;
+    document.getElementById('auth-gate-overlay').classList.remove('open');
+    history.replaceState({ folio: true }, '', dest);
+    renderRoute(dest);
+  } catch (_) {
+    showToast('체험 로그인에 실패했습니다.');
+  }
 }
 
 function updateNavActiveTab(screenId) {

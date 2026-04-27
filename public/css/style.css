@@ -3621,6 +3621,56 @@ body {
 }
 .auth-gate-actions .btn-ghost { flex: 1; }
 .auth-gate-btn { flex: 2; }
+.demo-login-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 8px 0 0;
+  text-align: center;
+  transition: color 0.15s;
+  touch-action: manipulation;
+}
+.demo-login-btn:hover, .demo-login-btn:active { color: var(--text-muted); }
+
+/* ── 체험 모드 배너 ───────────────────────────────────────── */
+#demo-banner {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(91, 143, 185, 0.15);
+  border: 1px solid rgba(91, 143, 185, 0.35);
+  border-radius: 20px;
+  padding: 7px 14px 7px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--accent);
+  font-family: var(--font);
+  z-index: 150;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#demo-banner button {
+  background: none;
+  border: 1px solid rgba(91, 143, 185, 0.4);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 11px;
+  font-family: var(--font);
+  padding: 3px 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s;
+}
+#demo-banner button:hover { background: rgba(91, 143, 185, 0.12); }
 
 /* ── Mypage modal overlay (reuse delete-modal-overlay) ──── */
 #mypage-modal-overlay.open { display: flex; }
