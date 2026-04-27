@@ -38,7 +38,14 @@
 ### Rate Limiting
 - 인증 엔드포인트 (`/api/auth/login`, `/api/auth/register`): 15분당 10회
 - 아이디 중복 확인 (`/api/auth/check-username`): 15분당 30회 (실시간 타이핑 고려)
+- 어드민 API (`/api/admin/*`): 15분당 60회 (계정 탈취 시 대량 추출 차단)
 - 일반 API (`/api/*`): 15분당 200회
+
+### 어드민 페이지 보호
+- `/admin` HTML 서빙에 서버사이드 `adminPageGuard` 미들웨어 적용
+  - 비로그인 또는 role ≠ admin → `/` 리다이렉트
+  - admin.html/admin.js 소스가 비인가자에게 노출되지 않음
+- `/api/admin/*` 전체에 `requireAdmin` 미들웨어 이중 보호
 
 ### 파일 업로드 (어드민 전용)
 - 확장자 화이트리스트: jpg, jpeg, png, webp, gif
