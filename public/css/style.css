@@ -216,10 +216,6 @@ body {
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
   white-space: nowrap;
-  touch-action: manipulation; /* pan-x 컨테이너 내 클릭 충돌 방지 */
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
 }
 .explore-tag-chip:hover {
   color: var(--text);

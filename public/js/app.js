@@ -199,6 +199,7 @@ window.addEventListener('DOMContentLoaded', () => {
   loadCurationSections();
   loadCharacters();
   loadNotifBadge();
+  loadAppVersion(document.getElementById('site-footer-version'));
   // Bottom nav visible on landing by default
   document.getElementById('bottom-nav')?.classList.remove('hidden');
 
@@ -3209,6 +3210,17 @@ function setBuilderInputDisabled(disabled) {
 // AUTH
 // ═══════════════════════════════════════════════════════════
 let _currentUser = null;
+let _appVersion  = null;
+
+async function loadAppVersion(el) {
+  if (!_appVersion) {
+    try {
+      const data = await fetch('/api/version').then(r => r.json());
+      _appVersion = data.version || 'v?';
+    } catch (_) { _appVersion = 'v?'; }
+  }
+  if (el) el.textContent = `Folio · ${_appVersion} · Build 2026.04`;
+}
 
 async function initAuth() {
   try {
@@ -3733,9 +3745,7 @@ async function loadMypage() {
 
   // Footer
   const footerEl = document.getElementById('mp-footer-text');
-  if (footerEl) {
-    footerEl.textContent = 'Folio · v0.20 · Build 2026.04';
-  }
+  if (footerEl) loadAppVersion(footerEl);
 
   updateAdultToggleUI();
   switchMypageTab('persona');

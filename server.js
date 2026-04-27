@@ -156,6 +156,14 @@ app.use('/api/creator',          require('./routes/creator'));
 // ── Public curation read ──────────────────────────────────
 const fs   = require('fs');
 const CURATION_FILE = path.join(__dirname, 'data', 'curation.json');
+app.get('/api/version', (_req, res) => {
+  try {
+    const changelog = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf-8');
+    const match = changelog.match(/changelog-last-version:\s*([\d.]+)/);
+    res.json({ version: match ? `v${match[1]}` : 'v?' });
+  } catch { res.json({ version: 'v?' }); }
+});
+
 app.get('/api/curation', (_req, res) => {
   try {
     res.json(JSON.parse(fs.readFileSync(CURATION_FILE, 'utf-8')));
