@@ -16,10 +16,12 @@
 **세션 시작할 때마다 아래 파일을 반드시 순서대로 확인할 것:**
 
 1. **`CHANGELOG.md`** — 최신 버전과 최근 작업 내역
-2. **`docs/LESSONS.md`** — 과거 실수 패턴과 재발 방지 규칙
-3. **`docs/CONVENTIONS.md`** — 코딩 규칙
-4. **`docs/DECISIONS.md`** — 주요 기술/설계 결정사항
-5. 작업 범위와 관련된 파일들
+2. **`docs/CURRENT_STATE.md`** — 현재 구현/미구현 스냅샷
+3. **`docs/LESSONS.md`** — 과거 실수 패턴과 재발 방지 규칙
+4. **`docs/CONVENTIONS.md`** — 코딩 규칙
+5. **`docs/DECISIONS.md`** — 주요 기술/설계 결정사항
+6. **`docs/DESIGN_SYSTEM.md`** — UI 작업 시 토큰·컴포넌트 참조
+7. 작업 범위와 관련된 파일들
 
 ## 프로젝트 구조
 
@@ -62,7 +64,10 @@ character-ai-prototype/
 │   └── admin.js                     # 어드민 API
 │
 ├── lib/
-│   └── gemini.js                    # Gemini API 클라이언트
+│   ├── gemini.js                    # Gemini API 클라이언트
+│   ├── sessionOwnership.js          # 세션 소유권 검증 헬퍼
+│   ├── memory.js                    # 캐릭터 장기기억 생성
+│   └── releaseNotify.js             # 릴리즈 자동 알림 (CHANGELOG → AI → DB)
 │
 ├── prompts/
 │   ├── buildSystemPrompt.js         # 3층 프롬프트 조립
