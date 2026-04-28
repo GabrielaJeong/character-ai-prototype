@@ -1,5 +1,19 @@
-<!-- changelog-last-commit: b1bd5cda43d2c597b5076a3f9afb92820846fd7e -->
-<!-- changelog-last-version: 0.27 -->
+<!-- changelog-last-commit: a35122deb9e1352b76dc6176ac57e4e4efca874a -->
+<!-- changelog-last-version: 0.28 -->
+
+## v0.28 — 2026-04-29
+**v0.28 [release] 모바일 버그 수정, CI 안정화, 문서·훅 정비**
+
+### 버그 수정
+- CHANGELOG 자동생성 훅 두 가지 버그 수정
+
+### 기타
+- v0.28 [release] 모바일 버그 수정, CI 안정화, 문서·훅 정비
+
+---
+
+
+
 
 
 
