@@ -1,5 +1,8 @@
-<!-- changelog-last-commit: b1bd5cda43d2c597b5076a3f9afb92820846fd7e -->
-<!-- changelog-last-version: 0.27 -->
+<!-- changelog-last-commit: a35122deb9e1352b76dc6176ac57e4e4efca874a -->
+<!-- changelog-last-version: 0.28 -->
+
+
+
 
 
 
@@ -13,6 +16,25 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.28 — 2026-04-29
+**모바일 버그 수정, CI 안정화, 문서·훅 정비**
+
+### 버그 수정
+- 데모 배너 z-index 210으로 올려 네비바 위에 표시, bottom 72px 조정
+- 탐색 태그 CSS/슬라이딩 + 버전 불일치 3종 수정
+- 데모 로그인 후 18+ 탭 시 로그인 게이트 뜨는 race condition 수정
+- jest forceExit: true 추가 — CI 워커 비정상 종료 수정
+- CHANGELOG 자동생성 훅 두 가지 버그 수정 ([release] subject만 검사 / 헤더 이후 위치 삽입)
+- CHANGELOG 훅 CRLF/LF 혼재 환경 대응 (readChangelog에서 CRLF→LF 정규화)
+
+### 문서
+- CURRENT_STATE.md / SESSION_CHECKLIST.md / CLAUDE.md v0.27 시점으로 동기화
+- LESSONS L-007~L-012, DECISIONS D-011~D-016 반영
+- lib/ 트리에 sessionOwnership / memory / releaseNotify 추가
+- 세션 시작 필수 확인에 CURRENT_STATE / DESIGN_SYSTEM 추가
 
 ---
 
