@@ -25,9 +25,9 @@ function run(cmd) {
 }
 
 function readChangelog() {
-  return fs.existsSync(CHANGELOG_PATH)
-    ? fs.readFileSync(CHANGELOG_PATH, 'utf-8')
-    : '';
+  if (!fs.existsSync(CHANGELOG_PATH)) return '';
+  // CRLF → LF 정규화 (Windows 체크아웃 환경에서 indexOf 매칭 깨지는 것 방지)
+  return fs.readFileSync(CHANGELOG_PATH, 'utf-8').replace(/\r\n/g, '\n');
 }
 
 // CHANGELOG 상단 메타 마커에서 마지막 기록 커밋 해시·버전 추출
