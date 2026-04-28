@@ -1,29 +1,5 @@
 <!-- changelog-last-commit: b1bd5cda43d2c597b5076a3f9afb92820846fd7e -->
-<!-- changelog-last-version: 0.28 -->
-
-## v0.28 — 2026-04-29
-**CURRENT_STATE / SESSION_CHECKLIST / CLAUDE.md v0.27 시점으로 동기화**
-
-### 버그 수정
-- 데모 배너 z-index 210으로 올려 네비바 위에 표시, bottom 72px 조정
-- 탐색 태그 CSS/슬라이딩 + 버전 불일치 3종 수정
-- 데모 로그인 후 18+ 탭 시 로그인 게이트 뜨는 race condition 수정
-- jest forceExit: true 추가 — CI 워커 비정상 종료 수정
-
-### 문서
-- 장기기억, 데모 모드, 자동 알림(ReleaseNotify) 구현 완료 반영
-- 어드민 보안 강화(서버사이드 가드 + rate limiter) 추가
-- LESSONS L-007~L-012, DECISIONS D-011~D-016 반영
-- 49개 테스트, jest forceExit, dev 브랜치 전략 반영
-- 미구현 항목에 RAG(B안), 2FA, React 마이그레이션 준비 작업 추가
-- 41 → 49개 테스트 / dev 브랜치 우선 확인
-- 모바일 인터랙션 3종 체크 / 보안 변경 체크 추가
-- CHANGELOG는 [release] 태그 훅으로 자동 생성됨 명시
-- main 머지 5단계 흐름 추가
-- lib/ 트리에 sessionOwnership / memory / releaseNotify 추가
-- 세션 시작 필수 확인에 CURRENT_STATE / DESIGN_SYSTEM 추가
-
----
+<!-- changelog-last-version: 0.27 -->
 
 
 

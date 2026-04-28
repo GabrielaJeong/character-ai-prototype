@@ -149,8 +149,9 @@ if (!meaningful.length) {
 }
 
 // [release] 태그가 없으면 새 버전 생성 안 함 (L-006: 커밋마다 버전 생성 방지)
+// 주의: subject 라인만 검사 (body에 [release] 단어가 일반 텍스트로 들어가도 무시)
 const hasRelease = meaningful.some(c =>
-  run(`git log -1 --format="%s %b" ${c.hash}`).includes('[release]')
+  run(`git log -1 --format="%s" ${c.hash}`).includes('[release]')
 );
 if (!hasRelease) {
   console.log('ℹ [release] 태그 없음 — CHANGELOG 업데이트 건너뜀');
@@ -166,9 +167,12 @@ let updated = content
   .replace(/<!-- changelog-last-commit:.*?-->\n?/g, '')
   .replace(/<!-- changelog-last-version:.*?-->\n?/g, '');
 
-// "---\n\n" 첫 번째 구분선 뒤에 새 항목 삽입
-const DIVIDER = '---\n\n';
-const idx = updated.indexOf(DIVIDER);
+// 파일 헤더 (`# Folio — 업데이트 로그`) 뒤의 첫 "---\n\n" 다음에 새 항목 삽입
+// (메타 마커 위쪽의 첫 "---"에 잘못 끼이는 것 방지)
+const DIVIDER     = '---\n\n';
+const headerMatch = updated.match(/^# Folio.*$/m);
+const searchFrom  = headerMatch ? updated.indexOf(headerMatch[0]) : 0;
+const idx         = updated.indexOf(DIVIDER, searchFrom);
 if (idx !== -1) {
   const after = idx + DIVIDER.length;
   updated = updated.slice(0, after) + entry + '\n---\n\n' + updated.slice(after);
