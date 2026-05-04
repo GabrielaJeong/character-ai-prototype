@@ -3362,6 +3362,7 @@ body {
 }
 .notif-tabs::-webkit-scrollbar { display: none; }
 .notif-tab {
+  position: relative;
   padding: 4px 11px;
   background: transparent;
   border: 1px solid var(--border);
@@ -3374,9 +3375,12 @@ body {
   font-family: var(--font);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
+}
+/* 터치 타겟 44px 확보 (시각 크기 유지, 보이지 않는 영역만 확장) */
+.notif-tab::before {
+  content: '';
+  position: absolute;
+  inset: -8px 0;
 }
 .notif-tab.active {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
