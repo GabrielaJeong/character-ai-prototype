@@ -852,7 +852,12 @@ function _routeExplore() {
 
 function _routeGated(screenId) {
   if (!_currentUser) {
-    showAuthGate('로그인이 필요한 기능입니다', '이 기능을 이용하려면 로그인해주세요.', window.location.pathname);
+    // gated URL이 history에 누적되지 않도록 즉시 / 로 replace
+    // intendedPath는 _authGateIntendedPath에 저장되어 로그인 후 복귀 가능
+    const intended = window.location.pathname + window.location.search;
+    history.replaceState({ folio: true }, '', '/');
+    showScreen('screen-landing');
+    showAuthGate('로그인이 필요한 기능입니다', '이 기능을 이용하려면 로그인해주세요.', intended);
     return;
   }
   showScreen(screenId);
@@ -1068,7 +1073,10 @@ function _routeResetPassword() {
 
 function _routeMypage() {
   if (!_currentUser) {
-    showAuthGate('마이페이지', '마이페이지를 이용하려면 로그인이 필요합니다.', window.location.pathname);
+    const intended = window.location.pathname + window.location.search;
+    history.replaceState({ folio: true }, '', '/');
+    showScreen('screen-landing');
+    showAuthGate('마이페이지', '마이페이지를 이용하려면 로그인이 필요합니다.', intended);
     return;
   }
   loadMypage();
