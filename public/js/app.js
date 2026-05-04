@@ -3712,7 +3712,16 @@ async function submitRegister(e) {
   }
 }
 
-async function logoutUser() {
+// 로그아웃 버튼 → 확인 모달
+function logoutUser() {
+  document.getElementById('logout-overlay').classList.add('open');
+}
+function closeLogoutModal(e) {
+  if (e && e.target !== document.getElementById('logout-overlay')) return;
+  document.getElementById('logout-overlay').classList.remove('open');
+}
+async function confirmLogout() {
+  document.getElementById('logout-overlay').classList.remove('open');
   await fetch('/api/auth/logout', { method: 'POST' });
   _currentUser = null;
   updateAuthUI();
