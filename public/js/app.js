@@ -1202,53 +1202,45 @@ function showPersonaNewForm() {
   document.getElementById('persona-form-wrap').style.display   = 'flex';
 }
 
-// /persona  →  character-linked (choice if has personas)
-// 버튼 클릭 → 비동기 처리 후 화면 전환 (라우터 우회)
+// /persona  →  상태 기반 redirect만. 직접 표시되지 않음.
+// 페르소나 있으면 /persona/select, 없으면 /persona/new 로 분기.
 async function openPersonaSetup() {
   if (!currentCharacter) { navigateTo('/persona/new'); return; }
   _personaMode = 'linked';
-
-  // UI 기본 세팅
-  const charName = currentCharacter.name || '캐릭터';
-  document.getElementById('persona-nav-label').textContent       = 'Persona Setup';
-  document.getElementById('persona-subtitle').textContent        = `${charName}이(가) 당신을 알 수 있도록 정보를 입력해주세요.`;
-  document.getElementById('persona-recommend-btn').style.display = 'flex';
-  document.getElementById('persona-submit-btn').textContent      = '대화 시작';
-  document.getElementById('p-notes').placeholder                 = `${charName}와(과)의 관계 등 특이사항을 입력해주세요`;
-
-  let showChoice = false;
+  let hasPersonas = false;
   if (_currentUser) {
     try {
       const res  = await fetch('/api/personas');
       const rows = res.ok ? await res.json() : [];
-      showChoice = Array.isArray(rows) && rows.length > 0;
+      hasPersonas = Array.isArray(rows) && rows.length > 0;
     } catch (e) {
       console.error('openPersonaSetup: personas fetch failed', e);
     }
   }
-
-  document.getElementById('persona-choice-wrap').style.display = showChoice ? 'flex' : 'none';
-  document.getElementById('persona-form-wrap').style.display   = showChoice ? 'none' : 'flex';
-
-  window.history.pushState({ folio: true }, '', '/persona');
-  showScreen('screen-persona');
+  navigateTo(hasPersonas ? '/persona/select' : '/persona/new');
 }
 
-// URL 직접 접근 / popstate 대비 (동기 fallback)
-function _routePersonaLinked() {
-  if (!currentCharacter) { navigateTo('/persona/new'); return; }
+// /persona URL 직접 접근 시: replaceState로 적절한 sub-route로 교체
+async function _routePersonaLinked() {
+  if (!currentCharacter) { navigateTo('/'); return; }
   _personaMode = 'linked';
-  // URL 직접 접근: choice 없이 폼 표시
-  document.getElementById('persona-choice-wrap').style.display   = 'none';
-  document.getElementById('persona-form-wrap').style.display     = 'flex';
-  document.getElementById('persona-recommend-btn').style.display = 'flex';
-  document.getElementById('persona-submit-btn').textContent      = '대화 시작';
-  showScreen('screen-persona');
+  let hasPersonas = false;
+  if (_currentUser) {
+    try {
+      const res  = await fetch('/api/personas');
+      const rows = res.ok ? await res.json() : [];
+      hasPersonas = Array.isArray(rows) && rows.length > 0;
+    } catch (_) {}
+  }
+  const target = hasPersonas ? '/persona/select' : '/persona/new';
+  history.replaceState({ folio: true }, '', target);
+  hasPersonas ? _routePersonaSelect() : _routePersonaNew();
 }
 
-// /persona/new  →  standalone (no character needed)
+// /persona/new  →  캐릭터 컨텍스트 있으면 linked, 없으면 standalone
 function _routePersonaNew() {
-  _personaMode = 'standalone';
+  const linked = !!currentCharacter;
+  _personaMode = linked ? 'linked' : 'standalone';
 
   // 폼 완전 초기화 (먼저 실행해서 잔존 데이터 제거)
   ['p-name', 'p-age', 'p-appearance', 'p-personality', 'p-notes'].forEach(id => {
@@ -1265,18 +1257,26 @@ function _routePersonaNew() {
   const $formWrap   = document.getElementById('persona-form-wrap');
   const $recommend  = document.getElementById('persona-recommend-btn');
   const $submit     = document.getElementById('persona-submit-btn');
+  const $subtitle   = document.getElementById('persona-subtitle');
+  const $notes      = document.getElementById('p-notes');
 
-  if ($navLabel)   $navLabel.textContent    = '새 페르소나';
   if ($choiceWrap) $choiceWrap.style.display = 'none';
   if ($formWrap)   $formWrap.style.display   = '';
-  if ($recommend)  $recommend.style.display  = 'none';   // 캐릭터 컨텍스트 없으므로 숨김
-  if ($submit)     $submit.textContent       = '저장하기';
 
-  // 캐릭터 컨텍스트 없으므로 제네릭 텍스트로 리셋
-  const $subtitle = document.getElementById('persona-subtitle');
-  if ($subtitle) $subtitle.textContent = '페르소나 정보를 입력해주세요.';
-  const $notes = document.getElementById('p-notes');
-  if ($notes) $notes.placeholder = '특이사항을 입력해주세요';
+  if (linked) {
+    const charName = currentCharacter.name || '캐릭터';
+    if ($navLabel)  $navLabel.textContent   = 'Persona Setup';
+    if ($subtitle)  $subtitle.textContent   = `${charName}이(가) 당신을 알 수 있도록 정보를 입력해주세요.`;
+    if ($recommend) $recommend.style.display = 'flex';
+    if ($submit)    $submit.textContent     = '대화 시작';
+    if ($notes)     $notes.placeholder      = `${charName}와(과)의 관계 등 특이사항을 입력해주세요`;
+  } else {
+    if ($navLabel)  $navLabel.textContent   = '새 페르소나';
+    if ($subtitle)  $subtitle.textContent   = '페르소나 정보를 입력해주세요.';
+    if ($recommend) $recommend.style.display = 'none';
+    if ($submit)    $submit.textContent     = '저장하기';
+    if ($notes)     $notes.placeholder      = '특이사항을 입력해주세요';
+  }
 
   showScreen('screen-persona');
 }
@@ -1284,37 +1284,48 @@ function _routePersonaNew() {
 // /persona/select  →  persona list for character-linked selection
 async function _routePersonaSelect() {
   if (!currentCharacter) { navigateTo('/'); return; }
-  if (!_currentUser)     { navigateTo('/persona'); return; }
+  if (!_currentUser)     { navigateTo('/persona/new'); return; }
   try {
     const rows = await (await fetch('/api/personas')).json();
+    // 페르소나 0개면 /persona/new로 (이 화면은 의미 없음)
+    if (!rows.length) { navigateTo('/persona/new'); return; }
     const defaultId = _currentUser?.default_persona_id;
     const list = document.getElementById('persona-select-list');
-    if (!rows.length) {
-      list.innerHTML = '<p class="mypage-empty" style="padding:32px 0;text-align:center;grid-column:1/-1;">저장된 페르소나가 없습니다.</p>';
-    } else {
-      list.innerHTML = rows.map(p => {
-        const d = p.data;
-        const isDefault = p.id === defaultId;
-        const meta = [d.age ? d.age + '세' : '', d.gender === 'male' ? '남' : d.gender === 'female' ? '여' : ''].filter(Boolean).join(' · ');
-        const hasImg = !!d.avatar;
-        return `
-          <div class="mypage-p-card${isDefault ? ' is-default' : ''}${hasImg ? ' has-image' : ''}" onclick="navigateTo('/persona/select/${p.id}')">
-            ${hasImg
-              ? `<img class="mypage-p-img" src="${d.avatar}" alt="${d.name || ''}">`
-              : `<div class="mypage-p-no-img">
-                   <div class="mypage-p-add-icon">
-                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                   </div>
-                 </div>`}
-            <div class="mypage-p-overlay">
-              <div class="mypage-p-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</div>
-              ${meta ? `<div class="mypage-p-meta">${meta}</div>` : ''}
-            </div>
-          </div>`;
-      }).join('');
-    }
+    const personaCards = rows.map(p => {
+      const d = p.data;
+      const isDefault = p.id === defaultId;
+      const meta = [d.age ? d.age + '세' : '', d.gender === 'male' ? '남' : d.gender === 'female' ? '여' : ''].filter(Boolean).join(' · ');
+      const hasImg = !!d.avatar;
+      return `
+        <div class="mypage-p-card${isDefault ? ' is-default' : ''}${hasImg ? ' has-image' : ''}" onclick="navigateTo('/persona/select/${p.id}')">
+          ${hasImg
+            ? `<img class="mypage-p-img" src="${d.avatar}" alt="${d.name || ''}">`
+            : `<div class="mypage-p-no-img">
+                 <div class="mypage-p-add-icon">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                 </div>
+               </div>`}
+          <div class="mypage-p-overlay">
+            <div class="mypage-p-name">${d.name || '이름 없음'}${isDefault ? ' <span class="default-badge">기본</span>' : ''}</div>
+            ${meta ? `<div class="mypage-p-meta">${meta}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+    // 카드 그리드 끝에 "새 페르소나" CTA 카드
+    const newCard = `
+      <div class="mypage-p-card mypage-p-card-new" onclick="navigateTo('/persona/new')">
+        <div class="mypage-p-no-img">
+          <div class="mypage-p-add-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+        <div class="mypage-p-overlay">
+          <div class="mypage-p-name">새 페르소나</div>
+        </div>
+      </div>`;
+    list.innerHTML = personaCards + newCard;
     showScreen('screen-persona-select');
-  } catch (_) { navigateTo('/persona'); }
+  } catch (_) { navigateTo('/persona/new'); }
 }
 
 // /persona/select/:id  →  editable pre-filled form → startChatFromSelected
