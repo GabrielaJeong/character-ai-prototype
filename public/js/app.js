@@ -2811,8 +2811,15 @@ function _generateManualSystemPrompt(d) {
 }
 
 async function registerManualCharacter() {
-  const name = document.getElementById('bm-name').value.trim();
-  if (!name) { showToast('캐릭터 이름을 입력해주세요.'); return; }
+  const name        = document.getElementById('bm-name').value.trim();
+  const personality = document.getElementById('bm-personality').value.trim();
+  const speechStyle = document.getElementById('bm-speechStyle').value.trim();
+
+  // 필수 필드 검증 (캐릭터 품질 보장)
+  if (!name)        { showToast('캐릭터 이름을 입력해주세요.'); return; }
+  if (!personality) { showToast('성격을 입력해주세요.'); return; }
+  if (!speechStyle) { showToast('말투를 입력해주세요.'); return; }
+  if (!_manualTags.length) { showToast('태그를 1개 이상 추가해주세요.'); return; }
 
   const examples = (document.getElementById('bm-speechExamples').value || '')
     .split('\n').map(s => s.trim()).filter(Boolean);
@@ -2823,8 +2830,8 @@ async function registerManualCharacter() {
     age:            document.getElementById('bm-age').value || '',
     subtitle:       document.getElementById('bm-subtitle').value.trim(),
     appearance:     document.getElementById('bm-appearance').value.trim(),
-    personality:    document.getElementById('bm-personality').value.trim(),
-    speechStyle:    document.getElementById('bm-speechStyle').value.trim(),
+    personality,
+    speechStyle,
     speechExamples: examples,
     background:     document.getElementById('bm-background').value.trim(),
     worldbuilding:  document.getElementById('bm-worldbuilding').value.trim(),
