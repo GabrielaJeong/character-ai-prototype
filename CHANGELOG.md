@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: ebb95bacaddf230a2ca291379557e3a97757d9cb -->
-<!-- changelog-last-version: 0.29 -->
+<!-- changelog-last-commit: 8942c50d89a18f9fb953cedf789296bb87972d2c -->
+<!-- changelog-last-version: 0.30 -->
+
 
 
 
@@ -17,6 +18,40 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.30 — 2026-05-05
+**직접 제작 폼 필수 필드 확대 (성격·말투·태그), 404 Not Found 페이지 추가**
+
+### 버그 수정
+- notif-tab 디자인 복구 — min-height 제거 + ::before로 터치 영역만 확장
+- DB 경로를 DB_PATH env로 분리 (프로덕션 볼륨 마운트 대비)
+- gated 화면이 history에 누적되어 백 시 인증 게이트 재발동하던 문제
+- 빌더 진입 시 인증 게이트 intendedPath 누락 — 로그인 후 메인으로 가던 버그
+- 빌더 초기화 콜드스타트 대비 — 1회 자동 재시도
+- 채팅 뒤로가기 → 메인 대신 캐릭터 인트로로
+- sessionStorage 'folio-splash-shown' 플래그로 세션 내 1회만 표시
+- 최소 표시 시간 800ms로 단축 (모던 UX 적정선)
+
+### 주요 기능
+- HTML 라벨에 required(*) 마커 추가
+- registerManualCharacter() 검증 강화
+- 누락 시 한국어 토스트로 안내 후 등록 차단
+- screen-404 추가 (검색 아이콘 + 안내 문구 + 뒤로/홈 버튼)
+- show404() 헬퍼 + 디자인 시스템 토큰 사용 CSS
+- renderRoute 매칭 실패 시 → show404
+- _routeIntro / _routeChat: 캐릭터 못 찾으면 → show404
+- resetChat: currentCharacter 없는 비정상 상태 → show404
+
+### 문서
+- L-015: Railway 컨테이너 ephemeral 파일시스템 — 매 배포 데이터 손실
+- L-016: Volume 마운트 경로가 코드 디렉토리와 충돌 → 모듈 로드 실패
+- D-017: SQLite 영속 저장 — Railway Volume + DB_PATH env 패턴
+- 컨테이너 ephemeral 환경의 디스크 의존 데이터 → Volume 필수 + 코드 경로와 분리
+
+### 기타
+- v0.30 [release] DB 영속화, 404 페이지, 빌더·페르소나 플로우 정비
 
 ---
 
