@@ -237,6 +237,12 @@ character-ai-prototype/
 11. 🚩 새 input/textarea 추가 중
     → `font-size: 16px` 이상 확인 (iOS 포커스 시 자동 줌인 방지). iOS 전용이면 `@supports (-webkit-touch-callout: none)` 사용.
 
+12. 🚩 새 환경변수 도입 또는 보안 관련 fallback 추가 중
+    → production 필수 여부 결정. 필수면 `server.js` 검증 리스트에 추가하고 누락 시 `process.exit(1)`. 조용한 insecure fallback 금지 (L-013).
+
+13. 🚩 시크릿 값(API 키·비번·토큰·SESSION_SECRET)을 응답·문서·로그에 인용하려는 순간
+    → 값 대신 "해당 변수 사용", "Variables 탭의 값" 등 우회 표현. `.env` 등 시크릿 파일 내용 직접 echo 금지 (L-014).
+
 ## 자주 발생한 버그 패턴 (과거 학습)
 
 | 패턴 | 해결 |

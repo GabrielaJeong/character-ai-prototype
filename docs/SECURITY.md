@@ -66,6 +66,18 @@
 - 적용 엔드포인트: `GET /api/sessions/:id`, `PUT /:id/safety`, `POST /api/chat` (기존 세션), `POST /api/chat/regenerate`, `GET|PUT /api/sessions/:id/note`
 - 게스트 세션 목록: `listSessionsByGuest` — `guest_id = ?` 조건으로 본인 세션만 반환
 
+### 환경변수 검증
+- production 환경(`NODE_ENV=production`)에서 필수 변수 누락 시 startup fail (server.js)
+  - `SESSION_SECRET`: 세션 쿠키 위조 방지 (insecure default 차단)
+  - `NODE_ENV=production`: cookie secure 플래그 활성화 트리거
+- 권장 변수(`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) 누락 시 경고 (해당 모델만 비활성)
+- 배포 직후 로그에서 `[FATAL]`/`[WARN]` 검색하여 환경변수 누락 자각 (L-013)
+
+### 시크릿 취급
+- `.env` 파일은 `.gitignore`로 제외, git 이력에 진입 차단
+- 시크릿 값은 채팅·문서·로그·이슈 트래커에 평문 인용 금지 (L-014)
+- 노출 의심 시 즉시 키 revoke + 재발급
+
 ### 정보 노출 방지
 - `public_id` (UUID v4) 사용 — 내부 DB `id` 미노출
 - production 환경 스택 트레이스 숨김 (글로벌 에러 핸들러)

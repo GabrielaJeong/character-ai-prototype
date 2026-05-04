@@ -97,10 +97,28 @@ class SQLiteStore extends Store {
   }
 }
 
-const sessionSecret = process.env.SESSION_SECRET || 'folio-dev-secret-change-in-prod';
-if (!process.env.SESSION_SECRET) {
+// ── 환경변수 검증 (L-013: 프로덕션에서 필수 변수 누락 시 startup fail) ──
+const REQUIRED_PROD_ENV = ['SESSION_SECRET', 'NODE_ENV'];
+const isProd = process.env.NODE_ENV === 'production';
+const missingProd = REQUIRED_PROD_ENV.filter(k => !process.env[k]);
+
+if (isProd && missingProd.length) {
+  console.error(`[FATAL] 프로덕션 필수 환경변수 누락: ${missingProd.join(', ')}`);
+  console.error('  → SESSION_SECRET: 세션 쿠키 위조 방지용 (32자+ 랜덤 문자열)');
+  console.error('  → NODE_ENV=production: cookie secure 플래그 활성화');
+  process.exit(1);
+}
+if (!isProd && !process.env.SESSION_SECRET) {
   console.warn('[WARN] SESSION_SECRET not set — using insecure default (dev only)');
 }
+// 권장 변수 (없어도 기동은 되나 기능 제한)
+const recommended = ['ANTHROPIC_API_KEY', 'GEMINI_API_KEY'];
+const missingRec = recommended.filter(k => !process.env[k]);
+if (missingRec.length) {
+  console.warn(`[WARN] 권장 환경변수 누락: ${missingRec.join(', ')} (해당 모델 사용 불가)`);
+}
+
+const sessionSecret = process.env.SESSION_SECRET || 'folio-dev-secret-change-in-prod';
 
 app.use(express.json({ limit: '10mb' }));
 app.use(session({
