@@ -2917,19 +2917,36 @@ async function initBuilderConversation() {
   setBuilderInputDisabled(true);
   const typingEl = appendBuilderTyping();
 
-  try {
-    const res  = await fetch('/api/builder/chat', {
+  // 콜드 스타트 / 첫 API 호출 지연 대비: 1회 자동 재시도
+  async function attempt() {
+    const res = await fetch('/api/builder/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ message: '시작해줘', builderSessionId: null, model: builderModel }),
     });
-    const data = await res.json();
-    typingEl.remove();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  let data = null;
+  try {
+    data = await attempt();
+  } catch (firstErr) {
+    console.warn('[Builder] init 첫 시도 실패, 재시도:', firstErr.message);
+    await new Promise(r => setTimeout(r, 1500));
+    try {
+      data = await attempt();
+    } catch (retryErr) {
+      console.error('[Builder] init 재시도 실패:', retryErr.message);
+    }
+  }
+
+  typingEl.remove();
+  if (data) {
     builderSessionId = data.builderSessionId;
     appendBuilderMessage('assistant', data.reply);
     if (data.isReady) handleCharacterReady(data.reply);
-  } catch (_) {
-    typingEl.remove();
+  } else {
     appendBuilderMessage('assistant', '(연결에 실패했습니다. 다시 시도해주세요.)');
   }
 
