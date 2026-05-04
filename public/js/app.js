@@ -2279,7 +2279,9 @@ async function startChat(event) {
 // ─── Reset / Back ─────────────────────────────────────────
 async function resetChat() {
   sessionId = null;
-  navigateTo('/');
+  // 채팅 → 뒤로가기는 캐릭터 인트로로 (없으면 홈으로 fallback)
+  const charId = currentCharacter?.id;
+  navigateTo(charId ? `/character/${charId}` : '/');
 }
 
 // ─── Character Profile Modal ─────────────────────────────
