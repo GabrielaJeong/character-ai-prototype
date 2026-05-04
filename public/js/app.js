@@ -1471,7 +1471,7 @@ function _populatePersonaDetail(p) {
 
 function _routeIntro(id) {
   const char = characters.find(c => c.id === id);
-  if (!char) return showScreen('screen-landing');
+  if (!char) return show404();
   currentCharacter = char;
   populateIntroScreen(char);
   showScreen('screen-intro');
@@ -1481,7 +1481,7 @@ function _routeChat(id) {
   // Chat via URL only works if an active session exists for this character.
   // Otherwise fall back to intro.
   const char = characters.find(c => c.id === id);
-  if (!char) return showScreen('screen-landing');
+  if (!char) return show404();
   if (sessionId && currentCharacter?.id === id) {
     showScreen('screen-chat');
   } else {
@@ -1492,14 +1492,18 @@ function _routeChat(id) {
 }
 
 
+function show404() {
+  showScreen('screen-404');
+}
+
 function renderRoute(path) {
   const pathname = (path || window.location.pathname).split('?')[0];
   for (const { pattern, handler } of ROUTES) {
     const m = pathname.match(pattern);
     if (m) { handler(m); return; }
   }
-  // Unknown path → landing
-  showScreen('screen-landing');
+  // Unknown path → 404
+  show404();
 }
 
 // ─── Worldbuilding Accordion ─────────────────────────────
@@ -2279,9 +2283,10 @@ async function startChat(event) {
 // ─── Reset / Back ─────────────────────────────────────────
 async function resetChat() {
   sessionId = null;
-  // 채팅 → 뒤로가기는 캐릭터 인트로로 (없으면 홈으로 fallback)
+  // 채팅 → 뒤로가기는 캐릭터 인트로로. 캐릭터 컨텍스트 없으면 404 (비정상 상태)
   const charId = currentCharacter?.id;
-  navigateTo(charId ? `/character/${charId}` : '/');
+  if (charId) navigateTo(`/character/${charId}`);
+  else show404();
 }
 
 // ─── Character Profile Modal ─────────────────────────────
