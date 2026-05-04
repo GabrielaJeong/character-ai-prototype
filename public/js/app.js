@@ -2874,12 +2874,12 @@ async function registerManualCharacter() {
 let builderModel     = BUILDER_DEFAULT_MODEL;
 
 function openBuilder() {
-  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
+  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.', '/builder'); return; }
   navigateTo('/builder');
 }
 
 function openBuilderChat() {
-  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
+  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.', '/builder/chat'); return; }
   // Reset AI builder state
   builderSessionId = null;
   builderCharData  = null;
@@ -2896,7 +2896,7 @@ function openBuilderChat() {
 }
 
 function openBuilderManual() {
-  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.'); return; }
+  if (!_currentUser) { showAuthGate('캐릭터 제작', '캐릭터를 제작하려면 로그인이 필요합니다.', '/builder/manual'); return; }
   // Reset manual builder state
   _manualTags   = [];
   _manualRating = 'all_ages';
