@@ -1,8 +1,19 @@
 const Database    = require('better-sqlite3');
+const fs          = require('fs');
 const path        = require('path');
 const { randomUUID } = require('crypto');
 
-const db = new Database(path.join(__dirname, 'chat.db'));
+// DB 파일 경로 — 프로덕션에서는 영구 볼륨 사용 (DB_PATH env)
+// 로컬은 db/chat.db (코드 디렉토리), 프로덕션은 /data/chat.db (마운트된 볼륨)
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'chat.db');
+
+// DB 파일이 들어갈 디렉토리가 없으면 생성 (볼륨 마운트 직후 첫 기동 대비)
+const DB_DIR = path.dirname(DB_PATH);
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
+
+const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
