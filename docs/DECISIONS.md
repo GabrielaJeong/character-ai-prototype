@@ -416,3 +416,35 @@
 - 구형 브라우저(IE 11 이하)는 `frame-ancestors` 미지원 → `X-Frame-Options` 없으면 모든 곳에서 임베딩 가능. 대상 유저 기준 무시 가능한 수준.
 
 ---
+
+## D-017: SQLite 영속 저장 — Railway Volume + DB_PATH env 패턴
+
+**날짜**: 2026-05-04
+**버전**: v0.30
+**상태**: 적용 중 (PostgreSQL 마이그레이션 — D-014 Phase 2 — 전 임시 해결)
+
+**결정**:
+- `db/index.js`에 `DB_PATH` 환경변수 도입 (default: `path.join(__dirname, 'chat.db')`)
+- 프로덕션(Railway): Volume을 `/data`에 마운트 + env `DB_PATH=/data/chat.db`
+- 로컬 dev: env 미지정 → 기존 `db/chat.db` 사용
+
+**대안**:
+1. PostgreSQL 즉시 마이그레이션 — D-014 Phase 2의 정석 해결책. 그러나 코드 전체(prepared statement) 재작성 필요, 1-2주 소요. v0.30 시점엔 시급하게 데이터 손실부터 막아야 함
+2. Railway Volume을 `/app/db`에 마운트 — 첫 시도였으나 `db/index.js` 코드 디렉토리와 충돌, 크래시 (L-016 참고)
+3. SQLite 파일을 git에 커밋 — 프로덕션 DB 동기화 문제, 멀티 인스턴스 불가, 기각
+
+**근거**:
+- **데이터 손실 차단이 최우선 (L-015)** — 매 배포마다 유저 계정 / 대화 / 알림 / 장기기억 전부 삭제되던 상황을 즉시 멈춰야 함
+- Volume 마운트는 5분 안에 적용 가능한 가장 빠른 대응
+- 코드 변경 최소화 (DB_PATH env만 추가)
+
+**트레이드오프**:
+- SQLite 단일 파일 한계 그대로 — 동시성, 백업, 복제 불리
+- Railway 단일 인스턴스 종속 — 멀티 리전 / 로드밸런싱 시 한계
+- D-014 Phase 2(PostgreSQL 전환)으로 가야 진짜 프로덕션 그레이드
+
+**구현 디테일**:
+- `fs.mkdirSync(DB_DIR, { recursive: true })`로 빈 볼륨 첫 마운트 대비
+- 마운트 경로는 코드 디렉토리와 분리 (`/data` / `/app/db` 등 코드 위치 회피, L-016)
+
+---
