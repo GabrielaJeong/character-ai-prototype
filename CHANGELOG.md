@@ -1,5 +1,6 @@
-<!-- changelog-last-commit: a35122deb9e1352b76dc6176ac57e4e4efca874a -->
-<!-- changelog-last-version: 0.28 -->
+<!-- changelog-last-commit: ebb95bacaddf230a2ca291379557e3a97757d9cb -->
+<!-- changelog-last-version: 0.29 -->
+
 
 
 
@@ -16,6 +17,35 @@
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
 > 기록 기준: Git 커밋 이력
+
+---
+
+## v0.29 — 2026-05-04
+**로그아웃 확인 모달 추가, 프로덕션 환경변수 검증 + 보안 레슨 문서화 (L-013, L-014)**
+
+### 버그 수정
+- 잘못 삽입된 v0.28 엔트리(헤더 위)를 # Folio 헤더 이후 정상 위치로 이동
+- v0.28 변경사항 본문 보강 (모바일·CI·문서·훅 정비)
+- update-changelog.js readChangelog: 파일 읽을 때 CRLF→LF 정규화
+- openPersonaSetup(): /persona pushState 제거, 페르소나 유무에 따라 직접 navigateTo
+- _routePersonaLinked(): /persona 직접 접근 시 replaceState로 sub-route 교체
+- _routePersonaNew(): currentCharacter 유무로 linked/standalone 자동 분기
+- _routePersonaSelect(): 페르소나 0개면 /persona/new로 자동 이동, '새 페르소나' CTA 카드 추가
+- screen-persona-select 백버튼: /persona 대신 personaGoBack() (캐릭터 인트로로)
+- ReleaseNotify maxTokens 1024 → 2048 (Gemini thinking 여유 확보)
+
+### 주요 기능
+- 로그아웃 확인 모달 추가
+- server.js: NODE_ENV=production 환경에서 SESSION_SECRET / NODE_ENV 누락 시 startup fail
+- dev 환경은 경고만, 프로덕션은 process.exit(1)로 무지각 보안 약화 차단
+- ANTHROPIC_API_KEY / GEMINI_API_KEY는 권장 (없으면 경고)
+- LESSONS.md L-013: 프로덕션 환경변수 검증 부재 — 보안 약화 자각 못함
+- LESSONS.md L-014: AI 어시스턴트의 시크릿 값 echo 위험
+- SECURITY.md: 환경변수 검증 정책 + 시크릿 취급 가이드 추가
+- CLAUDE.md Red Flags 12-13: 환경변수 / 시크릿 echo 차단
+
+### 기타
+- v0.29 [release] 페르소나 플로우 / 로그아웃 모달 / 프로덕션 환경변수 검증
 
 ---
 
