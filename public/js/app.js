@@ -161,18 +161,29 @@ let _splashDone  = false;
 let _dataReady   = false;
 let _timerReady  = false;
 
+const SPLASH_SHOWN_KEY = 'folio-splash-shown';
+
 function _tryDismissSplash() {
   if (_splashDone || !_dataReady || !_timerReady) return;
   _splashDone = true;
+  sessionStorage.setItem(SPLASH_SHOWN_KEY, '1');
   const splash = document.getElementById('splash');
+  if (!splash) return;
   splash.classList.add('splash-out');
   splash.addEventListener('animationend', () => splash.remove(), { once: true });
 }
 
 // ─── Init ─────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // Splash timer — minimum display ~1.5s
-  setTimeout(() => { _timerReady = true; _tryDismissSplash(); }, 1500);
+  // 세션 내 이미 본 적 있으면 스플래시 즉시 제거 (새로고침/내부 이동 시)
+  if (sessionStorage.getItem(SPLASH_SHOWN_KEY)) {
+    document.getElementById('splash')?.remove();
+    _splashDone = true;
+    _timerReady = true;
+  } else {
+    // 첫 진입 — 800ms 최소 표시 후 fadeOut
+    setTimeout(() => { _timerReady = true; _tryDismissSplash(); }, 800);
+  }
   // Mount avatar upload components
   personaAvatarUpload = createAvatarUpload(
     document.getElementById('persona-avatar-container'),
