@@ -73,6 +73,14 @@
 - 권장 변수(`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) 누락 시 경고 (해당 모델만 비활성)
 - 배포 직후 로그에서 `[FATAL]`/`[WARN]` 검색하여 환경변수 누락 자각 (L-013)
 
+### 부트스트랩 엔드포인트 (1회성)
+- `POST /api/auth/_bootstrap-admin` (D-018) — 프로덕션 초기 admin 승격용
+  - `BOOTSTRAP_SECRET` env 미설정 시 404 (기본 비활성)
+  - 헤더 `X-Bootstrap-Secret` 일치해야 실행
+  - 사용 후 즉시 Railway env 삭제 권장
+- 사용 시나리오: Volume 마운트 직후 첫 admin 만들기, `railway run`이 컨테이너 외부 실행이라 직접 DB 조작 불가한 경우 (L-017)
+- 호출 시 로그 출력 (`[bootstrap-admin] ... 승격 완료`) — Railway Logs에서 사용 흔적 추적 가능
+
 ### 시크릿 취급
 - `.env` 파일은 `.gitignore`로 제외, git 이력에 진입 차단
 - 시크릿 값은 채팅·문서·로그·이슈 트래커에 평문 인용 금지 (L-014)

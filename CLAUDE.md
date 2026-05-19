@@ -246,6 +246,9 @@ character-ai-prototype/
 14. 🚩 Railway / 컨테이너 기반 ephemeral 환경에 디스크 의존 데이터(SQLite·업로드·로그) 두는 중
     → Volume 마운트 필수. **마운트 경로는 코드 디렉토리와 분리** (`/data` 등) — `/app/db` 처럼 코드 폴더에 마운트하면 모듈 가려져 크래시 (L-015, L-016).
 
+15. 🚩 `railway run` / `railway shell`로 컨테이너 내부 데이터(Volume·DB·파일)에 접근하려는 중
+    → **불가능**. `railway run`은 env만 주입하는 **로컬 실행**임. 컨테이너 내 데이터 조작이 필요하면 임시 보호된 HTTP 엔드포인트 (env-secret 게이트) 사용. D-018 / L-017 참조.
+
 ## 자주 발생한 버그 패턴 (과거 학습)
 
 | 패턴 | 해결 |
