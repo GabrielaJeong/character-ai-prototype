@@ -3804,6 +3804,10 @@ async function loadMypage() {
   const creatorBtn = document.getElementById('btn-creator-profile');
   if (creatorBtn) creatorBtn.style.display = _currentUser.username ? '' : 'none';
 
+  // Admin dashboard menu item — admin 권한일 때만
+  const adminBtn = document.getElementById('btn-admin-dash');
+  if (adminBtn) adminBtn.style.display = _currentUser.role === 'admin' ? '' : 'none';
+
   // Avatar
   const img     = document.getElementById('mypage-avatar-img');
   const letterW = document.getElementById('mypage-avatar-letter-wrap');
