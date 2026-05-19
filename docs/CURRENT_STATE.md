@@ -1,7 +1,7 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-04-29 (v0.27)
+> 최종 업데이트: 2026-05-05 (v0.30)
 
 ---
 
@@ -21,7 +21,11 @@
 - [x] 비밀번호 찾기 (데모)
 - [x] **장기기억** (대화 요약 자동 저장 + 다음 세션 주입, 모델 제공사별 분기)
 - [x] **포트폴리오 데모 모드** (DEMO_MODE=true, 로그인 없이 체험하기)
-- [x] **업데이트 자동 알림** (ReleaseNotify — CHANGELOG 변경 시 AI가 알림 자동 생성)
+- [x] **업데이트 자동 알림** (ReleaseNotify — CHANGELOG 변경 시 AI가 알림 자동 생성, DB 기반 중복 차단)
+- [x] **404 페이지** — 잘못된 URL / 삭제된 캐릭터 명시적 처리
+- [x] **/login 과 /signup URL 분리** — 회원가입 view에서 URL도 /signup으로 동기화
+- [x] **로그아웃 확인 모달**
+- [x] **페르소나 플로우 URL 분리** (/persona/select, /persona/new 명시적 분리)
 
 ### 어드민 기능
 - [x] 대시보드 (PV/UV/DAU/MAU, 그래프 2열 병렬)
@@ -31,6 +35,8 @@
 - [x] 알림 등록 관리
 - [x] **서버사이드 어드민 페이지 가드** (admin.html 비인가 노출 차단)
 - [x] **어드민 전용 rate limiter** (60회/15분)
+- [x] **마이페이지에서 어드민 대시보드 진입 버튼** (role === 'admin' 일 때만 표시)
+- [x] **임시 부트스트랩 엔드포인트** — `POST /api/auth/_bootstrap-admin` (BOOTSTRAP_SECRET env로 게이트, D-018)
 
 ### 보안
 - [x] helmet (CSP, 보안 헤더)
@@ -105,6 +111,11 @@
 - L-010: UUID 세션 ID를 소유권 증명으로 오인 (Security Through Obscurity)
 - L-011: 인증 게이트 → 로그인 → 뒤로가기 무한 루프 (replaceState 미사용)
 - L-012: 모바일 인터랙션 전반 미고려 (touch-action / 44px / :active 누락)
+- L-013: 프로덕션 환경변수 검증 부재 (SESSION_SECRET / NODE_ENV 누락도 silent 기동)
+- L-014: AI 어시스턴트의 시크릿 값 echo 위험
+- L-015: Railway 컨테이너 ephemeral 파일시스템 — 매 배포 데이터 손실
+- L-016: Volume 마운트 경로가 코드 디렉토리와 충돌 → 모듈 로드 실패
+- L-017: `railway run`은 로컬 실행 — 컨테이너 / Volume 접근 불가
 
 ---
 

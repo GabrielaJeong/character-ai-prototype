@@ -310,6 +310,39 @@
 
 ---
 
+## L-017: `railway run` 은 로컬 실행 — 프로덕션 컨테이너 / Volume 데이터에 접근 안 됨
+
+**날짜**: 2026-05-05
+**위험도**: 중간 (디버깅 시간 낭비, 잘못된 가설로 헛수고)
+
+**발생 맥락**:
+- 프로덕션 admin 승격 위해 `railway run node scripts/admin-reset.js fbrkqls94@gmail.com 1234 admin` 실행
+- 스크립트 결과: "✗ 유저를 찾을 수 없습니다"
+- 분명 프로덕션 사이트에서 가입했는데 왜 안 보이지? 한참 헤맴
+- 원인: `railway run`은 **로컬 머신에서 실행하되 Railway env 만 주입**. 컨테이너 / Volume 위에서 도는 게 아님
+- `DB_PATH=/data/chat.db`를 받았지만 그 경로는 Railway 서버의 Volume 안 → 로컬 머신엔 존재 안 함
+- Node가 로컬에 빈 `/data/chat.db` 새로 생성 → 빈 DB에서 검색 → "없음"
+
+**재발 이유**:
+- `railway run` 이름이 "Railway에서 실행"으로 오해되기 쉬움 (실제로는 "Railway env로 실행")
+- Railway 공식 문서가 명시는 하지만 직관과 다름
+- AI 에이전트조차도 처음엔 `railway run` 추천했다가 막힘
+
+**해결**:
+- DB를 직접 만지는 작업은 **deploy된 서버를 통해서만** 가능
+- 임시 HTTP 부트스트랩 엔드포인트 추가 (D-018 참조):
+  `POST /api/auth/_bootstrap-admin` — `BOOTSTRAP_SECRET` env로 게이트, 헤더 검증 후 동작
+- 사용 후 env 삭제 → 엔드포인트 자동 비활성
+
+**강화 규칙**:
+1. 🚩 `railway run`은 **env만 주입하는 로컬 실행**. 컨테이너·Volume·파일시스템 접근 불가
+2. 컨테이너 내 데이터 직접 조작이 필요하면:
+   - 임시 보호된 HTTP 엔드포인트 사용 (env-secret 게이트)
+   - 또는 Railway Pro 플랜의 web shell / SSH proxy
+3. SQLite + Volume 환경에서 admin / 마이그레이션 작업은 항상 서버 측 코드로 구현
+
+---
+
 ## L-016: 프로덕션 Volume 마운트 경로가 코드 디렉토리와 충돌
 
 **날짜**: 2026-05-04
