@@ -316,4 +316,42 @@ router.post('/demo-login', (req, res) => {
   });
 });
 
+// ── POST /api/auth/_bootstrap-admin ────────────────────────
+// 프로덕션 어드민 부트스트랩용 임시 엔드포인트.
+// BOOTSTRAP_SECRET env 설정 시에만 활성화 (없으면 404).
+// 헤더 X-Bootstrap-Secret 일치 시 지정 이메일을 admin 승격 + 비밀번호 변경.
+// 사용 후 Railway에서 BOOTSTRAP_SECRET env를 삭제하면 비활성화됨.
+const { db } = require('../db');
+router.post('/_bootstrap-admin', (req, res) => {
+  const envSecret = process.env.BOOTSTRAP_SECRET;
+  if (!envSecret) return res.status(404).json({ error: 'Not found' });
+  if (req.headers['x-bootstrap-secret'] !== envSecret) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const { email, password } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'email required' });
+
+  const user = stmt.getUserByEmail.get(email);
+  if (!user) return res.status(404).json({ error: '유저 없음' });
+
+  if (password) {
+    const hash = bcrypt.hashSync(password, 10);
+    stmt.updatePassword.run(hash, user.id);
+  }
+  db.prepare('UPDATE users SET role = ? WHERE id = ?').run('admin', user.id);
+
+  const updated = stmt.getUserByEmail.get(email);
+  console.log(`[bootstrap-admin] ${email} → admin 승격 완료 (id=${updated.id})`);
+  res.json({
+    ok: true,
+    user: {
+      id:       updated.id,
+      email:    updated.email,
+      nickname: updated.nickname,
+      role:     updated.role,
+    },
+  });
+});
+
 module.exports = router;
