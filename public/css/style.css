@@ -3849,6 +3849,8 @@ body {
   vertical-align: middle;
 }
 .mp-signout-row span:first-child { color: #e06c75; }
+.mp-admin-row span:first-child { color: var(--accent); }
+.mp-admin-row .mp-menu-en { color: color-mix(in srgb, var(--accent) 65%, transparent); }
 
 /* ── Footer ── */
 .mp-footer {
