@@ -849,6 +849,7 @@ const ROUTES = [
   { pattern: /^\/builder$/,                     handler: ()  => _routeGated('screen-builder')        },
   { pattern: /^\/notification$/,                handler: ()  => _routeNotification()              },
   { pattern: /^\/login$/,                       handler: ()  => _routeLogin()                      },
+  { pattern: /^\/signup$/,                      handler: ()  => _routeSignup()                     },
   { pattern: /^\/reset-password$/,              handler: ()  => _routeResetPassword()              },
   { pattern: /^\/mypage$/,                      handler: ()  => _routeMypage()                     },
   { pattern: /^\/creator\/@([^/]+)$/,           handler: (m) => _routeCreator(m[1])                },
@@ -1067,7 +1068,13 @@ function timeAgo(unixSec) {
 
 function _routeLogin() {
   if (_currentUser) { navigateTo('/'); return; }
-  showAuthView('login');
+  showAuthView('login', false); // URL은 이미 /login
+  showScreen('screen-login');
+}
+
+function _routeSignup() {
+  if (_currentUser) { navigateTo('/'); return; }
+  showAuthView('register', false); // URL은 이미 /signup
   showScreen('screen-login');
 }
 
@@ -3551,12 +3558,12 @@ function goToLogin() {
   document.getElementById('auth-gate-overlay').classList.remove('open');
   // pushState 대신 replaceState: 현재 경로(/mypage 등)를 history에서 교체 → 뒤로가기 루프 방지
   history.replaceState({ folio: true }, '', '/login?redirect=' + encodeURIComponent(intended));
-  showAuthView('login');
+  showAuthView('login', false); // URL은 이미 /login?redirect=...
   showScreen('screen-login');
 }
 
 // ── Login / Register screens ──────────────────────────────
-function showAuthView(view) {
+function showAuthView(view, syncUrl = true) {
   document.getElementById('auth-login-view').style.display    = view === 'login'    ? '' : 'none';
   document.getElementById('auth-register-view').style.display = view === 'register' ? '' : 'none';
   document.getElementById('auth-forgot-view').style.display   = view === 'forgot'   ? '' : 'none';
@@ -3567,6 +3574,12 @@ function showAuthView(view) {
     const errEl = document.getElementById('forgot-global-err');
     errEl.textContent = '';
     errEl.style.color = '';
+  }
+  // URL 동기화 — view에 맞는 path로 replaceState (redirect 쿼리 보존)
+  if (syncUrl) {
+    const pathMap = { login: '/login', register: '/signup', forgot: '/login' };
+    const path = pathMap[view] || '/login';
+    history.replaceState({ folio: true }, '', path + location.search);
   }
 }
 
