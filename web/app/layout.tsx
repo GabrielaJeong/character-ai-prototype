@@ -3,6 +3,8 @@ import { AuthBootstrap } from '@/components/AuthBootstrap';
 import { BottomNav } from '@/components/BottomNav';
 import { Toast } from '@/components/Toast';
 import { Splash } from '@/components/Splash';
+import { AuthGate } from '@/components/AuthGate';
+import { LogoutModal } from '@/components/LogoutModal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,6 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <BottomNav />
         </div>
+        <AuthGate />
+        <LogoutModal />
         <Toast />
       </body>
     </html>
