@@ -1,0 +1,51 @@
+.wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 320px;
+  margin: auto;
+  width: 100%;
+}
+.icon { color: var(--text-dim); margin-bottom: 20px; }
+.title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 28px; }
+.actions { display: flex; gap: 10px; width: 100%; }
+.actions > button, .actions > a { flex: 1; }
+
+.btnGhost {
+  padding: 14px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btnGhost:hover { border-color: var(--text-dim); color: var(--text); }
+
+.btnPrimary {
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, opacity 0.15s;
+  text-align: center;
+  text-decoration: none;
+}
+.btnPrimary:hover { background: #4a7ea8; }
