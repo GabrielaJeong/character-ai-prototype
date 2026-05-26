@@ -11,14 +11,15 @@ npm install
 
 # 2. 백엔드 서버 실행 (별도 터미널, 프로젝트 root에서)
 cd ..
-npm run dev    # http://localhost:3000
+npm run dev    # Express → http://localhost:3000
 
-# 3. 프론트 dev 서버
+# 3. 프론트 dev 서버 (web 폴더에서)
 cd web
-npm run dev    # http://localhost:3001
+npm run dev    # Next.js → http://localhost:3001
 ```
 
-`next.config.mjs`의 rewrites가 `/api/*` 요청을 자동으로 `localhost:3000`으로 프록시.
+**중요**: Express는 :3000, Next.js는 :3001로 분리됨 (포트 충돌 방지).
+`next.config.mjs`의 rewrites가 `/api/*` 요청을 자동으로 `localhost:3000`으로 프록시하므로 프론트엔드는 같은 origin처럼 동작.
 
 ## 구조
 
