@@ -1,0 +1,84 @@
+/*
+ * 원본: public/css/style.css
+ *   .char-grid                                645~649
+ *   .char-card / .char-card-disabled          651~667
+ *   .char-card-img                            669~675
+ *   .char-card-overlay / .char-card-name/role 700~745
+ *   .char-card-pending-overlay/label          951~969
+ *
+ * 비고: UPCOMING은 정보(이름/역할)가 카드 안쪽 하단에 박혀있는 변형 — 별도 컴포넌트로 분리.
+ *       (메인 CharacterCard는 카드 외부에 이름·역할 블록을 둠.)
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 32px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.card {
+  position: relative;
+  aspect-ratio: 3 / 3.4;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: default;
+  background: var(--surface);
+}
+
+.img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+
+.overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 28px 10px 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+  z-index: 1;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+.role {
+  font-size: 12px;
+  color: rgba(255,255,255,0.8);
+  margin-top: 2px;
+}
+
+/* "준비중" overlay */
+.pendingOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.pendingLabel {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 5px 14px;
+  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.25);
+}

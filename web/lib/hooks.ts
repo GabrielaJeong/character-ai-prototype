@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { api } from './api';
-import type { Character, Notification, Curation } from './types';
+import type { Character, Notification, Curation, AppVersion } from './types';
 
 const fetcher = <T,>(path: string) => api.get<T>(path);
 
@@ -28,4 +28,14 @@ export function useNotifications() {
 export function useNotifBadgeCount() {
   const { notifications } = useNotifications();
   return notifications.filter((n) => !n.is_read).length;
+}
+
+/** GET /api/version — 사이트 푸터의 버전·빌드 표기용 */
+export function useAppVersion() {
+  // 자주 변경 없음 → revalidate 줄이기
+  const { data } = useSWR<AppVersion>('/api/version', fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false,
+  });
+  return data?.version ?? 'v?';
 }

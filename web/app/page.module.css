@@ -3,10 +3,10 @@
  *   .page-wrap        1082~1087
  *   .page-body        1108~1112  (랜딩 변형: padding 24px 20px)
  *   .landing-section  1114~1121
- *   .feed-header/main/eyebrow/title/view-all  363~415
  *   .char-grid        645~649
  *
- * 디자인 시스템: DESIGN_SYSTEM.md 섹션 4 (피드 헤더) / 섹션 5 (카드 그리드)
+ * 비고: 섹션 헤더(.feed-*)는 <FeedHeader> 컴포넌트로 분리됨 → FeedHeader.module.css
+ *       각 큐레이션 섹션(creators/genres/upcoming)은 자체 .section을 가짐 → 여기서는 RECOMMENDED + 공지만.
  */
 
 .pageWrap {
@@ -31,59 +31,6 @@
 .section:last-child {
   margin-bottom: 0;
 }
-
-/* ── 피드 헤더 (RECOMMENDED.feed / 추천 캐릭터 / VIEW ALL) ── */
-.feedHeader { margin-bottom: 14px; }
-.feedHeaderTop { margin-bottom: 8px; }
-
-.feedEyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: var(--accent);
-  text-transform: uppercase;
-  font-family: var(--font);
-}
-.feedChevron {
-  font-size: 12px;
-  line-height: 1;
-  opacity: 0.8;
-}
-
-.feedHeaderMain {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-.feedTitle {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.01em;
-  line-height: 1;
-  margin: 0;
-}
-
-.feedViewAll {
-  background: none;
-  border: none;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-family: var(--font);
-  text-transform: uppercase;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  transition: color 0.15s;
-  touch-action: manipulation;
-}
-.feedViewAll:hover { color: var(--text); }
-.feedViewAll:active { opacity: 0.7; }
-.feedArrow { font-size: 11px; }
 
 /* ── 캐릭터 그리드 ───────────────────────────────────────── */
 .charGrid {

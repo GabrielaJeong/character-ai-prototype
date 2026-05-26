@@ -1,9 +1,14 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { LandingHeader } from '@/components/LandingHeader';
 import { CharacterCard } from '@/components/CharacterCard';
-import { useCharacters } from '@/lib/hooks';
+import { FeedHeader } from '@/components/FeedHeader';
+import { NoticeCarousel } from '@/components/NoticeCarousel';
+import { CreatorRow } from '@/components/CreatorRow';
+import { GenreRow } from '@/components/GenreRow';
+import { UpcomingGrid } from '@/components/UpcomingGrid';
+import { SiteFooter } from '@/components/SiteFooter';
+import { useCharacters, useCuration } from '@/lib/hooks';
 import styles from './page.module.css';
 
 /**
@@ -12,48 +17,37 @@ import styles from './page.module.css';
  * 원본: public/index.html  #screen-landing (라인 35~129)
  *
  * 구조:
- *   - <LandingHeader>             — Foli 로고 + ALL/18+ + 알림 벨
- *   - RECOMMENDED.feed            — 추천 캐릭터 + VIEW ALL → /explore
- *     · char-grid (2열, 캐릭터 카드 N개)
- *   - (백로그) 공지 캐러셀 / TOP.creators / GENRE.catalog / UPCOMING / FOOTER
- *     → 후속 Day (3.x)에서 추가
+ *   1. <LandingHeader>             — Foli 로고 + ALL/18+ + 알림 벨
+ *   2. RECOMMENDED.feed            — 추천 캐릭터 char-grid + VIEW ALL → /explore
+ *   3. <NoticeCarousel>            — 공지 캐러셀 (정적)
+ *   4. <CreatorRow>                — TOP.creators
+ *   5. <GenreRow>                  — GENRE.catalog
+ *   6. <UpcomingGrid>              — UPCOMING.feed (준비중 카드)
+ *   7. <SiteFooter>                — 푸터 (버전 표기 + LEGAL/SUPPORT/legal)
  *
  * 백엔드:
- *   - GET /api/characters     useCharacters() (SWR)
- *     · user.adult_content_enabled에 따라 서버에서 필터링됨
- *     · 헤더의 ALL/18+ 토글이 PATCH → mutate(/api/characters)로 갱신
+ *   - GET /api/characters    useCharacters() (SWR) — 헤더의 18+ 토글이 mutate
+ *   - GET /api/curation      useCuration() (SWR)
+ *   - GET /api/version       useAppVersion() — 푸터 내에서 직접 호출
  */
 export default function HomePage() {
-  const router = useRouter();
   const { characters, error, isLoading } = useCharacters();
+  const { curation } = useCuration();
 
   return (
     <div className={styles.pageWrap}>
       <LandingHeader />
 
       <div className={styles.pageBody}>
+        {/* ── RECOMMENDED ─────────────────────────────────── */}
         <section className={styles.section}>
-          <div className={styles.feedHeader}>
-            <div className={styles.feedHeaderTop}>
-              <span className={styles.feedEyebrow}>
-                <span className={styles.feedChevron}>›</span> RECOMMENDED.feed
-              </span>
-            </div>
-            <div className={styles.feedHeaderMain}>
-              <h2 className={styles.feedTitle}>추천 캐릭터</h2>
-              <button
-                type="button"
-                className={styles.feedViewAll}
-                onClick={() => router.push('/explore')}
-              >
-                VIEW ALL <span className={styles.feedArrow}>→</span>
-              </button>
-            </div>
-          </div>
-
-          {isLoading && (
-            <p className={styles.stateMsg}>불러오는 중...</p>
-          )}
+          <FeedHeader
+            eyebrow="RECOMMENDED.feed"
+            title="추천 캐릭터"
+            viewAllHref="/explore"
+            viewAllLabel="VIEW ALL"
+          />
+          {isLoading && <p className={styles.stateMsg}>불러오는 중...</p>}
           {error && !isLoading && (
             <p className={styles.stateMsg}>캐릭터를 불러오지 못했습니다.</p>
           )}
@@ -68,6 +62,23 @@ export default function HomePage() {
             </div>
           )}
         </section>
+
+        {/* ── 공지 캐러셀 ─────────────────────────────────── */}
+        <section className={styles.section}>
+          <NoticeCarousel />
+        </section>
+
+        {/* ── 큐레이션 (TOP.creators / GENRE / UPCOMING) ─── */}
+        {curation && (
+          <>
+            <CreatorRow creators={curation.creators ?? []} />
+            <GenreRow genres={curation.genres ?? []} />
+            <UpcomingGrid upcoming={curation.upcoming ?? []} />
+          </>
+        )}
+
+        {/* ── 푸터 ───────────────────────────────────────── */}
+        <SiteFooter />
       </div>
     </div>
   );

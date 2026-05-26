@@ -268,3 +268,69 @@
 - 그러나 홈 페이지는 추천 그리드 1개 섹션만 완성 — 큐레이션 4섹션 + 푸터는 별도 sub-day로 분리 (Day 3.x).
 - `Curation` 인터페이스 (`lib/types.ts`)는 현재 placeholder. 실제 `/api/curation` 응답 (`broadcast`/`tags`/`collections`/`creators`/`genres`/`upcoming`)과 다름 → 큐레이션 섹션 작업 시 타입부터 재정의 필요.
 - next/image의 `unoptimized` 옵션 사용 — 백엔드 정적 자원 그대로 (Express가 서빙). 추후 production에서 next.config.js의 `images.domains` 또는 loader 전략 검토 필요.
+
+---
+
+### 2026-05-27 (Day 3.x) — `/` 홈 2차 (Notice / TOP.creators / GENRE / UPCOMING / SiteFooter)
+
+**작업 범위**: 1차에서 미뤘던 홈 페이지 잔여 섹션 5종 + 공통 `<FeedHeader>` 추출.
+
+**사전 체크 통과**:
+- ✅ 원본 코드: app.js `_renderLandingCuration` L1850~1910 / `loadAppVersion` L3283~3291 / index.html L74~125
+- ✅ style.css: notice-carousel (973~1003) / creator-row (417~470) / genre-row (472~528) / 준비중 overlay (951~969) / site-footer (4939~5016)
+- ✅ data/curation.json 실제 응답 shape 확인 — 1차에서 정의한 `Curation` 인터페이스 placeholder를 폐기하고 재정의
+
+**구현**:
+- `web/lib/types.ts` — `Curation` 인터페이스를 `data/curation.json` 실제 shape로 재정의
+  - `BroadcastItem` / `CollectionItem` / `CreatorItem` / `GenreItem` / `UpcomingItem` export
+  - 이전 placeholder (`banners` / `editorPicks` / `tagCloud` / `topCreators`) 제거
+  - 신규 `AppVersion` 타입 (`/api/version` 응답)
+- `web/lib/hooks.ts` — `useAppVersion()` 추가 (`/api/version`, revalidateOnFocus/IfStale false — 거의 변경 없음)
+- `web/components/FeedHeader.{tsx,module.css}` 신규 — 섹션 헤더 공통 컴포넌트
+  - props: `eyebrow` / `title` / `viewAllHref?` / `viewAllLabel?` / `subtitle?`
+  - 원본 `.feed-header` / `.feed-eyebrow` / `.feed-title` / `.feed-view-all` 1:1
+  - 추후 Explore의 BROADCAST / TAG.CLOUD / EDITOR.PICKS 에서도 재사용 예정
+- `web/components/NoticeCarousel.{tsx,module.css}` 신규
+  - 3개 슬라이드 가로 scroll-snap (첫 슬라이드만 banner.png + 외부 링크, 나머지는 향후 채움)
+  - scroll position 추적으로 `1 / 3` 페이지네이션 업데이트
+  - touch-action: pan-x
+- `web/components/CreatorRow.{tsx,module.css}` 신규
+  - `CreatorItem[]` props, 빈 배열이면 미렌더
+  - 카드 클릭 → `/creator/<handle>` (encodeURIComponent로 @ 보존)
+  - drag slider는 Phase A에서 native scroll만 (원본의 `initDragSlider` 데스크탑 드래그는 후속)
+- `web/components/GenreRow.{tsx,module.css}` 신규
+  - `GenreItem[]` props, 카드 클릭 → `/explore?tag=<label>`
+  - 130x170 background-image 카드 + 그라디언트 오버레이 + 라벨/타이틀/카운트
+- `web/components/UpcomingGrid.{tsx,module.css}` 신규
+  - `UpcomingItem[]` props, char-grid (2열) 변형
+  - **CharacterCard와 분리** 이유: UPCOMING은 정보(이름/역할)가 카드 안쪽 그라디언트 위에 박혀있는 변형. CharacterCard는 카드 외부에 이름·역할 블록을 둠. 마크업 차이가 커서 props로 토글하면 복잡해짐.
+  - 준비중 overlay + label
+- `web/components/SiteFooter.{tsx,module.css}` 신규
+  - `useAppVersion()` 호출로 `Folio · vX.Y · Build 2026.04` 표시
+  - LEGAL / SUPPORT 컬럼, legal 영역
+- `web/app/page.tsx` 갱신 — 7섹션 조립 (Header / RECOMMENDED / Notice / Creator / Genre / Upcoming / Footer)
+  - RECOMMENDED 섹션 헤더를 인라인 → `<FeedHeader>` 호출로 교체
+- `web/app/page.module.css` — feed-header 룰 제거 (FeedHeader.module.css로 이동), `.section` / `.charGrid` / `.stateMsg`만 유지
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (`/` 15.8 kB / 114 kB First Load — 2.2 kB 증가)
+- ✅ jest 49/49 통과
+- ⏸ 시각 비교 — 다음 세션
+- ⏸ 모바일 — 다음 세션
+
+**체크리스트 진척**:
+- ✅ 섹션 2.1 (홈) — 모든 섹션 1차 완료
+- 신규 4.x 항목으로 등록될 컴포넌트:
+  - 4.3 `<FeedHeader>` (재사용)
+  - 4.4 `<NoticeCarousel>` (홈)
+  - 4.5 `<CreatorRow>` (홈)
+  - 4.6 `<GenreRow>` (홈)
+  - 4.7 `<UpcomingGrid>` (홈)
+  - 4.8 `<SiteFooter>` (글로벌 — 다른 페이지에서도 재사용 가능)
+
+**발견 / 회고**:
+- `Curation` 인터페이스를 1차 작업 때 잘못 정의해 둔 게 큐레이션 섹션 작업 시 그대로 드러남 → 작업 첫 단계로 타입 재정의부터. **교훈**: API 응답 인터페이스를 가설 기반으로 미리 짜놓지 말고, 실 데이터 또는 라우트 코드 확인 후 정의할 것.
+- 데스크탑 마우스 드래그 슬라이더 (`initDragSlider`)는 모바일에서는 native pan-x로 충분 — Phase A 우선순위 낮음. 추후 hover 환경에서 필요하면 hook 형태로 (`useDragScroll`).
+- 외부 링크/외부 이미지에는 `next/image` 대신 `<img>` 사용 (간소화 + 외부 호스트 도메인 등록 불필요). 캐릭터 카드 이미지(/images/*)는 Express가 서빙하므로 `next/image` + `unoptimized` 유지.
+- FeedHeader는 향후 Explore의 3섹션(BROADCAST/TAG.CLOUD/EDITOR.PICKS)에서도 그대로 쓸 수 있도록 `subtitle` props 미리 추가.

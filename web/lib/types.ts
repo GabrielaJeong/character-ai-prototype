@@ -140,24 +140,46 @@ export interface Bookmark {
 }
 
 // ── Curation ─────────────────────────────────────────────
-// /api/curation 응답 — 큐레이션 JSON 그대로
+// /api/curation 응답 — data/curation.json 그대로 (server.js 185)
 export interface Curation {
-  banners?: CurationBanner[];
-  editorPicks?: CurationEditorPick[];
-  tagCloud?: string[];
-  topCreators?: { name: string; img?: string }[];
-  genres?: { name: string; img?: string; count?: number }[];
-  upcoming?: { name: string; role?: string; img?: string }[];
+  broadcast?: BroadcastItem[];
+  tags?: string[];
+  collections?: CollectionItem[];
+  creators?: CreatorItem[];
+  genres?: GenreItem[];
+  upcoming?: UpcomingItem[];
 }
-export interface CurationBanner {
+export interface BroadcastItem {
+  title: string;                       // \n 포함 가능 (HTML <br>로 치환)
+  subtitle: string;
+  img: string;
+}
+export interface CollectionItem {
+  num: string;                         // "COLLECTION.07"
   title: string;
-  subtitle?: string;
-  img?: string;
+  meta: string;
+  img: string;
 }
-export interface CurationEditorPick {
-  title?: string;
-  charId?: string;
-  img?: string;
+export interface CreatorItem {
+  handle: string;                      // "@midnight_atelier"
+  count: string;                       // "12 캐릭터"
+  img: string;
+}
+export interface GenreItem {
+  label: string;                       // "OFFICE"
+  title: string;                       // "오피스 로맨스"
+  count: string;                       // "248 작품"
+  img: string;
+}
+export interface UpcomingItem {
+  name: string;
+  role: string;
+  img: string;
+}
+
+// ── App version (footer 표시용) ──────────────────────────
+export interface AppVersion {
+  version: string;                     // "v0.30"
 }
 
 // ── Creator profile ──────────────────────────────────────
