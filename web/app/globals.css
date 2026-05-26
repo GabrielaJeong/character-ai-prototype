@@ -78,13 +78,24 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-/* ─── 라우트 페이지 공통 컨테이너 ────────────────────────── */
-/* 각 page.tsx 최상위 요소에 적용. flex column + overflow-y: auto */
+/* ─── 라우트 페이지 스크롤 컨테이너 ────────────────────────── */
+/* layout.tsx의 <main className="screen-host">에 적용.
+   #app 안에서 flex:1로 늘어나며 자체 overflow-y로 스크롤.
+   BottomNav는 sibling이라 viewport 하단 고정. (원본의 .screen 패턴) */
+.screen-host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* (구) .screen-page — 호환 alias. 새 코드에서는 .screen-host 사용. */
 .screen-page {
   display: flex;
   flex-direction: column;
   flex: 1;
   height: 100%;
   overflow-y: auto;
-  scrollbar-gutter: stable;
 }

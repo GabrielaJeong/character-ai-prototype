@@ -73,6 +73,25 @@
 - **예방**: `app/error.tsx` (반드시 `'use client'`, props로 `{ error, reset }`)와 `app/not-found.tsx` 둘 다 layout과 같은 레벨에 둘 것. layout 자체가 throw할 가능성 있으면 `app/global-error.tsx`도 추가.
 - **출처**: Day 3.x fix (2026-05-27)
 
+### ML-007 — Express의 정적 자원 경로도 모두 next.config.mjs rewrites에 등록
+- **증상**: 캐릭터 이미지 / 배너 이미지가 다 깨져서 alt 텍스트만 표시. 콘솔에 `/images/ihwa.png 404`.
+- **원인**: `/api/*`만 프록시하고 있었음. Express는 `app.use(express.static(path.join(__dirname, 'public')))` (server.js:137)로 public/ 전체 (`/images/*`, `/icons/*`, `/uploads/*`)를 서빙. Next.js dev(3001)에서 직접 요청되면 라우트 없어서 404.
+- **예방**: next.config.mjs의 `rewrites`에 Express가 서빙하는 모든 정적 경로를 등록. 새 자원 폴더 추가 시 함께 추가. 프로덕션은 NEXT_PUBLIC_API_URL 또는 reverse proxy로 같은 origin 처리.
+  ```js
+  { source: '/images/:path*',  destination: 'http://localhost:3000/images/:path*' },
+  { source: '/icons/:path*',   destination: 'http://localhost:3000/icons/:path*' },
+  { source: '/uploads/:path*', destination: 'http://localhost:3000/uploads/:path*' },
+  ```
+- **부수 정보**: next.config.mjs 변경은 hot-reload 안 됨 → dev 서버 재시작 필수.
+- **출처**: Day 3.x fix (2026-05-27)
+
+### ML-008 — `#app` 안에 BottomNav를 함께 두려면 children을 별도 스크롤 컨테이너로 감싸야 함
+- **증상**: BottomNav가 viewport 하단에 안 보임. 페이지 콘텐츠 가장 아래로 스크롤해야 그제서야 나타남.
+- **원인**: `#app`이 `display:flex; flex-direction:column; overflow:hidden` 인데, `children`이 직접 자식이라 자체 스크롤 없이 flex 늘어남 → BottomNav는 sibling으로 콘텐츠 *뒤*에 밀려나 viewport 밖.
+- **예방**: layout.tsx에서 `{children}`을 `<main className="screen-host">`로 감쌀 것. `.screen-host { flex:1; min-height:0; overflow-y:auto; }`로 viewport 내부에서만 스크롤. BottomNav는 sibling이라 하단 고정.
+- **원본 대응**: 원본 index.html의 `.screen` 패턴과 동일 — 각 screen이 자체 `flex:1; overflow-y:auto`를 가졌고, BottomNav는 sibling.
+- **출처**: Day 3.x fix (2026-05-27)
+
 ---
 
 ## 진행 항목

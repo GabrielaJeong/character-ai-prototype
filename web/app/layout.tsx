@@ -33,7 +33,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Splash />
         <AuthBootstrap />
         <div id="app">
-          {children}
+          {/* screen-host: 라우트 페이지의 스크롤 컨테이너.
+              flex:1 + overflow-y:auto 로 viewport 안에서만 스크롤 → BottomNav 하단 고정.
+              (원본의 .screen 패턴과 동일) */}
+          <main className="screen-host">{children}</main>
           <BottomNav />
         </div>
         <AuthGate />
