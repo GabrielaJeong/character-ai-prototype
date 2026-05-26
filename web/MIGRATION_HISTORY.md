@@ -98,10 +98,62 @@
 - ✅ 체크리스트 0·1·3.x AuthBootstrap 부분 마킹은 다음 화면 만들 때 결과로 확인
 
 **다음 작업 (Day 2)**:
-- [ ] `<Toast>` (z 9998) + `<Splash>` (z 9999) — 글로벌 UI 기초
-- [ ] 모달 공통 CSS (`Modal.module.css`) + `<DeleteConfirmModal>` 재사용 컴포넌트
+- [x] `<Toast>` (z 9998) + `<Splash>` (z 9999) — 글로벌 UI 기초
+- [x] 모달 공통 CSS (`Modal.module.css`) + `<DeleteConfirmModal>` 재사용 컴포넌트
 - [ ] 작은 버튼 컴포넌트들 (`<BtnPrimary> <BtnGhost> <BtnBack> <BtnIcon> <BtnSend>`) — 또는 화면 작업 중 동시 추출
 
 **발견 / 회고**:
 - L-011 패턴이 store/auth.ts에 명시적으로 주석 처리됨 — 다음에 다른 사람(또는 나)이 봐도 race 의도 알 수 있게
 - types.ts에 SQLite boolean을 `0 | 1`로 명시 — JS truthy 평가 시 `!!user.adult_content_enabled` 패턴 사용 필요
+
+---
+
+### 2026-05-05 (Day 2) — 글로벌 UI 컴포넌트 1차 (Toast / Splash / Modal common / DeleteConfirmModal)
+
+**작업 범위**: 모든 화면이 부르는 글로벌 UI 컴포넌트 핵심 3종 + 재사용 모달.
+
+**구현**:
+- `web/store/ui.ts`
+  - Toast (message, timer) + showToast/hideToast (자동 dismiss)
+  - AuthGate payload + showAuthGate/closeAuthGate (Day 3에서 마운트)
+  - Logout open/close (Day 3에서 마운트)
+  - **DeleteConfirm 재사용 패턴** — `showDeleteConfirm({title, desc, confirmLabel, onConfirm})` 로 어디서든 호출
+- `web/components/Toast.tsx` + `Toast.module.css`
+  - 원본 .toast (z 9998, blur, bottom 80px) 1:1 이식
+- `web/components/Splash.tsx` + `Splash.module.css`
+  - 원본 #splash + .logo-o-wrap + .logo-dots 1:1 이식
+  - sessionStorage 'folio-splash-shown'으로 세션당 1회
+  - 800ms 표시 + fadeOut 0.4s
+  - Folio 로고: Foli + o(점 2개) 디자인 (#5B8FB9 / #8BA8DC)
+- `web/components/Modal.module.css`
+  - **공통 bottom-sheet 패턴**: .overlay (z 300) + .panel (slideUp 0.2s)
+  - 변형 버튼 클래스: .btnGhost / .btnPrimary / .btnDelete / .demoBtn
+  - 5개 모달 (DeleteConfirm / AuthGate / Logout / AdultVerify / Mypage)이 공유 예정
+- `web/components/DeleteConfirmModal.tsx`
+  - `useUIStore.deleteConfirm`을 읽어 표시
+  - running 상태로 중복 클릭 차단
+  - 외부 overlay 클릭 시 닫기 (running 중엔 차단)
+- `layout.tsx`에 `<Splash> <AuthBootstrap> <DeleteConfirmModal> <Toast>` 마운트
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (홈 페이지 138B placeholder, 추가 모달은 layout에 포함되어 chunk 증가)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 시각 비교 — 화면 없으므로 다음 단계에서
+
+**체크리스트 진척**:
+- ✅ 섹션 3.1 (Splash)
+- ✅ 섹션 3.3 (Toast)
+- ✅ 섹션 3.6 (DeleteConfirmModal)
+- ⏳ 섹션 3.4 (AuthGate) → Day 3
+- ⏳ 섹션 3.5 (LogoutModal) → Day 3
+
+**다음 작업 (Day 3)**:
+- [ ] `<AuthGate>` (z 300, 데모 버튼 조건부)
+- [ ] `<LogoutModal>` (z 300)
+- [ ] `<BottomNav>` (z 200, HIDE_PATTERNS, 5탭 ⊞◷◎✦◉)
+- [ ] 작은 Button 컴포넌트 (또는 module CSS만)
+
+**발견 / 회고**:
+- DeleteConfirmModal을 인자 받는 단일 컴포넌트로 만들어서 호출자가 `showDeleteConfirm(...)`만 하면 됨 — 세션·페르소나·캐릭터 삭제·계정 탈퇴 모두 한 컴포넌트로 처리 가능
+- Modal.module.css의 버튼들이 이 모달 내부 전용 → 외부에서 쓸 일 없으면 module 안에 두는 게 맞음. 만약 다른 모달도 같은 버튼 변형 쓰면 그 module들이 import 가능

@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { AuthBootstrap } from '@/components/AuthBootstrap';
+import { Splash } from '@/components/Splash';
+import { Toast } from '@/components/Toast';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -24,8 +27,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <Splash />
         <AuthBootstrap />
         <div id="app">{children}</div>
+        <DeleteConfirmModal />
+        <Toast />
       </body>
     </html>
   );
