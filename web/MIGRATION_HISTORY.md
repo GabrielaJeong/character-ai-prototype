@@ -149,11 +149,62 @@
 - ⏳ 섹션 3.5 (LogoutModal) → Day 3
 
 **다음 작업 (Day 3)**:
-- [ ] `<AuthGate>` (z 300, 데모 버튼 조건부)
-- [ ] `<LogoutModal>` (z 300)
-- [ ] `<BottomNav>` (z 200, HIDE_PATTERNS, 5탭 ⊞◷◎✦◉)
+- [x] `<AuthGate>` (z 300, 데모 버튼 조건부)
+- [x] `<LogoutModal>` (z 300)
+- [x] `<BottomNav>` (z 200, HIDE_PATTERNS, 5탭 ⊞◷◎✦◉)
 - [ ] 작은 Button 컴포넌트 (또는 module CSS만)
 
 **발견 / 회고**:
-- DeleteConfirmModal을 인자 받는 단일 컴포넌트로 만들어서 호출자가 `showDeleteConfirm(...)`만 하면 됨 — 세션·페르소나·캐릭터 삭제·계정 탈퇴 모두 한 컴포넌트로 처리 가능
-- Modal.module.css의 버튼들이 이 모달 내부 전용 → 외부에서 쓸 일 없으면 module 안에 두는 게 맞음. 만약 다른 모달도 같은 버튼 변형 쓰면 그 module들이 import 가능
+- DeleteConfirmModal을 인자 받는 단일 컴포넌트로 만들어서 호출자가 `showDeleteConfirm(...)`만 하면 됨
+- Modal.module.css의 버튼들이 이 모달 내부 전용 → 외부에서 쓸 일 없으면 module 안에 두는 게 맞음
+
+---
+
+### 2026-05-05 (Day 2.2) — AuthGate + LogoutModal + BottomNav
+
+**작업 범위**: 글로벌 인프라 마무리. 이제 모든 화면이 의존하는 컴포넌트들이 다 있음.
+
+**구현**:
+- `web/components/AuthGate.tsx` (Modal.module.css 재사용)
+  - `gate.intendedPath` → 로그인 후 복귀
+  - **L-011 패턴 명시**: `router.replace('/login?redirect=...')` (push 아님)
+  - DEMO_MODE 활성 시 "체험하기" 버튼 (Modal.demoBtn)
+  - 외부 클릭으로 닫기
+- `web/components/LogoutModal.tsx` (Modal.module.css 재사용)
+  - `useUIStore.openLogout()` 으로 열림
+  - 확인 시 logout() → 홈으로 push
+- `web/components/BottomNav.tsx` + `module.css`
+  - 5탭 (캐릭터 ⊞ / 대화 ◷ / 탐색 ◎ / 제작 ✦ / 마이페이지 ◉)
+  - **HIDE_PATTERNS** — 원본 noNavScreens (app.js:816) 매칭:
+    - /character/[id]/chat
+    - /builder/(chat|manual|loading|preview)
+    - /login, /signup, /reset-password
+    - /notification
+    - /persona, /persona/* (select/select-edit는 hide, 나머지는 페이지 자체가 없어 영향 X)
+  - active 판정: `/` 정확히, 나머지는 startsWith
+  - `safe-area-inset-bottom` 패딩
+- `layout.tsx`: Splash + AuthBootstrap + (#app: children + BottomNav) + AuthGate + LogoutModal + DeleteConfirmModal + Toast 모두 마운트
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 시각 비교 — 화면 없으므로 다음 단계에서
+
+**체크리스트 진척**:
+- ✅ 섹션 3.1 (Splash)
+- ✅ 섹션 3.2 (BottomNav)
+- ✅ 섹션 3.3 (Toast)
+- ✅ 섹션 3.4 (AuthGate)
+- ✅ 섹션 3.5 (LogoutModal)
+- ✅ 섹션 3.6 (DeleteConfirmModal)
+- ⏳ 섹션 3.7~3.12 (NoteModal / CharProfileModal / AdultVerifyModal / ModelPicker / DemoBanner / MypageModal) → 각 화면 만들면서
+
+**다음 작업 (Day 3)**:
+- [ ] 첫 실제 화면 — `/` 홈 (LandingHeader + CharacterCard + Curation sections + Stats)
+- [ ] `<CharacterCard>` 재사용 컴포넌트 (체크리스트 4.1)
+- [ ] `<LandingHeader>` (Folio 로고 + ALL/18+ + 알림 벨 + 미읽음 배지)
+- [ ] (백로그 큐레이션은 단계별로 — 우선 캐릭터 그리드만)
+
+**발견 / 회고**:
+- HIDE_PATTERNS에서 /persona/* 전체를 숨김으로 처리. 원본은 select와 select-edit만 hide했지만, 페르소나 새로 만들기 (/persona/new) 등에서도 메인 nav가 보이는 건 어색하므로 통째로 숨김. 추후 사용자 피드백에 따라 분리 가능.
