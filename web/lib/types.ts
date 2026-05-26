@@ -61,9 +61,15 @@ export interface Character {
   owner_user_id?: number;
   owner_username?: string;
   is_pinned?: 0 | 1;
-  // 통계 (백엔드 join)
-  session_count?: number;
-  bookmark_count?: number;
+  // 통계 (백엔드 routes/characters.js에서 stats 객체로 반환)
+  stats?: {
+    sessions: number;
+    bookmarks: number;
+  };
+  // 백엔드 계산 (badge_override 있으면 그것, 없으면 NEW/HOT/UP 자동 판정)
+  badge?: 'NEW' | 'HOT' | 'UP' | null;
+  // coming soon 상태
+  status?: 'coming_soon' | 'active';
   // 등록 시점
   created_at?: number;
   is_active?: 0 | 1;

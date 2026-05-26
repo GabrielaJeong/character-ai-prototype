@@ -208,3 +208,63 @@
 
 **발견 / 회고**:
 - HIDE_PATTERNS에서 /persona/* 전체를 숨김으로 처리. 원본은 select와 select-edit만 hide했지만, 페르소나 새로 만들기 (/persona/new) 등에서도 메인 nav가 보이는 건 어색하므로 통째로 숨김. 추후 사용자 피드백에 따라 분리 가능.
+
+---
+
+### 2026-05-27 (Day 3) — `/` 홈 1차 (LandingHeader + CharacterCard + 추천 그리드)
+
+**작업 범위**: 첫 실제 화면. 헤더 + 캐릭터 카드 컴포넌트 + 홈 페이지의 RECOMMENDED.feed 섹션까지.
+
+**사전 체크 통과**:
+- ✅ 원본 코드: index.html L35~129, style.css L140~415 (랜딩) / L645~801 (카드 + char-grid) / L4527~4553 (adult segment) / L3286~3304 (notif badge) / L1082~1121 (page-wrap/body/section)
+- ✅ 참조: CLAUDE.md Red Flag 9 (3종 체크: touch-action / 44px / :active) / Red Flag 10 (100dvh) / L-011 race / L-012 mobile / DESIGN_SYSTEM.md 섹션 3·4·5·9
+- ✅ 체크리스트 섹션: 2.1 (홈) / 4.1 (CharacterCard) / 4.2 (LandingHeader)
+
+**구현**:
+- `web/lib/types.ts` 보강 — `Character.stats: { sessions, bookmarks }`, `Character.badge: 'NEW'|'HOT'|'UP'|null`, `Character.status?: 'coming_soon'|'active'` 추가 (백엔드 routes/characters.js 응답 매핑)
+- `web/lib/format.ts` 신규 — `fmtK` (1234→1.2K) / `relativeTime` (방금/N분 전/...) / `notifBadgeText` (>9 → 9+) (원본 app.js 1:1 이식)
+- `web/lib/hooks.ts` 신규 — SWR 훅 `useCharacters` / `useCuration` / `useNotifications` / `useNotifBadgeCount`
+- `web/components/CharacterCard.tsx` + `.module.css` — 재사용 카드 컴포넌트:
+  - 좌상단 numberBadge (#B01) / 우상단 statusBadge (NEW·HOT·UP, dot + label)
+  - 하단 그라디언트 + 태그 (# prefix, 최대 3개)
+  - Coming Soon overlay (status==='coming_soon' 시 클릭 차단)
+  - 외부 정보 블록 (이름·역할·@크리에이터·▲세션·♥북마크)
+  - 유저 제작 캐릭터(id startsWith 'char_')는 @username 링크 → `/creator/@:username`
+  - next/image로 image=undefined 시 placeholder (이름 첫 글자)
+- `web/components/LandingHeader.tsx` + `.module.css`:
+  - Foli + o(점 2개 #5B8FB9 / #8BA8DC) 로고
+  - ALL/18+ 세그먼트: PATCH `/api/auth/adult-content` → `setUser` + SWR `mutate('/api/characters')` (서버 필터링 변경 반영)
+  - 18+ ON 분기: 비로그인 → AuthGate / 로그인+미인증 → 토스트(모달 예정) / 인증완료 → 즉시 ON
+  - 알림 벨 + 미읽음 배지 (`useNotifBadgeCount`, `notifBadgeText`)
+- `web/app/page.tsx` 신규 (placeholder 교체) — `<LandingHeader>` + RECOMMENDED.feed 섹션 (eyebrow + 타이틀 + VIEW ALL → /explore) + char-grid
+  - 로딩/에러/빈 상태 메시지 처리
+- `web/app/page.module.css` — page-wrap/body/section/feed-header/char-grid 1:1 이식
+
+**모바일 인터랙션 (L-012)**:
+- segBtn / bellBtn / feedViewAll에 `touch-action: manipulation` + `:active { opacity: 0.7 }`
+- segBtn `min-height: 28px` (시각 일관성, 부모 영역으로 터치 보강)
+- 카드 hover 시 `transform: translateY(-2px)` + `filter: brightness(1.12)`
+
+**종료 체크**:
+- ✅ 프론트 type-check 통과
+- ✅ 프론트 build 통과 (`/` 13.6 kB / 112 kB First Load)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 시각 비교 — 다음 세션에서 실 브라우저 캡처로 대조 (현재는 백그라운드 비활성)
+- ⏸ 모바일 (DevTools 375px / 기기 실측) — 다음 세션에서
+
+**체크리스트 진척**:
+- ✅ 섹션 4.1 (CharacterCard)
+- ✅ 섹션 4.2 (LandingHeader)
+- 🟡 섹션 2.1 (홈) — 추천 그리드만 완료. 잔여:
+  - [ ] 공지 캐러셀 (`notice-carousel`)
+  - [ ] TOP.creators (`creator-row`)
+  - [ ] GENRE.catalog
+  - [ ] UPCOMING (잠금 카드)
+  - [ ] BROADCAST 배너 (curation.broadcast[0])
+  - [ ] `<SiteFooter>` (Folio. + 빌드넘버 + 컬럼 + legal)
+
+**발견 / 회고**:
+- 첫 시도에서 빠뜨렸던 디테일들이 이번엔 모두 들어감: 로고 점, # prefix, ▲/♥ 통계, NEW/HOT/UP, Coming Soon, @크리에이터 링크.
+- 그러나 홈 페이지는 추천 그리드 1개 섹션만 완성 — 큐레이션 4섹션 + 푸터는 별도 sub-day로 분리 (Day 3.x).
+- `Curation` 인터페이스 (`lib/types.ts`)는 현재 placeholder. 실제 `/api/curation` 응답 (`broadcast`/`tags`/`collections`/`creators`/`genres`/`upcoming`)과 다름 → 큐레이션 섹션 작업 시 타입부터 재정의 필요.
+- next/image의 `unoptimized` 옵션 사용 — 백엔드 정적 자원 그대로 (Express가 서빙). 추후 production에서 next.config.js의 `images.domains` 또는 loader 전략 검토 필요.
