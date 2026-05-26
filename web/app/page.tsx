@@ -1,24 +1,37 @@
+'use client';
+
+import { useCharacters } from '@/lib/hooks';
+import { CharacterCard } from '@/components/CharacterCard';
+import styles from './page.module.css';
+
 export default function HomePage() {
+  const { characters, error, isLoading } = useCharacters();
+
   return (
-    <main
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 24px',
-        textAlign: 'center',
-        gap: 16,
-      }}
-    >
-      <h1 style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.02em' }}>Folio</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-dim)', letterSpacing: '0.04em' }}>
-        React 마이그레이션 진행 중
-      </p>
-      <p style={{ fontSize: 13, color: 'var(--accent)', marginTop: 24 }}>
-        Phase A — Next.js 14 + TypeScript scaffolding 완료
-      </p>
+    <main className={styles.main}>
+      <header className={styles.header}>
+        <span className={styles.eyebrow}>&gt; RECOMMENDED.FEED</span>
+        <h2 className={styles.title}>추천 캐릭터</h2>
+      </header>
+
+      {isLoading && <div className={styles.loading}>불러오는 중...</div>}
+      {error && (
+        <div className={styles.error}>
+          캐릭터를 불러오지 못했습니다.
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className={styles.grid}>
+          {characters.map((char, idx) => (
+            <CharacterCard
+              key={char.id}
+              character={char}
+              numberBadge={`B${String(idx + 1).padStart(2, '0')}`}
+            />
+          ))}
+        </div>
+      )}
     </main>
   );
 }
