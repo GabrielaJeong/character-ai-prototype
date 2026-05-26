@@ -2,17 +2,20 @@
 
 import { useCharacters } from '@/lib/hooks';
 import { CharacterCard } from '@/components/CharacterCard';
+import { LandingHeader } from '@/components/LandingHeader';
 import styles from './page.module.css';
 
 export default function HomePage() {
   const { characters, error, isLoading } = useCharacters();
 
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
-        <span className={styles.eyebrow}>&gt; RECOMMENDED.FEED</span>
-        <h2 className={styles.title}>추천 캐릭터</h2>
-      </header>
+    <>
+      <LandingHeader />
+      <main className={styles.main}>
+        <header className={styles.feedHeader}>
+          <span className={styles.eyebrow}>&gt; RECOMMENDED.FEED</span>
+          <h2 className={styles.title}>추천 캐릭터</h2>
+        </header>
 
       {isLoading && <div className={styles.loading}>불러오는 중...</div>}
       {error && (
@@ -32,6 +35,7 @@ export default function HomePage() {
           ))}
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 }

@@ -1,0 +1,73 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 20px 0;
+  flex-shrink: 0;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: #E2E8F0;
+  font-family: var(--font);
+}
+
+.segment {
+  display: flex;
+  gap: 6px;
+}
+.segBtn {
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1;
+}
+.segBtn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.segBtn:last-child.active {
+  background: #c94f4f;
+  border-color: #c94f4f;
+}
+
+.bellBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bellBtn:hover {
+  background: var(--surface);
+  color: var(--text);
+}

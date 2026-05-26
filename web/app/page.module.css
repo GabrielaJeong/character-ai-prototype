@@ -6,7 +6,7 @@
   gap: 16px;
 }
 
-.header {
+.feedHeader {
   display: flex;
   flex-direction: column;
   gap: 4px;
