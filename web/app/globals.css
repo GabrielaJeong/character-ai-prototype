@@ -1,5 +1,13 @@
-/* ─── Fonts ─────────────────────────────────────────────── */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+/*
+ * Folio globals.css
+ *
+ * 하이브리드 CSS 전략:
+ *   - 여기에는: 디자인 토큰 + 전역 리셋 + 앱 셸(#app) + 스크롤바 + 라우트 페이지 공통 유틸만
+ *   - 화면/컴포넌트별 스타일은 *.module.css (CSS Modules)로 격리
+ *
+ * Pretendard 폰트는 layout.tsx <head>의 <link>에서 로드
+ * (CSS @import는 Next.js dev 환경에서 stylesheet 로드 깨지는 이슈)
+ */
 
 /* ─── Design Tokens ─────────────────────────────────────── */
 :root {
@@ -63,4 +71,20 @@ body {
     box-shadow: 0 0 0 1px #0d1520, 0 32px 80px rgba(0,0,0,0.7);
     overflow: hidden;
   }
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── 라우트 페이지 공통 컨테이너 ────────────────────────── */
+/* 각 page.tsx 최상위 요소에 적용. flex column + overflow-y: auto */
+.screen-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }

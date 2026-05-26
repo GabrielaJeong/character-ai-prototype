@@ -56,3 +56,52 @@
 ---
 
 <!-- 다음 작업부터 아래에 추가 -->
+
+### 2026-05-05 (Day 1) — 기반 (globals + API client + Auth store)
+
+**작업 범위**: 모든 화면이 의존하는 공통 인프라.
+
+**사전 체크 통과**:
+- ✅ 참조: CLAUDE.md / DESIGN_SYSTEM.md / CONVENTIONS.md / LESSONS L-011·L-013·L-014·L-017
+- ✅ 원본 코드: style.css 1~150, app.js initAuth, db/index.js users 스키마
+- ✅ 체크리스트 섹션: 0(참조) / 1(CSS 전략) / 3.x(글로벌 - AuthBootstrap)
+
+**구현**:
+- `web/app/globals.css` 검증/보강
+  - `@import url(Pretendard)` 제거 → layout `<link>`로 이동 (첫 시도의 stylesheet 깨짐 버그 회피)
+  - `::-webkit-scrollbar` 룰 추가 (원본 117~125)
+  - `.screen-page` 유틸 클래스 추가 (원본 .screen 패턴, 라우트 페이지에 적용)
+- `web/app/layout.tsx`
+  - Pretendard `<link>` 추가
+  - `<AuthBootstrap />` 마운트
+- `web/lib/api.ts`
+  - fetch wrapper (`credentials: 'include'`)
+  - ApiError class (status / data / message)
+  - get/post/patch/put/delete 헬퍼
+  - `rawFetch()` (스트리밍용 — 채팅에서 사용)
+- `web/lib/types.ts`
+  - User / Character / Persona / Session / Message / Notification / Bookmark / Curation / CreatorProfile
+  - SQLite boolean을 0|1로 표현
+- `web/store/auth.ts`
+  - Zustand store: user / ready / demoAvailable
+  - **L-011 race condition 방지**: initAuth 응답 시 `get().user`가 있으면 덮어쓰지 않음
+  - initAuth / checkDemoMode / logout / demoLogin / setUser
+- `web/components/AuthBootstrap.tsx`
+  - 마운트 시 1회 initAuth + checkDemoMode (UI 렌더 X)
+
+**종료 체크**:
+- ✅ 프론트 type-check 통과
+- ✅ 프론트 build 통과 (홈 138B placeholder 상태)
+- ✅ 백엔드 jest 49개 통과
+- ⏸ 시각 비교 / 모바일 / 연결 — 이번 단계는 인프라만, 화면 없음
+- ✅ History 기록 (이 항목)
+- ✅ 체크리스트 0·1·3.x AuthBootstrap 부분 마킹은 다음 화면 만들 때 결과로 확인
+
+**다음 작업 (Day 2)**:
+- [ ] `<Toast>` (z 9998) + `<Splash>` (z 9999) — 글로벌 UI 기초
+- [ ] 모달 공통 CSS (`Modal.module.css`) + `<DeleteConfirmModal>` 재사용 컴포넌트
+- [ ] 작은 버튼 컴포넌트들 (`<BtnPrimary> <BtnGhost> <BtnBack> <BtnIcon> <BtnSend>`) — 또는 화면 작업 중 동시 추출
+
+**발견 / 회고**:
+- L-011 패턴이 store/auth.ts에 명시적으로 주석 처리됨 — 다음에 다른 사람(또는 나)이 봐도 race 의도 알 수 있게
+- types.ts에 SQLite boolean을 `0 | 1`로 명시 — JS truthy 평가 시 `!!user.adult_content_enabled` 패턴 사용 필요
