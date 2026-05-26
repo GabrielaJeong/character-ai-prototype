@@ -1,0 +1,66 @@
+/* ─── Fonts ─────────────────────────────────────────────── */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
+/* ─── Design Tokens ─────────────────────────────────────── */
+:root {
+  --bg:           #0A0E17;
+  --desktop-bg:   #050810;
+  --surface:      #131927;
+  --border:       #1E2A3A;
+  --accent:       #5B8FB9;
+  --accent-dim:   #3D6A8A;
+  --text:         #E2E8F0;
+  --text-muted:   #A8B5C8;
+  --text-dim:     #4A5568;
+  --msg-user:     #1A2744;
+  --radius-card:  12px;
+  --radius-btn:   8px;
+  --font: 'Pretendard', sans-serif;
+}
+
+/* ─── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button:active, a:active { opacity: 0.65; }
+
+html { height: 100%; }
+body {
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--desktop-bg);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── App Shell ─────────────────────────────────────────── */
+#app {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Desktop: floating phone */
+@media (min-width: 500px) {
+  body { align-items: center; padding: 24px 0; }
+  #app {
+    min-height: calc(100vh - 48px);
+    min-height: calc(100dvh - 48px);
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+    border-radius: 24px;
+    box-shadow: 0 0 0 1px #0d1520, 0 32px 80px rgba(0,0,0,0.7);
+    overflow: hidden;
+  }
+}
