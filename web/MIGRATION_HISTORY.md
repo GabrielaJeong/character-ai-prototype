@@ -24,6 +24,57 @@
 
 ---
 
+## Learned — 마이그레이션 중 누적되는 교훈
+
+> 작업하다 같은 실수·문제가 반복 가능하다고 판단되면 여기 ML-XXX로 등재.
+> docs/LESSONS.md의 L-XXX (프로덕션 전반)와 별개 — 여긴 마이그레이션 작업 한정.
+> 새 ML 추가 시 "출처" 날짜·Day와 함께, 작업 시작 전 이 섹션 훑어보고 동일 함정 회피.
+
+### ML-001 — globals.css의 `@import`는 Next.js dev에서 stylesheet 로드 체인을 깬다
+- **증상**: 페이지 렌더 시 다크 테마·스타일 전체 깨짐 (plain white 배경, 폰트 미적용)
+- **원인**: `@import url('pretendard.css')`가 Next.js dev 모드에서 stylesheet 로드를 차단하는 케이스
+- **예방**: 외부 폰트는 `layout.tsx`의 `<head>`에 `<link>` 태그로 로드. globals.css에 `@import` 금지.
+- **출처**: rewind 전 첫 시도 (2026-05-05)
+
+### ML-002 — API 응답 shape를 가설로 짜놓지 말 것
+- **증상**:
+  - Curation 인터페이스 필드명 (banners/editorPicks/topCreators...) 이 실제 (broadcast/collections/creators...) 와 불일치 → 컴파일은 통과해도 런타임에 데이터 누락
+  - `notifications.filter is not a function` — 응답이 `{ items, unreadCount }` 인데 array로 가정
+- **원인**: types.ts에 응답 인터페이스를 추측으로 정의. backend 라우트 핸들러를 안 보고 작성.
+- **예방**: SWR 훅 / 응답 타입 작성 전에 반드시 해당 `routes/*.js`의 `res.json(...)` 줄을 먼저 grep으로 확인. JSON 데이터 파일도 직접 열어볼 것.
+- **출처**: Day 3 (Curation), Day 3.x fix (notifications) (2026-05-27)
+
+### ML-003 — `next build` 직후 `next dev`로 전환 시 `.next` 폴더 충돌
+- **증상**: `Error: Cannot find module './XXX.js'` (webpack-runtime), 페이지 렌더 실패
+- **원인**: production chunk와 dev chunk가 같은 `.next` 폴더 공유. webpack runtime이 잘못된 chunk hash를 참조.
+- **예방**: build로 검증한 직후엔 dev 띄우기 전에 `.next` 삭제.
+  ```powershell
+  Remove-Item -Recurse -Force web\.next
+  npm run dev
+  ```
+  매번 검증 후 자동화하려면 package.json에 `"clean": "rimraf .next"` 추가 검토.
+- **출처**: Day 3.x 종료 후 (2026-05-27)
+
+### ML-004 — Next.js 14에서 `useSearchParams`는 Suspense로 감싸야 함
+- **증상**: build 시 prerender 에러 ("useSearchParams() should be wrapped in a suspense boundary")
+- **원인**: `useSearchParams`는 client-side hook. App Router의 정적 생성과 호환 안 됨.
+- **예방**: 사용하는 컴포넌트를 `<Suspense>`로 wrap. 또는 page를 `export const dynamic = 'force-dynamic'`.
+- **출처**: 초기 시도 (rewind 전)
+
+### ML-005 — Express(3000)와 Next.js dev(default 3000) 포트 충돌
+- **증상**: dev 서버 안 열림 ("address already in use")
+- **원인**: 둘 다 기본 포트 3000. 한쪽이 먼저 잡으면 나머지 못 띄움.
+- **예방**: package.json `"dev": "next dev -p 3001"`로 Next.js를 3001로 고정. next.config.mjs의 rewrites가 `/api/*` → `localhost:3000`으로 프록시.
+- **출처**: Day 0 (2026-05-05)
+
+### ML-006 — App Router는 `error.tsx` / `not-found.tsx` 가 반드시 있어야 함
+- **증상**: dev에서 `missing required error components, refreshing...` 메시지가 계속 뜸. 에러 발생 시 폴백 화면 없음.
+- **원인**: Next.js 14 App Router는 각 segment에서 에러 boundary와 404 폴백 컴포넌트를 명시적으로 요구. 없으면 dev가 자동 주입 시도하면서 새로고침 반복.
+- **예방**: `app/error.tsx` (반드시 `'use client'`, props로 `{ error, reset }`)와 `app/not-found.tsx` 둘 다 layout과 같은 레벨에 둘 것. layout 자체가 throw할 가능성 있으면 `app/global-error.tsx`도 추가.
+- **출처**: Day 3.x fix (2026-05-27)
+
+---
+
 ## 진행 항목
 
 ### 2026-05-05 (Day 0) — Rewind & Harness 셋업
