@@ -1,0 +1,496 @@
+/*
+ * 원본: public/css/style.css
+ *   .intro-wrapper / .intro-hero / .intro-hero-img / .intro-hero-overlay        2373~2398
+ *   .intro-float-nav / .intro-nav-btn / .intro-float-nav-right                  2400~2430
+ *   .intro-hero-action-btn (.active)                                            2432~2470
+ *   .intro-scroll / .intro-identity / .intro-role-label / .intro-name           2488~2522
+ *   .intro-stats-bar / .intro-stat / .intro-stat-value / .intro-stat-divider    2524~2556
+ *   .intro-created-by / .intro-creator-* / .intro-verified-badge / .intro-follow-btn  2558~2615
+ *   .intro-section-label / .intro-tab-bar / .intro-tab                          2617~2651
+ *   .intro-panel / .intro-about-grid / .intro-about-card                        2653~2686
+ *   .intro-traits / .intro-trait-chip                                           2688~2706
+ *   .intro-opening-bubble                                                       2708~2723
+ *   .intro-desc-body                                                            2725~2737
+ *   .intro-notes-* / .intro-rules-list / .intro-tip-card                        2739~2803
+ *   .intro-comments-soon                                                        2805~2822
+ *   .intro-bottom-bar / .intro-start-btn                                        2824~2844
+ */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.wrapper {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Hero ────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  flex-shrink: 0;
+  height: 420px;
+  background: var(--surface);
+}
+.heroImg {
+  object-fit: cover;
+  object-position: top center;
+}
+.heroPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 96px;
+  font-weight: 800;
+  color: var(--accent);
+  background: var(--surface);
+}
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 40%, rgba(8,10,14,0.85) 100%);
+  pointer-events: none;
+}
+
+/* ── Floating nav ────────────────────────────────────── */
+.floatNav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  z-index: 2;
+}
+.navBtn {
+  background: rgba(0,0,0,0.35);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  touch-action: manipulation;
+}
+.navBtn:active { opacity: 0.7; }
+
+.floatNavRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionBtn {
+  background: rgba(0,0,0,0.50);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.80);
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+.actionBtn:hover { background: rgba(0,0,0,0.65); }
+.actionBtn:active { opacity: 0.7; }
+.actionActive {
+  color: var(--accent);
+  background: rgba(91,143,185,0.20);
+  border-color: rgba(91,143,185,0.30);
+}
+
+/* ── Scrollable below hero ───────────────────────────── */
+.scroll {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+}
+
+/* ── Identity ───────────────────────────────────────── */
+.identity {
+  padding: 20px 20px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.roleLabel {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  font-family: var(--font);
+  text-transform: uppercase;
+  margin: 0;
+}
+.name {
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.15;
+}
+.nameEn {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+/* ── Stats bar ──────────────────────────────────────── */
+.statsBar {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex: 1;
+}
+.statValue {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.statLabel {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+.statDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  margin: 0 20px;
+}
+
+/* ── Created.By ─────────────────────────────────────── */
+.createdBy {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.creatorRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.creatorAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.creatorInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.creatorHandle {
+  font-size: 13px;
+  color: var(--text);
+}
+.verifiedBadge {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-family: var(--font);
+}
+.followBtn {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: var(--font);
+  touch-action: manipulation;
+  min-height: 28px;
+}
+.followBtn:hover { border-color: var(--accent); color: var(--accent); }
+.followBtn:active { opacity: 0.7; }
+
+/* ── Section label (재사용) ──────────────────────────── */
+.sectionLabel {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  font-family: var(--font);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ── Tab bar ────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+}
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 12px 16px 10px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: color 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.tab:hover { color: var(--text-dim); }
+.tab:active { opacity: 0.7; }
+.tabActive {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* ── Panels ─────────────────────────────────────────── */
+.panel {
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── ABOUT: card grid ──────────────────────────────── */
+.aboutGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.aboutCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aboutCardLabel {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+.aboutCardVal {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+/* ── Traits ────────────────────────────────────────── */
+.traitsWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.traitChip {
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+}
+
+/* ── Opening line ──────────────────────────────────── */
+.openingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.openingBubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 12px 12px 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ── Description ───────────────────────────────────── */
+.descWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.descBody p {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin: 0 0 10px;
+}
+.descBody p:last-child { margin-bottom: 0; }
+
+/* ── NOTES ──────────────────────────────────────────── */
+.notesBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.notesSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.notesText {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.rulesList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rulesList li {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.tipCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tipLabel {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  font-family: var(--font);
+}
+.tipText {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin: 0;
+}
+.notesFooter {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-align: center;
+  margin: 4px 0 0;
+  font-family: var(--font);
+}
+.notesEmpty {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 40px 0;
+}
+
+/* ── COMMENTS placeholder ──────────────────────────── */
+.commentsSoon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 60px 20px;
+}
+.commentsLabel {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  font-family: var(--font);
+}
+.commentsSub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Bottom CTA ────────────────────────────────────── */
+.bottomBar {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.startBtn {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-card);
+  height: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  touch-action: manipulation;
+}
+.startBtn:hover { opacity: 0.85; }
+.startBtn:active { opacity: 0.7; }
+
+/* ── 로딩 상태 ─────────────────────────────────────── */
+.stateMsg {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 40px 20px;
+  text-align: center;
+  margin: 0;
+}

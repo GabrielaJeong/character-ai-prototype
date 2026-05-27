@@ -135,6 +135,63 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-27 (Day 4) — `/character/[id]` 캐릭터 인트로 1차
+
+**작업 범위**: 원본 SPA #screen-intro (index.html L185~303) → Next.js App Router 라우트.
+
+**사전 체크 통과**:
+- ✅ 원본 코드: app.js `populateIntroScreen` L355~486 / `switchIntroTab` L488 / `toggleLike` L3464 / `toggleBookmark` L3474
+- ✅ style.css: intro-* 룰 전체 (L2373~2844) / wb-accordion (L1206~1263)
+- ✅ API: `/api/characters` 목록에서 id로 find (원본 SPA 동일 패턴) / `/api/bookmarks/:id` POST·DELETE
+
+**구현**:
+- `web/components/IntroAccordion.{tsx,module.css}` 신규 — 펼침/접힘 (세계관 표시용, 재사용 가능)
+- `web/app/character/[id]/page.tsx` — 단일 라우트로 모든 섹션 조립:
+  - Hero (이미지 + 그라디언트 + floating nav)
+  - Floating nav: 뒤로가기 / 좋아요 / 책갈피 / 더보기 (Safety segment는 Day 6로 이연)
+  - Identity (role · world / name / nameEn)
+  - Stats bar (CHATS / LIKES with fmtK)
+  - Created.By (`id.startsWith('char_') && owner_username` 조건)
+  - Tab bar (ABOUT / NOTES / COMMENTS, role="tablist"+role="tab"+aria-selected)
+  - ABOUT panel: 카드 grid (WORLD / AVG.LENGTH / TONE 중 값 있는 것만) + traits + opening line bubble + description 단락 + worldbuilding accordion
+  - NOTES panel: creator_note + rules (ol) + tip 카드 + 푸터 (NOTES BY · date). 빈 상태 처리.
+  - COMMENTS placeholder
+  - Bottom CTA "대화 시작 →" → `/character/[id]/chat` (Day 6에서 실제 페이지)
+- `web/app/character/[id]/page.module.css` — intro-* 룰 1:1 이식
+- `web/lib/types.ts` — `Character.description?: string[]` 추가 (인트로 ABOUT 패널 단락)
+
+**핸들러**:
+- 좋아요: 비로그인 시 AuthGate, 로그인 시 로컬 토스트만 (원본도 `_likedIds` Set만, 백엔드 없음)
+- 책갈피: 비로그인 시 AuthGate, 로그인 시 `/api/bookmarks/:id` POST/DELETE + 토스트
+- Follow: 단순 라우팅 (`/creator/@<handle>`)
+- 더보기: "준비 중입니다" 토스트 (원본과 동일)
+
+**Splash 게이팅**:
+- HomePage와 동일하게 `useEffect`로 `setAppReady(true)` 호출 (isLoading=false 시점)
+- 캐릭터 미존재 시 Next.js `notFound()` 호출 → not-found.tsx 폴백
+
+**모바일 인터랙션 (L-012)**:
+- navBtn / actionBtn / followBtn / tab / startBtn 모두 `touch-action: manipulation` + `:active { opacity: 0.7 }`
+- tab은 `min-height: 44px` 보장, startBtn `height: 44px`
+
+**범위 제외 (다음 Day로)**:
+- Safety segment 토글 (Day 6 chat 작업과 함께 — 등급별 분기 로직 + adult_content_enabled 체크)
+- 좋아요 백엔드 연동 (현재 백엔드에 endpoint 없음 — 향후 `/api/likes/:id` 추가 시 연결)
+- More 메뉴 (공유 / 신고 등 — 별도 모달 필요)
+- `/character/[id]/chat` 라우트 자체 (Day 6)
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (`/character/[id]` 5.15 kB / 104 kB First Load, dynamic route)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 시각 비교 / 모바일 — 다음 세션
+
+**체크리스트 진척**:
+- ✅ 섹션 2.2 (캐릭터 인트로 1차 — 핵심 구조 완료)
+- 🟡 잔여: Safety segment / 좋아요 백엔드 / More 메뉴
+
+---
+
 ### ML-010 — Next.js App Router의 favicon은 `web/app/favicon.ico` 에 있어야 함
 - **증상**: 브라우저 탭 favicon 안 뜸. 원본 `public/favicon.ico`는 Express가 서빙하지만 Next.js 3001은 모름.
 - **원인**: App Router는 `app/favicon.ico` (또는 `app/icon.{ico|png|svg}`) 규약. `web/public/`에 두면 dev에선 서빙되지만 `app/` 규약 충돌. 부모 프로젝트의 `public/favicon.ico`는 next.config.mjs rewrites에 등록 안 한 경로라 404.

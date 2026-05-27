@@ -56,6 +56,7 @@ export interface Character {
     notes_by?: string;
     notes_date?: string;
   };
+  description?: string[];             // 단락 배열 (인트로 ABOUT 패널 하단)
   worldbuilding?: string;             // 일부 캐릭터
   // 유저 제작 캐릭터에만
   owner_user_id?: number;
