@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import type { GenreItem } from '@/lib/types';
+import { useDragScroll } from '@/lib/useDragScroll';
 import { FeedHeader } from './FeedHeader';
 import styles from './GenreRow.module.css';
 
@@ -9,7 +10,8 @@ import styles from './GenreRow.module.css';
  * GENRE.catalog 섹션 — 원본 app.js `_renderLandingCuration` L1869~1890.
  *
  * 동작:
- *   - 가로 스크롤 (drag/swipe). 카드 클릭 → `/explore?tag=<label>` 으로 이동
+ *   - 가로 스크롤: 모바일 native pan-x / 데스크탑 `useDragScroll` 마우스 드래그
+ *   - 카드 클릭 → `/explore?tag=<label>` 으로 이동
  *   - 빈 배열일 땐 섹션 자체 미렌더
  *
  * 카드:
@@ -22,6 +24,7 @@ interface Props {
 
 export function GenreRow({ genres }: Props) {
   const router = useRouter();
+  const rowRef = useDragScroll<HTMLDivElement>();
   if (!genres?.length) return null;
 
   return (
@@ -32,7 +35,7 @@ export function GenreRow({ genres }: Props) {
         viewAllHref="/explore"
         viewAllLabel="ALL"
       />
-      <div className={styles.row}>
+      <div className={styles.row} ref={rowRef}>
         {genres.map((g) => (
           <button
             key={g.label}

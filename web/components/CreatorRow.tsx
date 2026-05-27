@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import type { CreatorItem } from '@/lib/types';
+import { useDragScroll } from '@/lib/useDragScroll';
 import { FeedHeader } from './FeedHeader';
 import styles from './CreatorRow.module.css';
 
@@ -9,13 +10,9 @@ import styles from './CreatorRow.module.css';
  * TOP.creators 섹션 — 원본 app.js `_renderLandingCuration` L1850~1867.
  *
  * 동작:
- *   - 가로 스크롤 (drag/swipe), creators[].handle 클릭 시 `/creator/:handle` (@포함) 이동
- *   - 데스크탑 마우스 drag 슬라이딩은 원본 `initDragSlider`. Phase A에서는 native scroll만 (간소화)
+ *   - 가로 스크롤: 모바일은 native `touch-action: pan-x` / 데스크탑은 `useDragScroll` 마우스 드래그
+ *   - creators[].handle 클릭 시 `/creator/:handle` (@포함) 이동
  *   - 빈 배열일 땐 섹션 자체 미렌더
- *
- * 모바일:
- *   - touch-action: pan-x
- *   - 카드 자체는 touch-action: manipulation (pan-x 컨테이너 내 클릭 충돌 방지)
  */
 interface Props {
   creators: CreatorItem[];
@@ -23,12 +20,13 @@ interface Props {
 
 export function CreatorRow({ creators }: Props) {
   const router = useRouter();
+  const rowRef = useDragScroll<HTMLDivElement>();
   if (!creators?.length) return null;
 
   return (
     <section className={styles.section}>
       <FeedHeader eyebrow="TOP.creators" title="이번 주 제작자" />
-      <div className={styles.row}>
+      <div className={styles.row} ref={rowRef}>
         {creators.map((c) => (
           <button
             key={c.handle}
