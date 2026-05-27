@@ -145,6 +145,57 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-27 (Day 6) — Chat 1차 (메시지 송수신 + 모델 선택 + 모드 토글 + 재생성)
+
+**작업 범위**: `/character/[id]/chat` 라우트와 채팅 핵심 기능.
+
+**원본 대응**: index.html L450~508 (#screen-chat) + style.css L1366~1645, L1978~2129 + app.js sendMessage / regenerateMessage / renderMessage / setModelUI / toggleMode.
+
+**구현**:
+- `web/lib/models.ts` 신규 — MODELS / CHAT_DEFAULT_MODEL / BUILDER_DEFAULT_MODEL / findModel (원본 app.js L1~9와 1:1)
+- `web/components/ChatInput.{tsx,module.css}` 신규 — 재사용 input (textarea 자동 height, Enter 전송, IME 안전, iOS 줌인 방지)
+- `web/components/ModelPicker.{tsx,module.css}` 신규 — fixed popover, 트리거 위 표시, claude/gemini divider, 외부 클릭으로 닫기
+- `web/app/character/[id]/chat/page.{tsx,module.css}` 신규 — 채팅 메인 화면
+  - 헤더: 뒤로가기 / 프로필 버튼 (avatar + name + status) / 모드 토글 / 노트 버튼 (placeholder)
+  - 메시지 리스트: user/assistant 분기 렌더, assistant는 avatar + sender + bubble + (옵션) pagination + regenerate
+  - typing indicator (assistant 응답 대기 중)
+  - novel 모드: avatar/sender 숨김, dialogue " " 안 텍스트 하이라이트
+  - POST `/api/chat` (첫 메시지엔 persona/characterId/safety 함께)
+  - POST `/api/chat/regenerate` 재생성 + 버전 페이지네이션 (versions 배열로 추적)
+
+**chatPrep 흐름**:
+- 페르소나 setup 완료 → `useChatPrepStore.setPrep` → /character/[id]/chat 진입
+- 마운트 시 `consumePrep()` 호출
+- prep 없으면 `/persona?char=<id>` 로 리다이렉트 (직접 URL 입력이나 reload 시 안전망)
+
+**세션 ID**:
+- 클라이언트 생성 (`session-<ts>-<rand>` 7자리). 원본 형식 그대로.
+- 첫 POST 때 백엔드가 sessions 테이블에 INSERT (persona, characterId, safety, model 함께)
+
+**모바일**:
+- ChatInput textarea `font-size: 16px` (iOS 줌인 방지)
+- 모든 버튼 touch-action: manipulation + active 피드백
+- 메시지 리스트 자체 scroll (`.messages { overflow-y: auto; min-height: 0 }`)
+
+**범위 제외 (Day 6.x 또는 별도)**:
+- 노트 모달 (`/api/notes/:sessionId` 저장 + 채팅 헤더 미읽음 도트) — toast placeholder
+- 캐릭터 프로필 모달 (헤더 클릭) — toast placeholder
+- 기존 세션 로드 (`/history` → chat 재진입) — Day 7 history와 함께
+- Safety segment 토글 (intro 화면) — Day 4.x
+- 메시지 자동 스크롤 시 사용자 스크롤 보존 (현재는 단순 scrollTop = scrollHeight)
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (`/character/[id]/chat` 5.63 kB / 99.6 kB First Load, dynamic)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 실제 채팅 동작 (Anthropic/Gemini API 호출) — 브라우저 수동 QA
+
+**체크리스트 진척**:
+- ✅ 섹션 2.6 (채팅 1차)
+- 🟡 노트 / 프로필 모달 / 기존 세션 로드는 Day 6.x
+
+---
+
 ### 2026-05-27 (Day 5) — Persona flow (4 routes)
 
 **작업 범위**: 캐릭터 인트로 → 페르소나 설정 → 채팅 진입 직전까지의 4개 라우트.
