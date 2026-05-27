@@ -357,3 +357,109 @@
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* ── Auth (login / register / reset) ──────────────────── */
+.field-error {
+  font-size: 12px;
+  color: #e06c75;
+  min-height: 16px;
+  margin-top: 4px;
+}
+
+.field-feedback {
+  font-size: 12px;
+  margin-top: 4px;
+  min-height: 16px;
+}
+.field-feedback.ok       { color: #4ade80; }
+.field-feedback.error    { color: #f87171; }
+.field-feedback.checking { color: var(--text-muted); }
+
+.auth-switch {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 20px;
+}
+
+.btn-text-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: inherit;
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  touch-action: manipulation;
+}
+.btn-text-link.danger { color: #e06c75; }
+.btn-text-link:hover { opacity: 0.8; }
+.btn-text-link:active { opacity: 0.6; }
+
+.auth-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+
+/* @ prefix input (register username) */
+.at-input-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  overflow: hidden;
+}
+.at-prefix {
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #A8B5C8;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.at-input-wrap input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--text);
+  outline: none;
+}
+/* iOS 자동 zoom 방지 */
+@supports (-webkit-touch-callout: none) {
+  .at-input-wrap input { font-size: 16px; }
+}
+
+/* 비밀번호 재설정 완료 박스 */
+.reset-done-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+  gap: 12px;
+}
+.reset-done-icon {
+  font-size: 48px;
+  color: var(--accent);
+}
+.reset-done-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.reset-done-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+}

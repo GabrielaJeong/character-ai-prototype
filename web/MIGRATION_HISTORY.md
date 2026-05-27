@@ -145,6 +145,59 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-27 (Day 7) — Auth (login / signup / forgot / reset-password)
+
+**작업 범위**: 인증 4종 (`/login` 안에 login / register / forgot 뷰 토글 + 별도 `/reset-password?token=`).
+
+**원본 대응**: index.html L869~988 (#screen-login, #screen-reset-password) + app.js submitLogin / submitRegister / submitForgotPassword / submitResetPassword + routes/auth.js (검증 메시지 1:1 매칭).
+
+**구현**:
+- `web/app/styles/forms.css` 보강 — auth 패턴 (field-error / field-feedback / auth-switch / btn-text-link / auth-desc / at-input-wrap / at-prefix / reset-done-*)
+- `web/lib/validators.ts` 신규 — validateEmail / validatePassword / validateNickname / validateUsername / safeRedirect (open-redirect 방지)
+- `web/app/login/page.tsx` + `.module.css` — 통합 화면:
+  - **Login view**: identifier (이메일 또는 @아이디) + 비밀번호 → POST /api/auth/login
+  - **Register view**: 이메일 + 비밀번호 + 닉네임 + @아이디 → POST /api/auth/register. **debounced username 가용성 체크** (400ms, GET /api/auth/check-username)
+  - **Forgot view**: 이메일 → POST /api/auth/forgot-password. dev 응답에 `_demo_token` 있으면 토큰으로 바로 이동 버튼 노출.
+- `web/app/reset-password/page.tsx` + `.module.css` — 토큰 기반 비밀번호 변경:
+  - URL `?token=<token>` 필수 (없으면 안내 + /login 링크)
+  - 새 비밀번호 + 확인 → POST /api/auth/reset-password → done 뷰 → "로그인하러 가기"
+
+**redirect 보안**:
+- `?redirect=<path>` 파라미터 그대로 push하지 않음
+- `safeRedirect(redirect)` — `/` 시작 안 하거나 `//` 시작 (protocol-relative)이면 `/`로 폴백
+- 로그인 성공 시 `router.replace` 사용 — /login을 history에서 제거 (L-011)
+
+**모바일 인터랙션**:
+- 모든 input `font-size: 16px` (iOS 줌인 방지)
+- @ prefix input의 input도 동일 처리
+- 텍스트 링크 버튼 touch-action: manipulation + :active 피드백
+
+**ML-004 재발 방지**:
+- `useSearchParams` 사용하는 /login, /reset-password 둘 다 Suspense outer + inner 패턴 적용
+
+**Splash 게이팅**:
+- 두 페이지 모두 마운트 즉시 setAppReady(true) — 데이터 게이팅 필요 없음
+
+**범위 제외 (다음 단계)**:
+- 회원 정보 수정 (마이페이지의 PATCH /api/auth/me) — Day 8 mypage
+- 회원 탈퇴 (DELETE /api/auth/me) — Day 8 mypage
+- 성인 인증 모달 (POST /api/auth/adult-verify) — Day 8 mypage 또는 별도
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (`/login` 5.99 kB / 93.4 kB, `/reset-password` 4.57 kB / 91.9 kB — 둘 다 static)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 실제 회원가입/로그인 동작 (DB 변경 동반) — 브라우저 수동 QA
+- ✅ AuthGate의 `/login` redirect 404 구멍 해소
+
+**체크리스트 진척**:
+- ✅ 섹션 2.7 (Login)
+- ✅ 섹션 2.8 (Signup — login 안에 통합)
+- ✅ 섹션 2.9 (Forgot password — login 안에 통합)
+- ✅ 섹션 2.10 (Reset password — 별도 라우트)
+
+---
+
 ### 2026-05-27 (Day 6) — Chat 1차 (메시지 송수신 + 모델 선택 + 모드 토글 + 재생성)
 
 **작업 범위**: `/character/[id]/chat` 라우트와 채팅 핵심 기능.
