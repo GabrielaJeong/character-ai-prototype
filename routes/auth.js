@@ -224,10 +224,10 @@ router.patch('/adult-content', (req, res) => {
 });
 
 // ── POST /api/auth/forgot-password ───────────────────────
-// 데모/dev 환경에서만 응답에 토큰 포함 (실제 이메일 발송 미구현이라 dev 편의용).
-// 프로덕션에서는 절대 노출 금지 — 노출 시 이메일만 알면 비번 변경 가능해지는 계정 탈취 (L-019).
-const FORGOT_PW_EXPOSE_TOKEN =
-  process.env.NODE_ENV !== 'production' || process.env.DEMO_MODE === 'true';
+// dev 환경에서만 응답에 토큰 포함 (이메일 발송 미구현이라 dev 편의용).
+// 프로덕션에서는 절대 노출 금지 — 노출 시 이메일만 알면 비번 변경 가능 (계정 탈취).
+// Codex R2 F3: DEMO_MODE 게이트 제거 — 프로덕션에서 DEMO_MODE=true 시에도 노출 안 됨.
+const FORGOT_PW_EXPOSE_TOKEN = process.env.NODE_ENV !== 'production';
 
 router.post('/forgot-password', (req, res) => {
   const { email } = req.body;

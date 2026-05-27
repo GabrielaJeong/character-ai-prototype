@@ -103,14 +103,17 @@ router.post('/', async (req, res) => {
   let aborted = false;
   res.on('close', () => { if (!res.writableEnded) aborted = true; });
 
+  // Codex R2 F1: 라우트 레벨 accumulator. streamReply 내부 acc는 중간 throw 시 lost되어
+  // 빈 string만 반환되므로 partial 저장이 의미 없었음. onDelta에서 직접 누적해야 안전.
   let accumulated = '';
   try {
-    accumulated = await streamReply({
+    await streamReply({
       model,
       systemPrompt,
       history,
       maxTokens: 8192,
       onDelta: (text) => {
+        accumulated += text;
         if (aborted) return;
         sseWrite(res, { type: 'delta', text });
       },
@@ -120,7 +123,6 @@ router.post('/', async (req, res) => {
     if (!aborted) {
       sseWrite(res, { type: 'error', error: 'AI 응답에 실패했습니다.' });
     }
-    // partial이라도 있으면 저장
     if (accumulated) stmt.addMessage.run(sessionId, 'assistant', accumulated);
     if (!aborted) res.end();
     return;

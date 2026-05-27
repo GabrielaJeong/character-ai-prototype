@@ -65,7 +65,8 @@ interface SSEEvent {
 async function consumeSmoothStream(
   source: AsyncIterable<SSEEvent>,
   onDisplay: (displayed: string) => void,
-): Promise<{ text: string; error: string | null }> {
+  signal?: AbortSignal,
+): Promise<{ text: string; error: string | null; aborted: boolean }> {
   let target = '';
   let displayed = '';
   let streamDone = false;
@@ -96,8 +97,10 @@ async function consumeSmoothStream(
   };
   rafId = requestAnimationFrame(tick);
 
+  let aborted = false;
   try {
     for await (const ev of source) {
+      if (signal?.aborted) { aborted = true; break; }
       if (ev.type === 'delta' && ev.text) {
         target += ev.text;
       } else if (ev.type === 'error') {
@@ -105,10 +108,21 @@ async function consumeSmoothStream(
       }
     }
   } catch (err) {
-    error = err instanceof ApiError ? err.message : '연결에 실패했습니다.';
+    if (signal?.aborted || (err instanceof Error && err.name === 'AbortError')) {
+      aborted = true;
+    } else {
+      error = err instanceof ApiError ? err.message : '연결에 실패했습니다.';
+    }
   }
 
   streamDone = true;
+
+  if (aborted) {
+    // 페이지 이탈 등 — drain 기다리지 않고 즉시 종료
+    if (rafId !== null) cancelAnimationFrame(rafId);
+    rafId = null;
+    return { text: target, error: null, aborted: true };
+  }
 
   // tick 루프가 drain 끝낼 때까지 대기
   await new Promise<void>((resolve) => {
@@ -119,7 +133,7 @@ async function consumeSmoothStream(
     check();
   });
 
-  return { text: target, error };
+  return { text: target, error, aborted: false };
 }
 
 type Role = 'user' | 'assistant';
@@ -179,10 +193,19 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   // StrictMode에서 useEffect가 두 번 호출되어도 consume이 한 번만 일어나도록 가드.
   // useState 가드는 closure가 stale해서 두 번 다 통과 → 두 번째 consume이 null 반환하는 버그를 일으킴.
   const consumedRef = useRef(false);
+  // Codex R2 F4: 현재 in-flight 스트림의 AbortController. 페이지 이탈/새 전송 시 cancel.
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setAppReady(true);
   }, [setAppReady]);
+
+  // 페이지 unmount 시 in-flight 스트림 abort (Codex R2 F4)
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   // prep 소비 — 캐릭터 데이터 로드 후 한 번만 (ref 가드로 StrictMode 안전, ML-011 참조)
   useEffect(() => {
@@ -260,12 +283,18 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       }
     };
 
-    const { text: finalText, error } = await consumeSmoothStream(
-      streamSSE<SSEEvent>('/api/chat', body),
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const { text: finalText, error, aborted } = await consumeSmoothStream(
+      streamSSE<SSEEvent>('/api/chat', body, { signal: ctrl.signal }),
       onDisplay,
+      ctrl.signal,
     );
+    abortRef.current = null;
 
     setSending(false);
+
+    if (aborted) return; // 페이지 이탈 등 — UI 업데이트 안 함
 
     if (error) {
       if (assistantPlaced) {
@@ -312,13 +341,22 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       );
     };
 
-    const { text: finalText, error } = await consumeSmoothStream(
-      streamSSE<SSEEvent>('/api/chat/regenerate', { sessionId, model }),
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    const { text: finalText, error, aborted } = await consumeSmoothStream(
+      streamSSE<SSEEvent>('/api/chat/regenerate', { sessionId, model }, { signal: ctrl.signal }),
       onDisplay,
+      ctrl.signal,
     );
+    abortRef.current = null;
 
     setSending(false);
     setRegeneratingIdx(null);
+
+    if (aborted) {
+      // 페이지 이탈 시 — 백엔드는 partial 저장. 프론트 UI 업데이트 안 함 (어차피 unmount).
+      return;
+    }
 
     if (error) {
       if (!finalText) {

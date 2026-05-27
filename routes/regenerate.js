@@ -27,6 +27,10 @@ function sseWrite(res, payload) {
 
 // POST /api/chat/regenerate — SSE streaming
 // Body: { sessionId, model? }
+//
+// Codex R2 F2: 기존 assistant를 미리 삭제하지 않고, 새 응답이 도착해야 교체.
+// 스트림 전체 실패 → 기존 assistant 그대로 유지 (DB 일관성)
+// 스트림 partial (1글자라도 옴) → 기존 삭제 + partial 저장 (frontend도 partial 표시)
 module.exports = async (req, res) => {
   const { sessionId, model: rawModel } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
@@ -39,16 +43,16 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'No assistant message to regenerate' });
   }
 
-  // 새 모델 받으면 세션에 반영 (Codex F1 patch와 동일 정책)
   let model = session.model || DEFAULT_MODEL;
   if (rawModel && ALLOWED_MODELS.has(rawModel) && rawModel !== model) {
     stmt.updateSessionModel.run(rawModel, sessionId);
     model = rawModel;
   }
 
-  stmt.deleteLastAssistantMessage.run(sessionId);
-
-  const history = stmt.getMessages.all(sessionId).map(m => ({
+  // 기존 assistant 삭제는 stream 완료 후로 미룸. 대신 prompt 컨텍스트에서 제외:
+  // getMessages는 오래된 순. 마지막은 우리가 교체하려는 assistant이므로 slice(0, -1).
+  const allMessages = stmt.getMessages.all(sessionId);
+  const history = allMessages.slice(0, -1).map(m => ({
     role:    m.role,
     content: m.content,
   }));
@@ -60,32 +64,39 @@ module.exports = async (req, res) => {
 
   sseSetup(res);
 
-  // res.on('close')만 true abort 신호 — req.on('close')는 body 읽음 끝에도 발화함
   let aborted = false;
   res.on('close', () => { if (!res.writableEnded) aborted = true; });
 
+  // Codex R2 F1: route-level accumulator
   let accumulated = '';
+  let streamError = null;
   try {
-    accumulated = await streamReply({
+    await streamReply({
       model,
       systemPrompt,
       history,
       maxTokens: 8192,
       onDelta: (text) => {
+        accumulated += text;
         if (aborted) return;
         sseWrite(res, { type: 'delta', text });
       },
     });
   } catch (err) {
     console.error('Regenerate stream error:', err.message);
-    if (!aborted) sseWrite(res, { type: 'error', error: '재생성에 실패했습니다.' });
-    if (accumulated) stmt.addMessage.run(sessionId, 'assistant', accumulated);
-    if (!aborted) res.end();
-    return;
+    streamError = err.message;
   }
 
+  // Codex R2 F2: 새 응답이 있으면 (성공/partial 무관) 기존 교체. 없으면 기존 유지.
   if (accumulated) {
+    stmt.deleteLastAssistantMessage.run(sessionId);
     stmt.addMessage.run(sessionId, 'assistant', accumulated);
+  }
+
+  if (streamError) {
+    if (!aborted) sseWrite(res, { type: 'error', error: '재생성에 실패했습니다.' });
+    if (!aborted) res.end();
+    return;
   }
 
   if (!aborted) {
