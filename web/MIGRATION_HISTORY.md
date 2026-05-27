@@ -145,6 +145,65 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-28 (Day 9) — History + chatPrep persistence (Codex F5 해결)
+
+**작업 범위**: `/history` 라우트 + chat 페이지의 `?session=<id>` URL 파라미터 hydration.
+**효과**: 사용자가 과거 대화를 다시 볼 수 있고, 새로고침/직접 URL 진입 시 채팅이 정상 복원됨 (chatPrep memory-only 한계 해결).
+
+**원본 대응**: index.html L152~172 (#screen-history) + style.css L1722~1914 + app.js loadSessionList / loadSession / handleDeleteAll / handleDeleteClick / confirmDelete.
+
+**백엔드 (수정 없음)**:
+- `GET /api/sessions` — 사용자/게스트 격리된 세션 목록 (이미 있음)
+- `GET /api/sessions/:id` — 세션 + 전체 메시지 (이미 있음)
+- `DELETE /api/chat/:sessionId` — 삭제 (이미 있음)
+
+**프론트 추가**:
+- `web/lib/hooks.ts`: `useSessions()` / `useSession(id)` — SWR 훅
+- `web/app/history/page.tsx` + `.module.css`:
+  - 세션 카드 (캐릭터 아바타 + 페넌트 + 캐릭터명 + 날짜 + 미리보기 + 페르소나 태그)
+  - 선택모드 (체크박스 슬라이드, 다중 선택)
+  - 전체삭제 / 선택삭제 — `useUIStore.showDeleteConfirm`으로 재사용 모달
+- `web/app/character/[id]/chat/page.tsx` 리팩토링:
+  - `useSearchParams`로 `?session=<id>` 읽음 → outer를 Suspense로 감쌈 (ML-004)
+  - `useSession(sessionParam)` hook으로 백엔드 hydrate
+  - hydration 분기:
+    - `?session=<id>` 있고 로드 성공 → persona/safety/model/messages 모두 백엔드에서 복원, sessionId = URL의 값
+    - `?session=<id>` 있고 character_id 불일치 → /history로 redirect (URL 조작 차단)
+    - `?session=<id>` 있고 로드 실패 → /history로 redirect
+    - `?session` 없으면 기존 chatPrep 소비 흐름 그대로 (신규 채팅)
+  - **새 채팅 첫 메시지 성공 후 router.replace로 `?session=<id>` 추가** → 새로고침해도 같은 세션 유지 (Codex F5 해결)
+
+**리다이렉트 정책 변경**:
+- 이전: prep 없으면 무조건 `/persona?char=<id>`
+- 이후: `?session=` 있고 hydration 실패면 `/history`로, 신규 prep 없으면 `/persona?char=<id>` (둘 다 의미 있는 fallback)
+
+**브라우저 시나리오**:
+1. `/history`에서 카드 클릭 → `/character/ihwa/chat?session=session-xxx-yyy` → 메시지·페르소나·safety·model 모두 복원
+2. 새 채팅 시작 → 메시지 1번 보냄 → URL이 `?session=session-xxx-yyy` 으로 갱신 → 새로고침해도 그 세션 유지
+3. 새 채팅 진입 후 새로고침 (메시지 0번 보냄 상태) → `?session` 없으므로 prep 없음 → `/persona?char=<id>`로 redirect (기존 동작)
+
+**Codex F5 (chatPrep memory-only) 해결**:
+- 이전: chatPrep in-memory zustand만 사용 → 새로고침/직접 URL 진입 깨짐
+- 이후: 첫 메시지 직후 URL이 source of truth로 전환 → in-memory store는 persona setup → chat 진입의 한 hop만 담당
+- Refresh-safe.
+
+**모바일**:
+- 세션 카드 `touch-action: manipulation` + `:active opacity 0.85`
+- action 버튼 `min-height: 28px`
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (`/history` 3.76 kB static, `/character/[id]/chat` 7.01 kB dynamic)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 실제 세션 로드 / 삭제 / refresh persistence — 브라우저 수동 QA
+
+**잔여**:
+- Note dot (헤더의 "📝" 옆 빨간 점) — 노트 모달과 함께 Day 6.x로
+- userImageUrl restore (localStorage `user-img:<sessionId>`) — 아바타 업로드 작업과 함께
+- Day 9 후 codex R3 리뷰 권장
+
+---
+
 ### 2026-05-28 (Day 6.x) — 채팅 SSE 스트리밍 (token-by-token typewriter UX)
 
 **작업 범위**: 기존 non-stream 일괄 응답을 Server-Sent Events 스트리밍으로 전환.

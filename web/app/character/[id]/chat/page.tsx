@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter, notFound } from 'next/navigation';
-import { useCharacters } from '@/lib/hooks';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams, notFound } from 'next/navigation';
+import { useCharacters, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { ApiError, streamSSE } from '@/lib/api';
@@ -167,8 +167,22 @@ function highlightDialogue(text: string): React.ReactNode[] {
 }
 
 export default function ChatPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<div className={styles.wrap} />}>
+      <ChatInner params={params} />
+    </Suspense>
+  );
+}
+
+function ChatInner({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const sp = useSearchParams();
+  const sessionParam = sp.get('session');
+  const isExistingSession = !!sessionParam;
+
   const { characters, isLoading } = useCharacters();
+  const { session: loadedSession, isLoading: sessionLoading, error: sessionError } =
+    useSession(sessionParam);
   const showToast = useUIStore((s) => s.showToast);
   const setAppReady = useUIStore((s) => s.setAppReady);
   const consumePrep = useChatPrepStore((s) => s.consume);
@@ -207,28 +221,68 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     };
   }, []);
 
-  // prep 소비 — 캐릭터 데이터 로드 후 한 번만 (ref 가드로 StrictMode 안전, ML-011 참조)
+  // Hydration — `?session=<id>` 있으면 백엔드 세션 로드, 없으면 chatPrep 소비.
+  // ref 가드로 StrictMode 안전 (ML-011).
   useEffect(() => {
     if (consumedRef.current) return;
     if (isLoading) return;
-    consumedRef.current = true;
-    const prep = consumePrep();
-    if (prep && prep.characterId === params.id) {
-      setPersona(prep.persona);
-      setSafety(prep.safety);
-      setSessionId(newSessionId());
+
+    if (isExistingSession) {
+      // 기존 세션 모드 — useSession 응답 대기
+      if (sessionLoading) return;
+      if (sessionError || !loadedSession) {
+        consumedRef.current = true;
+        setHasPersona(false);
+        return;
+      }
+      // character_id 불일치 (URL 조작) → 안전 차단
+      if (loadedSession.character_id !== params.id) {
+        consumedRef.current = true;
+        setHasPersona(false);
+        return;
+      }
+      consumedRef.current = true;
+      setPersona(loadedSession.persona);
+      setSafety((loadedSession.safety === 'off' ? 'off' : 'on') as Safety);
+      setSessionId(loadedSession.id);
+      if (loadedSession.model) setModel(loadedSession.model);
+
+      // messages → Msg[] 변환
+      const personaName = loadedSession.persona.name || '유저';
+      const charName_ = char?.name ?? '캐릭터';
+      const hydratedMessages = (loadedSession.messages ?? []).map((m) => ({
+        role: m.role,
+        sender: m.role === 'user' ? personaName : charName_,
+        versions: [m.content],
+        vIdx: 0,
+      }));
+      setMessages(hydratedMessages);
       setHasPersona(true);
     } else {
-      setHasPersona(false);
+      // 새 채팅 모드 — chatPrep 소비
+      consumedRef.current = true;
+      const prep = consumePrep();
+      if (prep && prep.characterId === params.id) {
+        setPersona(prep.persona);
+        setSafety(prep.safety);
+        setSessionId(newSessionId());
+        setHasPersona(true);
+      } else {
+        setHasPersona(false);
+      }
     }
-  }, [isLoading, params.id, consumePrep]);
+  }, [isLoading, isExistingSession, sessionLoading, sessionError, loadedSession, params.id, consumePrep, char?.name]);
 
-  // 캐릭터 없는 경우 (또는 prep 없이 들어온 경우) → 페르소나 setup으로
+  // 실패 시 redirect — 기존 세션 로드 실패면 /history, 신규 prep 없으면 /persona
   useEffect(() => {
     if (hasPersona === false) {
-      router.replace(`/persona?char=${encodeURIComponent(params.id)}`);
+      if (isExistingSession) {
+        router.replace('/history');
+      } else {
+        router.replace(`/persona?char=${encodeURIComponent(params.id)}`);
+      }
     }
-  }, [hasPersona, params.id, router]);
+  }, [hasPersona, isExistingSession, params.id, router]);
 
   // 메시지 추가 시 스크롤 하단으로
   useEffect(() => {
@@ -295,6 +349,11 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     setSending(false);
 
     if (aborted) return; // 페이지 이탈 등 — UI 업데이트 안 함
+
+    // 첫 메시지 성공 + URL에 ?session 없으면 URL 갱신 (refresh-safe, Codex F5)
+    if (!isExistingSession && isFirstMessage && finalText && !error) {
+      router.replace(`/character/${char.id}/chat?session=${encodeURIComponent(sessionId)}`);
+    }
 
     if (error) {
       if (assistantPlaced) {

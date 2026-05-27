@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { api } from './api';
-import type { Character, Notification, Curation, AppVersion, Persona } from './types';
+import type { Character, Notification, Curation, AppVersion, Persona, Session, SessionDetail } from './types';
 import { useAuthStore } from '@/store/auth';
 
 const fetcher = <T,>(path: string) => api.get<T>(path);
@@ -56,6 +56,31 @@ export function usePersonas() {
     fetcher,
   );
   return { personas: data ?? [], error, isLoading, mutate };
+}
+
+/**
+ * GET /api/sessions — 현재 user 또는 guest의 대화 세션 목록.
+ * 응답: Session[] (list view: id/character_id/safety/persona/message_count/last_message/created_at).
+ */
+export function useSessions() {
+  const ready = useAuthStore((s) => s.ready);
+  const { data, error, isLoading, mutate } = useSWR<Session[]>(
+    ready ? '/api/sessions' : null,
+    fetcher,
+  );
+  return { sessions: data ?? [], error, isLoading, mutate };
+}
+
+/**
+ * GET /api/sessions/:id — 단일 세션 + 전체 메시지.
+ * Chat 페이지에서 `?session=<id>` 로 진입 시 hydrate에 사용.
+ */
+export function useSession(id: string | null) {
+  const { data, error, isLoading, mutate } = useSWR<SessionDetail>(
+    id ? `/api/sessions/${id}` : null,
+    fetcher,
+  );
+  return { session: data, error, isLoading, mutate };
 }
 
 /** GET /api/version — 사이트 푸터의 버전·빌드 표기용 */
