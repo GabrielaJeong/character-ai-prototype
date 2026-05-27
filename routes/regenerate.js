@@ -65,7 +65,14 @@ module.exports = async (req, res) => {
   sseSetup(res);
 
   let aborted = false;
-  res.on('close', () => { if (!res.writableEnded) aborted = true; });
+  // Codex R3 F4: provider SDK까지 abort 전달
+  const providerCtrl = new AbortController();
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      aborted = true;
+      providerCtrl.abort();
+    }
+  });
 
   // Codex R2 F1: route-level accumulator
   let accumulated = '';
@@ -76,6 +83,7 @@ module.exports = async (req, res) => {
       systemPrompt,
       history,
       maxTokens: 8192,
+      signal: providerCtrl.signal,
       onDelta: (text) => {
         accumulated += text;
         if (aborted) return;

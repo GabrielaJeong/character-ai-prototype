@@ -13,6 +13,19 @@ export function useCharacters() {
   return { characters: data ?? [], error, isLoading, mutate };
 }
 
+/**
+ * GET /api/characters/:id — 단건 캐릭터 config (필터링 없음).
+ * 성인 콘텐츠 토글이 OFF여도 본인이 과거에 대화한 성인 캐릭터 세션은 열려야 하므로,
+ * 세션 hydration 시 list에 없는 경우 이 endpoint로 fallback. (Codex R3 F2)
+ */
+export function useCharacterDetail(id: string | null) {
+  const { data, error, isLoading } = useSWR<Character>(
+    id ? `/api/characters/${encodeURIComponent(id)}` : null,
+    fetcher,
+  );
+  return { character: data ?? null, error, isLoading };
+}
+
 /** GET /api/curation */
 export function useCuration() {
   const { data, error, isLoading } = useSWR<Curation>('/api/curation', fetcher);

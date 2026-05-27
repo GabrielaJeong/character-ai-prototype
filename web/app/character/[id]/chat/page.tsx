@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams, notFound } from 'next/navigation';
-import { useCharacters, useSession } from '@/lib/hooks';
+import { useCharacters, useCharacterDetail, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { ApiError, streamSSE } from '@/lib/api';
@@ -41,7 +41,7 @@ import styles from './page.module.css';
  *   - 노트 모달 / 캐릭터 프로필 모달 / 기존 세션 로드
  */
 interface SSEEvent {
-  type: 'delta' | 'done' | 'error';
+  type: 'delta' | 'done' | 'error' | 'session';
   text?: string;
   error?: string;
   sessionId?: string;
@@ -65,6 +65,7 @@ interface SSEEvent {
 async function consumeSmoothStream(
   source: AsyncIterable<SSEEvent>,
   onDisplay: (displayed: string) => void,
+  onSession: (sessionId: string) => void,
   signal?: AbortSignal,
 ): Promise<{ text: string; error: string | null; aborted: boolean }> {
   let target = '';
@@ -101,7 +102,10 @@ async function consumeSmoothStream(
   try {
     for await (const ev of source) {
       if (signal?.aborted) { aborted = true; break; }
-      if (ev.type === 'delta' && ev.text) {
+      if (ev.type === 'session' && ev.sessionId) {
+        // Codex R3 F3: 세션 생성 직후 URL 갱신 — stream 실패해도 안전
+        onSession(ev.sessionId);
+      } else if (ev.type === 'delta' && ev.text) {
         target += ev.text;
       } else if (ev.type === 'error') {
         error = ev.error ?? '응답에 실패했습니다.';
@@ -187,7 +191,14 @@ function ChatInner({ params }: { params: { id: string } }) {
   const setAppReady = useUIStore((s) => s.setAppReady);
   const consumePrep = useChatPrepStore((s) => s.consume);
 
-  const char = characters.find((c) => c.id === params.id) ?? null;
+  // Codex R3 F2: 필터링된 list에 없으면 단건 fallback. 성인 토글 OFF 상태에서
+  // 본인이 과거에 대화한 adult_only 캐릭터 세션도 열려야 함.
+  const charInList = characters.find((c) => c.id === params.id) ?? null;
+  const needFallback = !isLoading && !charInList;
+  const { character: charFallback, isLoading: fallbackLoading } = useCharacterDetail(
+    needFallback ? params.id : null,
+  );
+  const char = charInList ?? charFallback;
 
   // chat session state
   const [persona, setPersona] = useState<PersonaData | null>(null);
@@ -226,6 +237,8 @@ function ChatInner({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (consumedRef.current) return;
     if (isLoading) return;
+    // char fallback 로드 중이면 대기 (F2)
+    if (!char) return;
 
     if (isExistingSession) {
       // 기존 세션 모드 — useSession 응답 대기
@@ -291,7 +304,8 @@ function ChatInner({ params }: { params: { id: string } }) {
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
 
-  if (!isLoading && characters.length > 0 && !char) notFound();
+  // notFound: list 로드 끝났고 fallback도 끝났는데 char가 없으면 진짜 없는 캐릭터.
+  if (!isLoading && !fallbackLoading && needFallback && !charFallback) notFound();
   if (!char || hasPersona !== true || !persona) {
     return <div className={styles.wrap} />;
   }
@@ -337,11 +351,19 @@ function ChatInner({ params }: { params: { id: string } }) {
       }
     };
 
+    // session event 도착 시 URL 즉시 갱신 (Codex R3 F3) — stream 실패해도 안전
+    const onSession = (newSessionId: string) => {
+      if (!isExistingSession && isFirstMessage) {
+        router.replace(`/character/${char.id}/chat?session=${encodeURIComponent(newSessionId)}`);
+      }
+    };
+
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     const { text: finalText, error, aborted } = await consumeSmoothStream(
       streamSSE<SSEEvent>('/api/chat', body, { signal: ctrl.signal }),
       onDisplay,
+      onSession,
       ctrl.signal,
     );
     abortRef.current = null;
@@ -349,11 +371,6 @@ function ChatInner({ params }: { params: { id: string } }) {
     setSending(false);
 
     if (aborted) return; // 페이지 이탈 등 — UI 업데이트 안 함
-
-    // 첫 메시지 성공 + URL에 ?session 없으면 URL 갱신 (refresh-safe, Codex F5)
-    if (!isExistingSession && isFirstMessage && finalText && !error) {
-      router.replace(`/character/${char.id}/chat?session=${encodeURIComponent(sessionId)}`);
-    }
 
     if (error) {
       if (assistantPlaced) {
@@ -405,6 +422,7 @@ function ChatInner({ params }: { params: { id: string } }) {
     const { text: finalText, error, aborted } = await consumeSmoothStream(
       streamSSE<SSEEvent>('/api/chat/regenerate', { sessionId, model }, { signal: ctrl.signal }),
       onDisplay,
+      () => { /* regenerate는 세션 생성 안 함 — no-op */ },
       ctrl.signal,
     );
     abortRef.current = null;

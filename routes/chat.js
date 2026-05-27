@@ -101,7 +101,18 @@ router.post('/', async (req, res) => {
   // 주의: req.on('close')는 Node HTTP에서 request body 다 읽으면 발화되므로 사용 불가.
   // res.on('close')는 res.end() 호출 전 연결 종료 시에만 발화 → 정확히 우리가 원하는 시점.
   let aborted = false;
-  res.on('close', () => { if (!res.writableEnded) aborted = true; });
+  // Codex R3 F4: provider SDK까지 abort 전달 — client 중단 시 모델 호출도 취소
+  const providerCtrl = new AbortController();
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      aborted = true;
+      providerCtrl.abort();
+    }
+  });
+
+  // Codex R3 F3: stream 시작 전에 session 정보 송신 — 프론트가 URL 즉시 갱신해
+  // 첫 메시지 스트리밍이 실패해도 새로고침 시 세션 손실 없음.
+  sseWrite(res, { type: 'session', sessionId: session.id, model });
 
   // Codex R2 F1: 라우트 레벨 accumulator. streamReply 내부 acc는 중간 throw 시 lost되어
   // 빈 string만 반환되므로 partial 저장이 의미 없었음. onDelta에서 직접 누적해야 안전.
@@ -112,6 +123,7 @@ router.post('/', async (req, res) => {
       systemPrompt,
       history,
       maxTokens: 8192,
+      signal: providerCtrl.signal,
       onDelta: (text) => {
         accumulated += text;
         if (aborted) return;
@@ -158,7 +170,11 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE /api/chat/:sessionId
+// Codex R3 F1: session ID 알기만 하면 누구나 삭제 가능했던 보안 취약점.
+// verifyOwnership으로 user/guest 격리 강제.
 router.delete('/:sessionId', (req, res) => {
+  const session = verifyOwnership(req.params.sessionId, req, res);
+  if (!session) return;
   stmt.deleteSession.run(req.params.sessionId);
   res.json({ ok: true });
 });
