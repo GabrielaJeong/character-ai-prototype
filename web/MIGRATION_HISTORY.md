@@ -92,24 +92,41 @@
 - **원본 대응**: 원본 index.html의 `.screen` 패턴과 동일 — 각 screen이 자체 `flex:1; overflow-y:auto`를 가졌고, BottomNav는 sibling.
 - **출처**: Day 3.x fix (2026-05-27)
 
-### ML-009 — SSR 오버레이 FOUC 방지는 inline style로, inline script로 React 트리 밖 DOM 조작은 금지
+### ML-009 — Splash dismiss는 **timer + 데이터 ready 동시 만족**을 기다려야 함 (원본 SPA 원칙)
 - **증상**: Splash 컴포넌트가 마운트 전이라 home 페이지 콘텐츠가 잠깐 보이고 나서 splash가 덮어쓰임 (FOUC).
 - **시도와 실패**:
   1. **1차 (실패)**: `'use client'` + `useEffect`에서 `setVisible(true)` — hydration 후에야 표시 → 첫 페인트에 home 노출
   2. **2차 (실패)**: `useState(true)`로 SSR HTML에 마크업 포함 — 하지만 dev 모드에서 CSS Module 로드 지연 시 `position:fixed`가 적용 전이라 인라인 흐름에 렌더되어 home이 비침
   3. **3차 (실패)**: `<head>`에 `<script dangerouslySetInnerHTML>`로 sessionStorage 체크 → `<html>`에 클래스 부여, CSS로 returning user 즉시 숨김. **부작용**: React 트리 밖 DOM 조작이라 hydration이 `removeChild` 시도 시 null parent 만나 `TypeError: Cannot read properties of null (reading 'removeChild')` 발생. `suppressHydrationWarning`으로 경고는 억제되나 런타임 에러는 못 막음.
 - **4차 (실패)**: Splash를 Server Component로 + 인접 `<script>`로 vanilla JS dismiss. **부작용**: SSR HTML이 React 트리에 포함된 채 dismiss script가 hydration 전에 splash 요소 제거 → React가 트리/DOM mismatch 발견 → "Hydration failed because the initial UI does not match what was rendered on the server" 폭주. React 트리 안 요소를 hydration 전 DOM 조작은 어떤 방식으로든 위험.
-- **최종 해법 (Client Component + React state로만 dismiss)**:
-  1. `'use client'` + `useState(true)` 기본값
-     · SSR HTML에 splash 마크업 포함 (첫 페인트부터 가림)
-     · 초기 client state도 true → SSR과 동일 → hydration mismatch 없음
-  2. **모든 dismiss는 React state로만** — DOM 직접 조작 절대 금지. setState로 conditional render → React가 자체 reconciliation으로 안전하게 unmount.
-  3. critical positioning은 inline `style={{}}` — CSS Module 로드 시점 무관하게 첫 페인트부터 적용.
-  4. fadeOut 완료 시 `onAnimationEnd`로 `setMounted(false)` — 모두 React lifecycle 안.
-  5. returning user: `useEffect`에서 즉시 `setMounted(false)`. hydration 후 1프레임 splash 깜빡 → unmount. (home이 비치는 것보다 훨씬 짧고 brand 노출이라 무해)
+- **4차 (실패)**: Server Component + 인접 `<script>`로 vanilla JS dismiss → hydration 전 DOM 제거로 mismatch 폭주
+- **5차 (실패)**: Client Component + `useState(true)` + timer만으로 dismiss → splash 사라진 뒤 SWR이 데이터 받아오느라 home placeholder "불러오는 중..." → 캐릭터 grid 깜빡임. 재방문자는 0.1~0.3초 안에 splash + 로딩 placeholder + 완성 grid를 빠르게 후루룩 보게 됨.
+- **핵심 진단 (사용자 지적)**: "스플래시 전에 홈 화면이 보인다"는 표면 증상이고, 진짜 문제는 **splash 뒤에서 데이터 로딩이 끝나야 splash가 사라져야** 한다는 것. 그래야 splash 사라질 때 home이 이미 완전 로드 상태.
+- **원본 SPA의 실제 패턴** (app.js L159~186):
+  ```js
+  let _dataReady = false, _timerReady = false;
+  function _tryDismissSplash() {
+    if (_splashDone || !_dataReady || !_timerReady) return;
+    // 둘 다 true일 때만 dismiss
+  }
+  // DOMContentLoaded: 첫방문 setTimeout 800ms → _timerReady=true
+  // loadCharacters() 끝: _dataReady=true; _tryDismissSplash()
+  ```
+- **최종 해법 (Client Component + state + appReady gating)**:
+  1. **Zustand store(`useUIStore`)에 `appReady: boolean` + `setAppReady` 추가** — 글로벌 ready 신호
+  2. 홈 페이지의 useEffect가 `!isLoading` 되면 `setAppReady(true)` 호출 (원본 _dataReady에 대응)
+  3. Splash는 `(timerReady && appReady)` 둘 다 만족할 때만 `setFadeOut(true)`
+     · 첫 방문자: `minTimer = 800ms` 후 timerReady=true
+     · 재방문자: `minTimer = 0` 후 timerReady=true (sessionStorage 'folio-splash-shown' 체크)
+     · **안전망**: `maxTimer = 5000ms` — appReady 신호 안 와도 강제 진행
+  4. SSR HTML에 splash 마크업 포함 (`useState(true)`), critical positioning은 inline style → 첫 페인트부터 가림
+  5. dismiss는 React state로만 (`setMounted(false)`) — DOM 직접 조작 금지, hydration 안전
+  6. fadeOut 완료는 `onAnimationEnd`로 감지하여 unmount → React lifecycle 안
+- **결과**: 재방문자도 splash가 데이터 로딩 끝날 때까지 화면 가려서, splash 사라지자마자 home이 완성된 상태로 노출. "후루룩" 깜빡임 차단.
 - **원칙**:
-  - **SSR HTML이 React 트리에 포함된 요소는 hydration 완료 후에만 DOM 조작 가능** (즉 `useEffect` 이후, setState로만)
-  - hydration 전 DOM 조작이 필요하다면 React 트리 밖에 별도 컨테이너 생성 (예: `document.createElement` + `appendChild`)
+  - 첫 페인트에 SSR 데이터가 없는 SWR 기반 페이지의 경우, **splash는 데이터 ready 신호까지 기다려야** 함
+  - `<store>.appReady`를 다른 entry page에서도 setAppReady(true) 호출하면 마찬가지 효과
+  - SSR HTML이 React 트리에 포함된 요소는 hydration 완료 후에만 DOM 조작 가능 (setState로만)
   - inline script로 React 관리 요소 조작 절대 금지 (`<html>` 클래스, 자식 제거 등)
   - critical 시각 속성은 inline `style={{}}` — CSS 로드/hydration 타이밍 모두에 안전
 - **출처**: Day 3.x fix (2026-05-27)

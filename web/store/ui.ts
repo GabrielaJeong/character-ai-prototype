@@ -42,6 +42,11 @@ interface UIState {
   deleteConfirm: DeleteConfirmPayload | null;
   showDeleteConfirm: (p: DeleteConfirmPayload) => void;
   closeDeleteConfirm: () => void;
+
+  // Splash gating — 현재 route의 critical 데이터가 준비되면 true.
+  // Splash는 (minTimer 경과 && appReady)일 때만 dismiss → 원본 SPA의 _dataReady + _timerReady 패턴.
+  appReady: boolean;
+  setAppReady: (ready: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set, get) => ({
@@ -74,4 +79,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   deleteConfirm: null,
   showDeleteConfirm: (p) => set({ deleteConfirm: p }),
   closeDeleteConfirm: () => set({ deleteConfirm: null }),
+
+  // ── Splash gating ──────────────────────────────────────
+  appReady: false,
+  setAppReady: (ready) => set({ appReady: ready }),
 }));

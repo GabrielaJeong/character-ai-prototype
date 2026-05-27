@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { LandingHeader } from '@/components/LandingHeader';
 import { CharacterCard } from '@/components/CharacterCard';
 import { FeedHeader } from '@/components/FeedHeader';
@@ -9,6 +10,7 @@ import { GenreRow } from '@/components/GenreRow';
 import { UpcomingGrid } from '@/components/UpcomingGrid';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useCharacters, useCuration } from '@/lib/hooks';
+import { useUIStore } from '@/store/ui';
 import styles from './page.module.css';
 
 /**
@@ -33,6 +35,13 @@ import styles from './page.module.css';
 export default function HomePage() {
   const { characters, error, isLoading } = useCharacters();
   const { curation } = useCuration();
+  const setAppReady = useUIStore((s) => s.setAppReady);
+
+  // 캐릭터 데이터 로드 끝나면 splash dismiss 가능 신호.
+  // 원본 SPA app.js의 _dataReady = true 와 동일 (loadCharacters 후).
+  useEffect(() => {
+    if (!isLoading) setAppReady(true);
+  }, [isLoading, setAppReady]);
 
   return (
     <div className={styles.pageWrap}>

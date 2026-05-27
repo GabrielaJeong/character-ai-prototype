@@ -1,47 +1,59 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useUIStore } from '@/store/ui';
 import styles from './Splash.module.css';
 
 const KEY = 'folio-splash-shown';
+const MIN_TIMER_FIRST_VISIT = 800;
+const MAX_TIMER_SAFETY      = 5000;   // appReady 신호 안 와도 안 갇히게
 
 /**
- * 스플래시. 세션당 1회만 표시 (sessionStorage).
+ * 스플래시. 원본 SPA의 _tryDismissSplash 로직 (app.js L159~186) 이식.
  *
- * 설계 (Day 3.x ML-009 최종):
- *   - **Client Component + useState(true)**
- *     · useState(true)로 SSR HTML에 splash 마크업 포함 → 첫 페인트부터 가림
- *     · 초기 client state도 true → SSR과 동일 → hydration mismatch 없음
- *   - **모든 dismiss는 React state로만**
- *     · DOM 직접 조작 금지 (element.remove() 등)
- *     · setState로 conditional render → React가 자체 reconciliation으로 안전하게 unmount
- *   - **critical positioning은 inline style**
- *     · CSS Module 로드 시점 무관하게 첫 페인트부터 position:fixed/z-index:9999 적용
+ * 핵심 규칙 (ML-009 최종):
+ *   - **dismiss = (timerReady && appReady)** — 둘 다 true일 때만
+ *   - **데이터 로딩은 splash 뒤에서**: home page가 SWR로 캐릭터 받아오는 동안 splash가 가림.
+ *     splash 사라질 때 home은 이미 완전 로드 상태 → "splash → loading placeholder → grid" 깜빡임 차단
+ *   - 첫 방문: minTimer 800ms + appReady
+ *   - 재방문 (sessionStorage 'folio-splash-shown' 있음): minTimer 0 + appReady
+ *   - 최대 5초 안에 appReady 신호 없으면 강제 dismiss (안전망)
  *
- * 동작:
- *   - 첫 방문: 800ms 표시 → fadeOut 0.4s → unmount + sessionStorage 세팅
- *   - 재방문: useEffect 즉시 setMounted(false) — hydration 후 1프레임 정도 보이고 사라짐
- *     (이 1프레임은 home이 비치는 것보다 훨씬 짧고, brand 노출이라 부정적이지도 않음)
+ * 기술 결정 (Day 3.x ML-009):
+ *   - Client Component + useState(true). SSR HTML에 splash 마크업 포함.
+ *   - critical positioning은 inline style. CSS Module 로드 시점 무관하게 첫 페인트부터 가림.
+ *   - dismiss는 setState로만 (DOM 직접 조작 금지) → React-managed unmount, hydration 안전.
  */
 export function Splash() {
-  const [mounted, setMounted] = useState(true);
+  const appReady = useUIStore((s) => s.appReady);
+  const [timerReady, setTimerReady] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [mounted, setMounted] = useState(true);
 
+  // 1. minTimer + maxTimer 시작 (재방문자는 minTimer 0)
   useEffect(() => {
-    // returning user — 즉시 unmount
-    if (sessionStorage.getItem(KEY)) {
-      setMounted(false);
-      return;
-    }
-    // first visit — 800ms 후 fadeOut, 400ms 후 unmount
-    const showTimer = setTimeout(() => {
-      setFadeOut(true);
-      sessionStorage.setItem(KEY, '1');
-    }, 800);
-    return () => clearTimeout(showTimer);
+    const isReturning = !!sessionStorage.getItem(KEY);
+    const minDelay = isReturning ? 0 : MIN_TIMER_FIRST_VISIT;
+
+    const minT = setTimeout(() => setTimerReady(true), minDelay);
+    // 안전망: appReady 신호 없어도 5초면 강제 진행
+    const maxT = setTimeout(() => setTimerReady(true), MAX_TIMER_SAFETY);
+
+    return () => {
+      clearTimeout(minT);
+      clearTimeout(maxT);
+    };
   }, []);
 
-  // fadeOut 이후 unmount는 onAnimationEnd로 React-safe하게 처리
+  // 2. (timerReady && appReady) → fadeOut 트리거
+  useEffect(() => {
+    if (timerReady && appReady && !fadeOut) {
+      sessionStorage.setItem(KEY, '1');
+      setFadeOut(true);
+    }
+  }, [timerReady, appReady, fadeOut]);
+
+  // 3. fadeOut 애니메이션 끝나면 unmount
   const handleAnimationEnd = () => {
     if (fadeOut) setMounted(false);
   };
