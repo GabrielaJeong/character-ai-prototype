@@ -98,12 +98,17 @@
   1. **1차 (실패)**: `'use client'` + `useEffect`에서 `setVisible(true)` — hydration 후에야 표시 → 첫 페인트에 home 노출
   2. **2차 (실패)**: `useState(true)`로 SSR HTML에 마크업 포함 — 하지만 dev 모드에서 CSS Module 로드 지연 시 `position:fixed`가 적용 전이라 인라인 흐름에 렌더되어 home이 비침
   3. **3차 (실패)**: `<head>`에 `<script dangerouslySetInnerHTML>`로 sessionStorage 체크 → `<html>`에 클래스 부여, CSS로 returning user 즉시 숨김. **부작용**: React 트리 밖 DOM 조작이라 hydration이 `removeChild` 시도 시 null parent 만나 `TypeError: Cannot read properties of null (reading 'removeChild')` 발생. `suppressHydrationWarning`으로 경고는 억제되나 런타임 에러는 못 막음.
-- **최종 해법**:
-  1. `useState(true)` 기본값으로 SSR HTML에 splash 마크업 포함
-  2. **Critical positioning은 inline `style={{}}`로**: `position:fixed; inset:0; z-index:9999; background; display:flex` 등. CSS Module 로드 시점과 무관하게 첫 페인트부터 가림.
-  3. `useEffect`에서 returning user는 즉시 `setMounted(false)` — 1프레임 splash 노출은 감수 (home 비치는 것보다 훨씬 짧음)
-  4. `<head>` inline script + `<html>` 클래스 트릭은 **사용 금지** — React가 관리하는 트리 밖에서 DOM 조작하면 hydration 충돌
-- **응용 원칙**: "마운트 전에 결정돼야 하는 클라이언트 상태"의 critical 시각 속성은 inline style로 박을 것. CSS Module의 hide rule이나 `<html>` 클래스 같은 트릭은 hydration 안전성이 보장될 때만.
+- **최종 해법 (Server Component + vanilla JS dismiss)**:
+  1. **Splash를 Server Component로 변환** (`'use client'` 제거). React state 없음 → hydration 타이밍 무관.
+  2. SSR HTML에 splash 요소 + dismiss 스크립트(`<script dangerouslySetInnerHTML>`)를 같이 박음. **요소 바로 뒤에 스크립트** → DOM 파싱과 동시에 즉시 실행, splash 요소 참조 가능.
+  3. critical positioning은 inline `style={{}}` — CSS Module 로드 시점 무관하게 첫 페인트부터 가림.
+  4. dismiss는 `element.parentNode.removeChild(el)` 로 직접 DOM 제거. **React가 splash를 트리에서 관리하지 않으므로 removeChild 충돌 없음**.
+  5. returning user는 dismiss script가 `el.style.display = 'none'`로 1프레임도 안 보이게 처리 후 DOM 제거.
+- **원본 SPA 대응**: index.html `<div id="splash">` + app.js의 splash 제거 로직과 동일 패턴.
+- **응용 원칙**:
+  - 첫 페인트부터 가려야 하는 오버레이는 **Server Component + 인접 dismiss script** 패턴 사용
+  - React state로 dismiss하려 하면 hydration removeChild 충돌 위험
+  - `<html>` 같은 React 관리 요소를 inline script로 조작 금지 (필요하면 새 컨테이너 만들어 그 위에서 조작)
 - **출처**: Day 3.x fix (2026-05-27)
 
 ### ML-010 — Next.js App Router의 favicon은 `web/app/favicon.ico` 에 있어야 함
