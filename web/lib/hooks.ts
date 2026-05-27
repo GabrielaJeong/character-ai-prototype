@@ -58,6 +58,19 @@ export function useNotifBadgeCount() {
 }
 
 /**
+ * GET /api/bookmarks — 로그인 사용자가 북마크한 character_id 배열.
+ * 비로그인 시 비활성 (mypage 책갈피 탭에서만 사용).
+ */
+export function useBookmarks() {
+  const user = useAuthStore((s) => s.user);
+  const { data, error, isLoading, mutate } = useSWR<string[]>(
+    user ? '/api/bookmarks' : null,
+    fetcher,
+  );
+  return { bookmarks: data ?? [], error, isLoading, mutate };
+}
+
+/**
  * GET /api/personas — 로그인 사용자의 페르소나 목록.
  * 비로그인 시 SWR 비활성 (null key → 요청 안 함).
  * 응답: Persona[] (each row has `data` already JSON-parsed by backend).

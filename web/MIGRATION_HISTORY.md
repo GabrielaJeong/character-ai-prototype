@@ -145,6 +145,48 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-28 (Day 8.1) — Mypage 1차 (profile + settings + tabs + lists)
+
+**작업 범위**: `/mypage` 라우트의 핵심 구조. 모달/업로드/탈퇴는 Day 8.2/8.3로 분리.
+
+**원본 대응**: index.html L1013~1169 (#screen-mypage) + style.css L3721~4505.
+
+**추가**:
+- `web/lib/hooks.ts`: `useBookmarks()` — 로그인 사용자 북마크 char_id 배열 (비로그인 비활성)
+- `web/app/mypage/page.tsx` + `.module.css` — 단일 페이지에 모든 섹션:
+  - 프로필 카드 (avatar/nickname/email/CREATOR 뱃지)
+  - 설정 섹션 4개 row (정보수정, adult 토글 (display only), 모델, 토큰)
+  - 탭바 (페르소나/캐릭터/책갈피) + 카운트 + 슬라이드 indicator
+  - 페르소나 패널: usePersonas + 기본설정 / 편집(toast) / 삭제 (showDeleteConfirm 재사용)
+  - 캐릭터 패널: useCharacters에서 `id.startsWith('char_') && owner_username === user.username` 필터 + 편집(toast) / 삭제 (R4 가드 통과) + `+ 새 캐릭터 만들기` → /builder
+  - 책갈피 패널: useBookmarks ∩ useCharacters + 해제 (`DELETE /api/bookmarks/:id`)
+  - 메뉴 리스트 (좋아요/크리에이터/어드민/팔로잉/설정/지원/로그아웃 = openLogout 재사용)
+  - 푸터 + 탈퇴 button (toast placeholder)
+
+**비로그인 처리**:
+- `useEffect`에서 `!user` 시 `showAuthGate({ intendedPath: '/mypage' })` 호출 (L-011 패턴)
+- 페이지는 빈 wrap 렌더 (AuthGate가 로그인/뒤로 안내)
+
+**모바일**:
+- 모든 row `min-height: 52px`, `touch-action: manipulation`
+- 탭 버튼 `min-height: 44px`
+- charLink/addBtn `touch-action: manipulation` + `:active opacity 0.7`
+
+**범위 제외 (Day 8.2 / 8.3)**:
+- 정보 수정 모달 (PATCH /api/auth/me — 닉네임/이메일/비번) → "Day 8.2에서" toast
+- 성인 인증 모달 + adult 토글 동작 → 동일
+- 아바타 업로드 → "Day 8.3에서" toast
+- 탈퇴 (DELETE /api/auth/me) → 동일
+- 페르소나 편집 페이지 → 별도
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ ESLint clean (no warnings/errors)
+- ✅ jest 49/49 통과
+- ⏸ 브라우저 시각/플로우 확인 — 다음 세션
+
+---
+
 ### 2026-05-28 (Day 9) — History + chatPrep persistence (Codex F5 해결)
 
 **작업 범위**: `/history` 라우트 + chat 페이지의 `?session=<id>` URL 파라미터 hydration.
