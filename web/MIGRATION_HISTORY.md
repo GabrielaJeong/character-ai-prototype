@@ -129,6 +129,8 @@
   - SSR HTML이 React 트리에 포함된 요소는 hydration 완료 후에만 DOM 조작 가능 (setState로만)
   - inline script로 React 관리 요소 조작 절대 금지 (`<html>` 클래스, 자식 제거 등)
   - critical 시각 속성은 inline `style={{}}` — CSS 로드/hydration 타이밍 모두에 안전
+- **6차 (실제 원인 발견)**: 위 모든 작업에도 사용자가 "여전히 home이 먼저 보이고 splash가 그 다음에 로딩되는 것처럼 보임" 호소. 원인: **Splash.module.css의 `.splash`에 `animation: fadeIn 0.3s ease` 가 들어있어서** opacity 0→1로 페이드인. 첫 0.3초 동안 splash가 반투명이라 home이 비쳐 보임. 원본 style.css의 `#splash`엔 fadeIn 없음 (로고·카피만 fadeIn). 마이그레이션 때 잘못 추가한 룰. 제거.
+  - **교훈**: 원본 CSS 1:1 이식이라고 했지만 작은 추가(`animation: fadeIn`)가 시각적 인지에 결정적 영향. CSS 이식 시 **원본의 빠진 룰을 보강하기보다 원본대로만**.
 - **출처**: Day 3.x fix (2026-05-27)
 
 ### ML-010 — Next.js App Router의 favicon은 `web/app/favicon.ico` 에 있어야 함

@@ -1,4 +1,7 @@
-/* 원본: public/css/style.css 22~65 + 309~343 (logo dots) */
+/* 원본: public/css/style.css 22~65 + 309~343 (logo dots).
+   원본 #splash는 fadeIn 없음 — 첫 페인트부터 완전 불투명.
+   이전 버전이 .splash에 fadeIn 0.3s를 추가했었음 → opacity 0→1 동안 home 콘텐츠가 비쳐서
+   "splash가 home 뒤에 로딩되는 것처럼" 보이는 버그 발생. 제거. (ML-009 후속 수정) */
 .splash {
   position: fixed;
   inset: 0;
@@ -10,11 +13,9 @@
   gap: 14px;
   z-index: 9999;
   pointer-events: none;
-  animation: fadeIn 0.3s ease;
 }
 .out { animation: fadeOut 0.4s ease forwards; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeOut { to { opacity: 0; } }
 
 .logo {
