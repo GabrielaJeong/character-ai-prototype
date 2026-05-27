@@ -478,6 +478,28 @@
 
 ---
 
+### ML-013 — Codex/외부 QA 리뷰의 finding은 보안 critical이라도 무비판적으로 묶음 적용 금지
+- **증상**: Codex R4 리뷰 5건 중 F1(critical 보안)에 묻혀 F2(builder requireAuth)와 F4(API shape 변경)를 동시 반영. 결과적으로 데모/포트폴리오 흐름(비로그인 빌더 체험)이 깨지고 `/api/characters/:id` 응답 형태와 사용처가 함께 바뀌어 영향 범위가 커짐.
+- **원인**:
+  1. critical finding을 빠르게 막아야 한다는 압박감 → 동일 리뷰의 다른 finding도 같은 우선순위로 처리
+  2. 각 finding의 의도된 UX·API 정책과의 충돌을 검토하지 않고 일괄 적용
+  3. CLAUDE.md의 "반박·수정 정책" (사용자 제시 코드/계획에 문제 있으면 반박 후 진행) 무시
+- **올바른 진행 절차**:
+  1. 리뷰 finding을 severity와 영향 범위로 **분리**해서 검토
+  2. **보안 critical만 즉시 반영** (의도된 UX 영향 없는 경우)
+  3. UX/API 정책 변경을 동반하는 finding은 **반박 → 대안 의논 → 사용자 확정 → 적용**
+  4. 의도된 게스트 흐름, 데모 모드, 백워드 호환성을 점검 체크리스트로 갖고 있을 것
+- **체크리스트 (Codex/외부 리뷰 반영 전)**:
+  - [ ] 이 finding이 데모/체험 모드를 막는가? → 그렇다면 rate-limit 등 대안 검토
+  - [ ] API 응답 shape를 바꾸는가? → 가능하면 게이트만 추가하는 가벼운 대안 우선
+  - [ ] 기존 게스트 흐름을 깨는가? → guest_id 기반 처리 가능한지 확인
+  - [ ] 새 라우트 가드가 다른 흐름에서 401을 만드는가? → 호출자 측 영향 분석
+- **사례 fix**: F2는 롤백 + apiLimiter 의존, F4는 sessions embed 대신 `/api/characters/:id`에 직접 게이트 (adult_only일 때만, session-ownership 통과)
+- **참조**: production lesson 후보. docs/LESSONS.md의 "외부 리뷰/제3자 의견 반영 절차"로도 등재 가치 있음.
+- **출처**: Day 8 시작 직전 (2026-05-28)
+
+---
+
 ### ML-012 — Node Express SSE에서 `req.on('close')`는 abort 신호로 쓸 수 없음 — `res.on('close')` 써야 함
 - **증상**: SSE 엔드포인트 (`POST /api/chat`)에서 응답 헤더만 도착하고 데이터 byte 0개. 백엔드 로그는 모델 응답 정상 수신 + 22개 이벤트 처리 + 348자 완성됐다고 표시. 그런데 클라이언트엔 한 글자도 안 옴.
 - **원인**: 첫 번째 abort 가드 코드를 `req.on('close', () => aborted = true)`로 작성. Node.js HTTP에서 `req.on('close')`는 **클라이언트 연결 종료가 아니라 request body 다 읽힌 직후에도 발화**. POST body가 작아 즉시 다 읽혀 → 모델 응답 도착 전에 `aborted = true` → 모든 `onDelta` 콜백이 `if (aborted) return`으로 skip → res.write 한 번도 호출 안 됨.
