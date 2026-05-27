@@ -9,13 +9,15 @@ const KEY = 'folio-splash-shown';
  * 스플래시. 세션당 1회만 표시 (sessionStorage).
  *
  * FOUC 방지 (Day 3.x ML-009):
- *   - SSR HTML에 splash 마크업이 항상 포함 → 첫 페인트부터 가려짐
- *   - layout.tsx의 <head> inline script가 sessionStorage 체크 후 <html>에 'splash-shown' 클래스 추가
- *     → CSS에서 그 클래스가 있으면 splash를 즉시 숨김 (returning user는 1프레임도 안 보임)
+ *   - useState(true) 기본값으로 SSR HTML에 splash 마크업 항상 포함
+ *   - critical positioning(position:fixed/z-index:9999/background 등)을 inline style로
+ *     → CSS Module 로드 시점과 무관하게 첫 페인트부터 home 콘텐츠 가림
  *
  * 동작:
  *   - 첫 방문: 800ms 표시 → fadeOut 0.4s → unmount
- *   - 재방문: 마운트 즉시 unmount (CSS에서 이미 숨겨진 상태로 페인트)
+ *   - 재방문: useEffect에서 즉시 setMounted(false) — 1프레임 splash 노출은 감수
+ *     (inline script로 <html> 클래스 부여하는 트릭은 React 트리 밖 DOM 조작이라
+ *      hydration removeChild 에러 유발 → 제거)
  */
 export function Splash() {
   // SSR/Hydration 일관성을 위해 항상 true로 시작 — CSS가 returning user의 첫 페인트를 숨김
@@ -45,8 +47,24 @@ export function Splash() {
 
   if (!mounted) return null;
 
+  // 핵심 positioning은 inline style로 — CSS Module이 dev에서 지연 적용되는 경우
+  // 첫 페인트부터 home 콘텐츠가 비치는 FOUC를 차단. (ML-009 보강)
   return (
-    <div className={`${styles.splash} ${fadeOut ? styles.out : ''}`}>
+    <div
+      className={`${styles.splash} ${fadeOut ? styles.out : ''}`}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: '#0A0E17',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        pointerEvents: 'none',
+      }}
+    >
       <span className={styles.logo}>
         Foli
         <span className={styles.oWrap}>

@@ -21,23 +21,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning: <head>의 inline script가 sessionStorage 체크 후
-    // <html>에 'splash-shown' 클래스를 부여 → React 트리엔 없는 속성이라
-    // hydration warning 발생. 의도된 동작이므로 억제. (ML-009 후속)
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko">
       <head>
         {/* Pretendard 폰트 — CSS @import 대신 link 태그로 로드 (Next.js dev 호환) */}
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
-        />
-        {/* Splash FOUC 방지 — React 마운트 전에 sessionStorage 체크하여 <html>에 클래스 부여.
-            Splash.module.css의 :global(html.splash-shown) 룰이 즉시 숨김 처리. (ML-009) */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "try{if(sessionStorage.getItem('folio-splash-shown'))document.documentElement.classList.add('splash-shown');}catch(e){}",
-          }}
         />
       </head>
       <body>
