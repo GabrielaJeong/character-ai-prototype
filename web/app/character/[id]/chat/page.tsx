@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, notFound } from 'next/navigation';
 import { useCharacters, useCharacterDetail, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { ApiError, streamSSE } from '@/lib/api';
 import { CHAT_DEFAULT_MODEL } from '@/lib/models';
 import { ChatInput } from '@/components/ChatInput';
@@ -184,6 +185,12 @@ function ChatInner({ params }: { params: { id: string } }) {
   const sessionParam = sp.get('session');
   const isExistingSession = !!sessionParam;
 
+  // 채팅은 로그인 필수 (사용자 정책)
+  const { user, ready } = useRequireAuth(
+    sessionParam ? `/character/${params.id}/chat?session=${sessionParam}` : `/character/${params.id}/chat`,
+    { title: '대화', desc: '대화하려면 로그인이 필요합니다.' },
+  );
+
   const { characters, isLoading } = useCharacters();
   const { session: loadedSession, isLoading: sessionLoading, error: sessionError } =
     useSession(sessionParam);
@@ -308,6 +315,8 @@ function ChatInner({ params }: { params: { id: string } }) {
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
 
+  // 비로그인 → AuthGate가 떠있는 상태, 채팅 로직 진행 안 함
+  if (!ready || !user) return <div className={styles.wrap} />;
   // notFound: list와 fallback 둘 다 끝났는데 char가 없으면 진짜 없는 캐릭터.
   if (!isLoading && !fallbackLoading && needFallback && !charFallback) notFound();
   if (!char || hasPersona !== true || !persona) {

@@ -5,8 +5,8 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePersonas } from '@/lib/hooks';
-import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 /**
  * `/persona/select?char=<id>` — 기존 페르소나 목록에서 선택.
@@ -32,8 +32,11 @@ function PersonaSelectInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
-  const user = useAuthStore((s) => s.user);
-  const ready = useAuthStore((s) => s.ready);
+  const intendedPath = charId ? `/persona/select?char=${encodeURIComponent(charId)}` : '/persona/select';
+  const { user, ready } = useRequireAuth(intendedPath, {
+    title: '페르소나 선택',
+    desc: '페르소나를 선택하려면 로그인이 필요합니다.',
+  });
   const { personas, isLoading } = usePersonas();
   const setAppReady = useUIStore((s) => s.setAppReady);
 
@@ -41,21 +44,17 @@ function PersonaSelectInner() {
     setAppReady(true);
   }, [setAppReady]);
 
-  // 가드 리다이렉트들
+  // 캐릭터 컨텍스트 / 페르소나 0개 가드
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !user) return;
     if (!charId) {
       router.replace('/');
-      return;
-    }
-    if (!user) {
-      router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
       return;
     }
     if (!isLoading && personas.length === 0) {
       router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
     }
-  }, [ready, charId, user, isLoading, personas.length, router]);
+  }, [ready, user, charId, isLoading, personas.length, router]);
 
   if (!ready || !user || !charId || isLoading) {
     return null;

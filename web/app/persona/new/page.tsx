@@ -5,8 +5,8 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCharacters } from '@/lib/hooks';
-import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { api, ApiError } from '@/lib/api';
 import { resolveUser } from '@/lib/format';
@@ -44,12 +44,14 @@ function PersonaNewInner() {
   const charId = sp.get('char');
   const isLinked = !!charId;
 
-  const user = useAuthStore((s) => s.user);
-  const ready = useAuthStore((s) => s.ready);
+  const intendedPath = isLinked ? `/persona/new?char=${encodeURIComponent(charId!)}` : '/persona/new';
+  const { user, ready } = useRequireAuth(intendedPath, {
+    title: '페르소나 만들기',
+    desc: '페르소나를 만들려면 로그인이 필요합니다.',
+  });
   const { characters } = useCharacters();
   const showToast = useUIStore((s) => s.showToast);
   const setAppReady = useUIStore((s) => s.setAppReady);
-  const showAuthGate = useUIStore((s) => s.showAuthGate);
   const setPrep = useChatPrepStore((s) => s.setPrep);
 
   const char = isLinked ? characters.find((c) => c.id === charId) ?? null : null;
@@ -74,18 +76,8 @@ function PersonaNewInner() {
     }
   }, [isLinked, characters.length, char, router]);
 
-  // Codex F3: standalone(=마이페이지에서 새 페르소나) 모드는 백엔드 저장이 필수.
-  // 비로그인이면 가짜 "저장됨" UX 방지를 위해 AuthGate로 막고 /login으로 보냄.
-  useEffect(() => {
-    if (!ready) return;
-    if (!isLinked && !user) {
-      showAuthGate({
-        title: '페르소나 만들기',
-        desc: '페르소나를 저장하려면 로그인이 필요합니다.',
-        intendedPath: '/persona/new',
-      });
-    }
-  }, [ready, isLinked, user, showAuthGate]);
+  // 비로그인 → useRequireAuth가 이미 AuthGate 띄움. 페이지 로직은 진행 안 함.
+  // (이전의 Codex F3 가드는 useRequireAuth로 통합됨)
 
   const fillRecommended = () => {
     const p = char?.recommendedPersona;
@@ -125,16 +117,7 @@ function PersonaNewInner() {
     };
 
     try {
-      // Codex F3: standalone은 백엔드 저장 필수. 비로그인이면 진행 안 함 (AuthGate가 막아야 정상)
-      if (!isLinked && !user) {
-        showAuthGate({
-          title: '페르소나 만들기',
-          desc: '페르소나를 저장하려면 로그인이 필요합니다.',
-          intendedPath: '/persona/new',
-        });
-        return;
-      }
-
+      // 페르소나는 항상 로그인 상태에서 도달 (useRequireAuth가 보장). 직접 저장.
       if (user) {
         await api.post('/api/personas', { data });
       }
@@ -157,8 +140,8 @@ function PersonaNewInner() {
     }
   };
 
-  // 비로그인 + standalone 모드 → 로그인 필요
-  const requiresLogin = !isLinked && !user;
+  // useRequireAuth가 비로그인 시 AuthGate 띄움 — 페이지 자체는 빈 화면
+  if (!ready || !user) return <div className="page-wrap" />;
 
   const navLabel = isLinked ? 'PERSONA SETUP' : '새 페르소나';
   const subtitleText = isLinked
@@ -185,12 +168,6 @@ function PersonaNewInner() {
           <button type="button" className="recommend-btn" onClick={fillRecommended}>
             ✦ 추천 페르소나 채우기
           </button>
-        )}
-
-        {requiresLogin && (
-          <p className={styles.loginHint}>
-            페르소나를 저장하려면 로그인이 필요합니다.
-          </p>
         )}
 
         <form onSubmit={onSubmit} className={styles.form}>

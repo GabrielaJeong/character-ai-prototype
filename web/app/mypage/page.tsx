@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import {
   usePersonas,
   useCharacters,
@@ -37,10 +38,11 @@ type Tab = 'persona' | 'chars' | 'bookmark';
 
 export default function MypagePage() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const ready = useAuthStore((s) => s.ready);
+  const { user, ready } = useRequireAuth('/mypage', {
+    title: '마이페이지',
+    desc: '마이페이지를 보려면 로그인이 필요합니다.',
+  });
   const showToast = useUIStore((s) => s.showToast);
-  const showAuthGate = useUIStore((s) => s.showAuthGate);
   const showDeleteConfirm = useUIStore((s) => s.showDeleteConfirm);
   const openLogout = useUIStore((s) => s.openLogout);
   const setAppReady = useUIStore((s) => s.setAppReady);
@@ -55,18 +57,6 @@ export default function MypagePage() {
   useEffect(() => {
     setAppReady(true);
   }, [setAppReady]);
-
-  // 비로그인 → AuthGate (intendedPath 보존)
-  useEffect(() => {
-    if (!ready) return;
-    if (!user) {
-      showAuthGate({
-        title: '마이페이지',
-        desc: '마이페이지를 보려면 로그인이 필요합니다.',
-        intendedPath: '/mypage',
-      });
-    }
-  }, [ready, user, showAuthGate]);
 
   if (!ready || !user) {
     return <div className={styles.wrap} />;

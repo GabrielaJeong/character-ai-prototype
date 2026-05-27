@@ -6,8 +6,8 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePersonas } from '@/lib/hooks';
-import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 
 /**
  * `/persona?char=<id>` — 페르소나 진입 리다이렉터.
@@ -33,8 +33,11 @@ function PersonaIndexInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
-  const user = useAuthStore((s) => s.user);
-  const ready = useAuthStore((s) => s.ready);
+  const intendedPath = charId ? `/persona?char=${encodeURIComponent(charId)}` : '/persona';
+  const { user, ready } = useRequireAuth(intendedPath, {
+    title: '페르소나 설정',
+    desc: '페르소나를 사용하려면 로그인이 필요합니다.',
+  });
   const { personas, isLoading } = usePersonas();
   const setAppReady = useUIStore((s) => s.setAppReady);
 
@@ -44,14 +47,10 @@ function PersonaIndexInner() {
 
   useEffect(() => {
     if (!ready) return;
-    // standalone — 캐릭터 없으면 그냥 new
+    if (!user) return; // useRequireAuth가 AuthGate 띄움
     if (!charId) {
+      // standalone — 마이페이지 진입 경로. 페르소나 신규 작성으로.
       router.replace('/persona/new');
-      return;
-    }
-    // 비로그인 또는 페르소나 데이터 로딩 중이면 잠시 대기
-    if (!user) {
-      router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
       return;
     }
     if (isLoading) return;
@@ -60,7 +59,7 @@ function PersonaIndexInner() {
     } else {
       router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
     }
-  }, [ready, charId, user, personas.length, isLoading, router]);
+  }, [ready, user, charId, personas.length, isLoading, router]);
 
   return null;
 }

@@ -5,8 +5,8 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams, notFound } from 'next/navigation';
 import { useCharacters, usePersonas } from '@/lib/hooks';
-import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { resolveUser } from '@/lib/format';
 import type { PersonaData } from '@/lib/types';
@@ -34,8 +34,13 @@ function PersonaSelectEditInner({ params }: { params: { id: string } }) {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
-  const user = useAuthStore((s) => s.user);
-  const ready = useAuthStore((s) => s.ready);
+  const intendedPath = charId
+    ? `/persona/select/${params.id}?char=${encodeURIComponent(charId)}`
+    : `/persona/select/${params.id}`;
+  const { user, ready } = useRequireAuth(intendedPath, {
+    title: '페르소나 편집',
+    desc: '페르소나를 사용하려면 로그인이 필요합니다.',
+  });
   const { personas, isLoading } = usePersonas();
   const { characters } = useCharacters();
   const showToast = useUIStore((s) => s.showToast);
@@ -59,18 +64,11 @@ function PersonaSelectEditInner({ params }: { params: { id: string } }) {
     setAppReady(true);
   }, [setAppReady]);
 
-  // 가드
+  // 캐릭터 컨텍스트 없으면 홈으로 (비로그인은 useRequireAuth가 처리)
   useEffect(() => {
-    if (!ready) return;
-    if (!charId) {
-      router.replace('/');
-      return;
-    }
-    if (!user) {
-      router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
-      return;
-    }
-  }, [ready, charId, user, router]);
+    if (!ready || !user) return;
+    if (!charId) router.replace('/');
+  }, [ready, user, charId, router]);
 
   // 페르소나 prefill
   useEffect(() => {

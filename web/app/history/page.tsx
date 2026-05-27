@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSessions, useCharacters } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
+import { useRequireAuth } from '@/lib/useRequireAuth';
 import { api, ApiError } from '@/lib/api';
 import type { Session } from '@/lib/types';
 import styles from './page.module.css';
@@ -23,6 +24,10 @@ import styles from './page.module.css';
  */
 export default function HistoryPage() {
   const router = useRouter();
+  const { user, ready } = useRequireAuth('/history', {
+    title: '대화',
+    desc: '대화 기록을 보려면 로그인이 필요합니다.',
+  });
   const { sessions, error, isLoading, mutate } = useSessions();
   const { characters } = useCharacters();
   const showToast = useUIStore((s) => s.showToast);
@@ -35,6 +40,10 @@ export default function HistoryPage() {
   useEffect(() => {
     setAppReady(true);
   }, [setAppReady]);
+
+  if (!ready || !user) {
+    return <div className={styles.body} />;
+  }
 
   const enterSelectMode = () => {
     setSelectMode(true);

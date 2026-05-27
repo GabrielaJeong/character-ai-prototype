@@ -520,6 +520,35 @@
 
 ---
 
+### ML-014 — 라우트 인증 정책을 시작 단계에서 매트릭스로 정의하고 hook으로 일관 적용
+- **증상**: 마이그레이션 중 매 페이지 만들 때마다 임시방편으로 AuthGate 적용. `/mypage`에만 inline 가드 있고 `/character/[id]/chat`, `/history`, `/persona/*`은 비로그인도 통과 → 사용자가 "왜 로그인 안 하고 채팅이 되지?" 발견.
+- **원인**:
+  1. 마이그레이션 시작 시 **라우트별 인증 정책 매트릭스를 안 만듦**
+  2. 백엔드는 guest_id 기반으로 게스트 흐름 지원 (원본 SPA 동작) — 그래서 프론트 가드 없으면 동작은 됨 (보안은 OK)
+  3. 사용자 의도는 "채팅/히스토리/페르소나 모두 로그인 필수"였는데 명문화하지 않고 진행
+- **올바른 진행 절차** (마이그레이션 시작 시):
+  1. 모든 라우트 나열 + public/login-required 라벨링 (사용자와 합의)
+  2. `useRequireAuth(intendedPath, opts)` 같은 공통 훅 만들기
+  3. login-required 페이지마다 mount 시점에 훅 호출 + 비로그인이면 빈 화면 + AuthGate
+  4. `intendedPath`로 로그인 후 복귀 (L-011 패턴 통합)
+- **현재 적용된 정책** (Day 8.1 시점):
+  | 라우트 | 인증 |
+  |---|---|
+  | `/`, `/character/[id]`, `/login`, `/signup`, `/reset-password` | public |
+  | `/persona`, `/persona/new`, `/persona/select`, `/persona/select/[id]` | login required |
+  | `/character/[id]/chat` | login required |
+  | `/history` | login required |
+  | `/mypage` | login required |
+  | `/notification`(TBD), `/builder/*`(TBD) | login required (예정) |
+- **체크리스트 (새 라우트 추가 시)**:
+  - [ ] 이 라우트는 public인가 login required인가? 사용자와 확인
+  - [ ] login required면 `useRequireAuth` 호출
+  - [ ] `intendedPath`가 query params 포함하는지 (예: `?session=`, `?char=`) 확인
+  - [ ] 비로그인 상태에서 빈 화면 렌더 (AuthGate가 띄워주는 동안)
+- **출처**: Day 8.1 직후 사용자 지적 (2026-05-28)
+
+---
+
 ### ML-013 — Codex/외부 QA 리뷰의 finding은 보안 critical이라도 무비판적으로 묶음 적용 금지
 - **증상**: Codex R4 리뷰 5건 중 F1(critical 보안)에 묻혀 F2(builder requireAuth)와 F4(API shape 변경)를 동시 반영. 결과적으로 데모/포트폴리오 흐름(비로그인 빌더 체험)이 깨지고 `/api/characters/:id` 응답 형태와 사용처가 함께 바뀌어 영향 범위가 커짐.
 - **원인**:
