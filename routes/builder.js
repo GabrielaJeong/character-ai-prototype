@@ -7,6 +7,12 @@ const { callGemini } = require('../lib/gemini');
 
 const client = new Anthropic();
 
+// Codex R4 F2: builder는 공개 AI 비용 endpoint — requireAuth로 무단 호출 차단
+function requireAuth(req, res, next) {
+  if (!req.session?.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
+  next();
+}
+
 const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const ALLOWED_MODELS    = new Set([
   'claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001',
@@ -23,7 +29,7 @@ const builderSessions = new Map();
 // POST /api/builder/chat
 // Body: { builderSessionId?, message, model? }
 // Returns: { reply, builderSessionId, isReady }
-router.post('/chat', async (req, res) => {
+router.post('/chat', requireAuth, async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
 
@@ -65,7 +71,7 @@ router.post('/chat', async (req, res) => {
 // POST /api/builder/generate
 // Body: { characterData } — parsed JSON from [CHARACTER_READY] block
 // Returns: { systemPrompt, characterData }
-router.post('/generate', async (req, res) => {
+router.post('/generate', requireAuth, async (req, res) => {
   const { characterData } = req.body;
   if (!characterData) return res.status(400).json({ error: 'characterData required' });
 

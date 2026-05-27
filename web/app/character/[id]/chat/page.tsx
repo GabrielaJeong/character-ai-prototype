@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams, notFound } from 'next/navigation';
-import { useCharacters, useCharacterDetail, useSession } from '@/lib/hooks';
+import { useCharacters, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { ApiError, streamSSE } from '@/lib/api';
@@ -191,14 +191,17 @@ function ChatInner({ params }: { params: { id: string } }) {
   const setAppReady = useUIStore((s) => s.setAppReady);
   const consumePrep = useChatPrepStore((s) => s.consume);
 
-  // Codex R3 F2: 필터링된 list에 없으면 단건 fallback. 성인 토글 OFF 상태에서
-  // 본인이 과거에 대화한 adult_only 캐릭터 세션도 열려야 함.
-  const charInList = characters.find((c) => c.id === params.id) ?? null;
-  const needFallback = !isLoading && !charInList;
-  const { character: charFallback, isLoading: fallbackLoading } = useCharacterDetail(
-    needFallback ? params.id : null,
+  // Codex R4 F4: 세션 detail이 character 메타를 임베드해서 옴 →
+  // existing session이면 session.character 우선, 신규는 list에서.
+  // (이전 useCharacterDetail 경유는 /api/characters/:id가 adult gate 우회하던 문제 — R4 F4)
+  const charInList = useMemo(
+    () => characters.find((c) => c.id === params.id) ?? null,
+    [characters, params.id],
   );
-  const char = charInList ?? charFallback;
+  const char = useMemo(() => {
+    if (isExistingSession && loadedSession?.character) return loadedSession.character;
+    return charInList;
+  }, [isExistingSession, loadedSession, charInList]);
 
   // chat session state
   const [persona, setPersona] = useState<PersonaData | null>(null);
@@ -284,7 +287,7 @@ function ChatInner({ params }: { params: { id: string } }) {
         setHasPersona(false);
       }
     }
-  }, [isLoading, isExistingSession, sessionLoading, sessionError, loadedSession, params.id, consumePrep, char?.name]);
+  }, [isLoading, isExistingSession, sessionLoading, sessionError, loadedSession, params.id, consumePrep, char]);
 
   // 실패 시 redirect — 기존 세션 로드 실패면 /history, 신규 prep 없으면 /persona
   useEffect(() => {
@@ -304,8 +307,19 @@ function ChatInner({ params }: { params: { id: string } }) {
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
 
-  // notFound: list 로드 끝났고 fallback도 끝났는데 char가 없으면 진짜 없는 캐릭터.
-  if (!isLoading && !fallbackLoading && needFallback && !charFallback) notFound();
+  // notFound: list 로드 끝났고 session도 로드 끝났는데 char를 못 구하면 진짜 없는 캐릭터.
+  // 신규 채팅인데 list에 없음 → 진짜 없음.
+  // 기존 세션인데 backend가 character: null 반환 → 캐릭터 디렉터리 삭제됨.
+  if (!isLoading && !charInList && !isExistingSession) notFound();
+  if (
+    !isLoading &&
+    isExistingSession &&
+    !sessionLoading &&
+    loadedSession &&
+    !loadedSession.character
+  ) {
+    notFound();
+  }
   if (!char || hasPersona !== true || !persona) {
     return <div className={styles.wrap} />;
   }

@@ -106,9 +106,14 @@ export interface Session {
   created_at: number;
 }
 
-// 세션 상세 (메시지 포함)
+// 세션 상세 (메시지 포함) — 백엔드가 character 메타도 함께 임베드 (R4 F4)
 export interface SessionDetail extends Session {
   messages: Message[];
+  model?: string;
+  character?: Pick<
+    Character,
+    'id' | 'name' | 'nameEn' | 'role' | 'team' | 'image' | 'rating' | 'defaultSafety' | 'safetyToggle' | 'owner_username'
+  > | null;
 }
 
 // ── Message ──────────────────────────────────────────────
