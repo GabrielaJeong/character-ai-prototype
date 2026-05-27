@@ -88,15 +88,19 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const [hasPersona, setHasPersona] = useState<boolean | null>(null); // null=확인 전
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  // StrictMode에서 useEffect가 두 번 호출되어도 consume이 한 번만 일어나도록 가드.
+  // useState 가드는 closure가 stale해서 두 번 다 통과 → 두 번째 consume이 null 반환하는 버그를 일으킴.
+  const consumedRef = useRef(false);
 
   useEffect(() => {
     setAppReady(true);
   }, [setAppReady]);
 
-  // prep 소비 — 캐릭터 데이터 로드 후 한번
+  // prep 소비 — 캐릭터 데이터 로드 후 한 번만 (ref 가드로 StrictMode 안전, ML-011 참조)
   useEffect(() => {
-    if (hasPersona !== null) return; // 이미 확인됨
+    if (consumedRef.current) return;
     if (isLoading) return;
+    consumedRef.current = true;
     const prep = consumePrep();
     if (prep && prep.characterId === params.id) {
       setPersona(prep.persona);
@@ -106,7 +110,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     } else {
       setHasPersona(false);
     }
-  }, [hasPersona, isLoading, params.id, consumePrep]);
+  }, [isLoading, params.id, consumePrep]);
 
   // 캐릭터 없는 경우 (또는 prep 없이 들어온 경우) → 페르소나 setup으로
   useEffect(() => {

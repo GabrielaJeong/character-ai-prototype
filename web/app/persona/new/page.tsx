@@ -110,13 +110,11 @@ function PersonaNewInner() {
     };
 
     try {
-      // 로그인 사용자만 백엔드에 저장
       if (user) {
         await api.post('/api/personas', { data });
       }
 
       if (isLinked && charId) {
-        // 채팅 진입 prep
         setPrep({
           characterId: charId,
           persona: data,

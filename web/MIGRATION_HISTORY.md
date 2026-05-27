@@ -304,6 +304,29 @@
 
 ---
 
+### ML-011 — StrictMode에서 "한 번만 실행" 가드는 useState 아닌 useRef로
+- **증상**: 페르소나 setup → "대화 시작" → chat 페이지 진입했다가 즉시 /persona로 다시 리다이렉트되는 무한 루프. 사용자가 입력은 다 했는데 화면은 "안 됨"으로 인지.
+- **원인**: chat 페이지가 `useChatPrepStore.consume()` 호출로 prep을 받아오는데, **React 18 StrictMode (dev)에서 useEffect가 두 번 실행됨**:
+  1. 1차 effect: hasPersona=null → consume() → prep 받음, store 비움 → setHasPersona(true)
+  2. StrictMode가 cleanup+remount 시뮬레이션 — **그러나 effect closure의 hasPersona는 여전히 null** (state update가 같은 effect 사이클 안에 반영 안 됨)
+  3. 2차 effect: hasPersona=null로 보고 또 consume() 호출 → store는 이미 비었으므로 null 반환 → setHasPersona(false) → redirect 트리거
+- **검증 방법**: `console.log('[FOLIO][chat] consume effect', { hasPersona })` 박아두면 dev에서 두 번 찍히는 게 보임. 두 번째 호출이 stale closure로 들어옴.
+- **해법**: useState 가드 대신 **`useRef` 가드** 사용. ref는 closure 영향 없이 실행 시점에 평가됨.
+  ```tsx
+  const consumedRef = useRef(false);
+  useEffect(() => {
+    if (consumedRef.current) return;  // ✓ ref는 항상 최신값
+    if (isLoading) return;
+    consumedRef.current = true;
+    // ... consume ...
+  }, [...]);
+  ```
+- **원칙**: **"한 번만 실행되어야 하는 부수효과" (consume, init API, analytics fire 등)는 항상 useRef 가드.** useState로 가드하면 StrictMode에서 한 번 더 실행됨.
+- **참조**: production lesson으로도 등재 가치 — `docs/LESSONS.md` 추가 검토 대상.
+- **출처**: Day 6 fix (2026-05-27)
+
+---
+
 ### ML-010 — Next.js App Router의 favicon은 `web/app/favicon.ico` 에 있어야 함
 - **증상**: 브라우저 탭 favicon 안 뜸. 원본 `public/favicon.ico`는 Express가 서빙하지만 Next.js 3001은 모름.
 - **원인**: App Router는 `app/favicon.ico` (또는 `app/icon.{ico|png|svg}`) 규약. `web/public/`에 두면 dev에선 서빙되지만 `app/` 규약 충돌. 부모 프로젝트의 `public/favicon.ico`는 next.config.mjs rewrites에 등록 안 한 경로라 404.
