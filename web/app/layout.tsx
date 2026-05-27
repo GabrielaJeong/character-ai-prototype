@@ -28,6 +28,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
         />
+        {/* Splash FOUC 방지 — React 마운트 전에 sessionStorage 체크하여 <html>에 클래스 부여.
+            Splash.module.css의 :global(html.splash-shown) 룰이 즉시 숨김 처리. (ML-009) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(sessionStorage.getItem('folio-splash-shown'))document.documentElement.classList.add('splash-shown');}catch(e){}",
+          }}
+        />
       </head>
       <body>
         <Splash />

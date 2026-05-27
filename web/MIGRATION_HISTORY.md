@@ -92,6 +92,23 @@
 - **원본 대응**: 원본 index.html의 `.screen` 패턴과 동일 — 각 screen이 자체 `flex:1; overflow-y:auto`를 가졌고, BottomNav는 sibling.
 - **출처**: Day 3.x fix (2026-05-27)
 
+### ML-009 — Client-only 상태로 가려야 할 오버레이는 SSR HTML에 미리 박아두고 inline script로 제어
+- **증상**: Splash 컴포넌트가 마운트 전이라 home 페이지 콘텐츠가 잠깐 보이고 나서 splash가 덮어쓰임 (FOUC).
+- **원인**: Splash가 `'use client'` + `useEffect`에서 `setVisible(true)` 했음. SSR HTML에 splash가 없고 hydration 후에야 표시 → 그 사이 첫 페인트에 페이지 노출.
+- **예방**:
+  1. `useState(true)` 기본값으로 SSR HTML에 splash 마크업 포함 (Hydration mismatch 없음 — 동일 마크업)
+  2. CSS Modules에 `:global(html.splash-shown) .splash { display: none; }` 룰 추가
+  3. `layout.tsx`의 `<head>`에 `dangerouslySetInnerHTML`로 inline script — `sessionStorage`/`localStorage` 체크 후 `<html>`에 클래스 부여. React 마운트 전이라 returning user는 1프레임도 안 보임.
+  4. `useEffect`에선 returning user는 `setMounted(false)`, 첫 방문자만 timer/fadeOut 진행.
+- **응용**: AuthBootstrap의 ready 체크, dark mode 초기 선택 등 "마운트 전에 결정돼야 하는 클라이언트 상태" 모두 동일 패턴.
+- **출처**: Day 3.x fix (2026-05-27)
+
+### ML-010 — Next.js App Router의 favicon은 `web/app/favicon.ico` 에 있어야 함
+- **증상**: 브라우저 탭 favicon 안 뜸. 원본 `public/favicon.ico`는 Express가 서빙하지만 Next.js 3001은 모름.
+- **원인**: App Router는 `app/favicon.ico` (또는 `app/icon.{ico|png|svg}`) 규약. `web/public/`에 두면 dev에선 서빙되지만 `app/` 규약 충돌. 부모 프로젝트의 `public/favicon.ico`는 next.config.mjs rewrites에 등록 안 한 경로라 404.
+- **예방**: 부모 프로젝트의 favicon을 `web/app/favicon.ico`로 복사. App Router가 `<link rel="icon">` 자동 주입 + 적절한 헤더 부여. rewrites 불필요.
+- **출처**: Day 3.x fix (2026-05-27)
+
 ---
 
 ## 진행 항목

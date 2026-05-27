@@ -14,6 +14,10 @@
 }
 .out { animation: fadeOut 0.4s ease forwards; }
 
+/* returning user — <head> inline script가 <html>에 splash-shown 클래스를 미리 붙이면
+   React mount 전에 이미 숨김 처리되어 1프레임 플래시도 안 보임. (Day 3.x ML-009) */
+:global(html.splash-shown) .splash { display: none; }
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fadeOut { to { opacity: 0; } }
 
