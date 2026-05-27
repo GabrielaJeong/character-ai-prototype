@@ -49,6 +49,79 @@ interface SSEEvent {
   characterId?: string;
 }
 
+/**
+ * SSE delta들을 누적해서 target에 저장하고, requestAnimationFrame 루프가 displayed를
+ * 일정 속도(typewriter)로 따라잡으며 onDisplay를 호출. 사용자에겐 chunk size 무관하게
+ * 글자 단위로 자연스럽게 흘러가 보임.
+ *
+ * 속도:
+ *   - 기본 60 chars/sec (한글 음절 17ms 간격 정도, 자연스러운 읽기 속도)
+ *   - target이 30자 이상 앞서 있으면 최대 4배 가속 (catch-up)
+ *
+ * 종료:
+ *   - SSE iteration 끝 + displayed가 target에 도달하면 resolve
+ *   - error 이벤트는 error 필드로 반환 (호출자가 분기)
+ */
+async function consumeSmoothStream(
+  source: AsyncIterable<SSEEvent>,
+  onDisplay: (displayed: string) => void,
+): Promise<{ text: string; error: string | null }> {
+  let target = '';
+  let displayed = '';
+  let streamDone = false;
+  let error: string | null = null;
+  let rafId: number | null = null;
+  let lastTime = 0;
+  const BASE_CPS = 60;
+
+  const tick = (ts: number) => {
+    if (lastTime === 0) lastTime = ts;
+    const dt = ts - lastTime;
+    lastTime = ts;
+
+    if (displayed.length < target.length) {
+      const ahead = target.length - displayed.length;
+      let chars = (dt / 1000) * BASE_CPS;
+      if (ahead > 30) chars *= Math.min(4, ahead / 30);
+      const advance = Math.max(1, Math.floor(chars));
+      displayed = target.slice(0, Math.min(displayed.length + advance, target.length));
+      onDisplay(displayed);
+    }
+
+    if (displayed.length < target.length || !streamDone) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      rafId = null;
+    }
+  };
+  rafId = requestAnimationFrame(tick);
+
+  try {
+    for await (const ev of source) {
+      if (ev.type === 'delta' && ev.text) {
+        target += ev.text;
+      } else if (ev.type === 'error') {
+        error = ev.error ?? '응답에 실패했습니다.';
+      }
+    }
+  } catch (err) {
+    error = err instanceof ApiError ? err.message : '연결에 실패했습니다.';
+  }
+
+  streamDone = true;
+
+  // tick 루프가 drain 끝낼 때까지 대기
+  await new Promise<void>((resolve) => {
+    const check = () => {
+      if (rafId === null) resolve();
+      else setTimeout(check, 30);
+    };
+    check();
+  });
+
+  return { text: target, error };
+}
+
 type Role = 'user' | 'assistant';
 interface Msg {
   role: Role;
@@ -154,7 +227,6 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     if (sending) return;
     setSending(true);
     setInput('');
-    // user 메시지 즉시 추가
     setMessages((prev) => [
       ...prev,
       { role: 'user', sender: userName, versions: [text], vIdx: 0 },
@@ -168,59 +240,49 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       body.safety = safety;
     }
 
-    let accumulated = '';
+    // 첫 displayed (1자라도) 도착 시 assistant 메시지 append. 이후엔 마지막 메시지 갱신.
     let assistantPlaced = false;
-    let streamError: string | null = null;
-
-    try {
-      for await (const ev of streamSSE<SSEEvent>('/api/chat', body)) {
-        if (ev.type === 'delta' && ev.text) {
-          accumulated += ev.text;
-          if (!assistantPlaced) {
-            // 첫 delta — assistant 메시지 append
-            assistantPlaced = true;
-            setMessages((prev) => [
-              ...prev,
-              { role: 'assistant', sender: charName, versions: [accumulated], vIdx: 0 },
-            ]);
-          } else {
-            // 이후 delta — 마지막 메시지 (= 방금 추가한 assistant) versions[0] 갱신
-            setMessages((prev) => {
-              if (prev.length === 0) return prev;
-              const next = prev.slice();
-              const last = next[next.length - 1];
-              next[next.length - 1] = { ...last, versions: [accumulated] };
-              return next;
-            });
-          }
-        } else if (ev.type === 'error') {
-          streamError = ev.error ?? '응답에 실패했습니다.';
-        }
-        // done은 별도 처리 불필요 (loop 자체가 끝남)
+    const onDisplay = (displayed: string) => {
+      if (!assistantPlaced) {
+        assistantPlaced = true;
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', sender: charName, versions: [displayed], vIdx: 0 },
+        ]);
+      } else {
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const next = prev.slice();
+          const last = next[next.length - 1];
+          next[next.length - 1] = { ...last, versions: [displayed] };
+          return next;
+        });
       }
-    } catch (err) {
-      streamError = err instanceof ApiError ? err.message : '연결에 실패했습니다.';
-    } finally {
-      setSending(false);
-    }
+    };
 
-    if (streamError) {
+    const { text: finalText, error } = await consumeSmoothStream(
+      streamSSE<SSEEvent>('/api/chat', body),
+      onDisplay,
+    );
+
+    setSending(false);
+
+    if (error) {
       if (assistantPlaced) {
-        // partial 텍스트가 있으면 끝에 에러 안내 덧붙임
         setMessages((prev) => {
           if (prev.length === 0) return prev;
           const next = prev.slice();
           const last = next[next.length - 1];
           next[next.length - 1] = {
             ...last,
-            versions: [`${accumulated}\n\n(${streamError})`],
+            versions: [`${finalText}\n\n(${error})`],
           };
           return next;
         });
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', sender: charName, versions: [`(${streamError})`], vIdx: 0 },
+          { role: 'assistant', sender: charName, versions: [`(${error})`], vIdx: 0 },
         ]);
       }
     }
@@ -239,35 +301,28 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       }),
     );
 
-    let accumulated = '';
-    let streamError: string | null = null;
+    const onDisplay = (displayed: string) => {
+      setMessages((prev) =>
+        prev.map((m, i) => {
+          if (i !== idx) return m;
+          const last = m.versions.length - 1;
+          const newVersions = m.versions.map((v, vi) => (vi === last ? displayed : v));
+          return { ...m, versions: newVersions };
+        }),
+      );
+    };
 
-    try {
-      for await (const ev of streamSSE<SSEEvent>('/api/chat/regenerate', { sessionId, model })) {
-        if (ev.type === 'delta' && ev.text) {
-          accumulated += ev.text;
-          setMessages((prev) =>
-            prev.map((m, i) => {
-              if (i !== idx) return m;
-              const last = m.versions.length - 1;
-              const newVersions = m.versions.map((v, vi) => (vi === last ? accumulated : v));
-              return { ...m, versions: newVersions };
-            }),
-          );
-        } else if (ev.type === 'error') {
-          streamError = ev.error ?? '재생성에 실패했습니다.';
-        }
-      }
-    } catch (err) {
-      streamError = err instanceof ApiError ? err.message : '재생성에 실패했습니다.';
-    } finally {
-      setSending(false);
-      setRegeneratingIdx(null);
-    }
+    const { text: finalText, error } = await consumeSmoothStream(
+      streamSSE<SSEEvent>('/api/chat/regenerate', { sessionId, model }),
+      onDisplay,
+    );
 
-    if (streamError) {
-      // 빈 새 버전 제거 (실패 시 원래 버전으로 복귀)
-      if (!accumulated) {
+    setSending(false);
+    setRegeneratingIdx(null);
+
+    if (error) {
+      if (!finalText) {
+        // 빈 새 버전 제거 (실패 시 원래 버전으로 복귀)
         setMessages((prev) =>
           prev.map((m, i) => {
             if (i !== idx) return m;
@@ -276,7 +331,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           }),
         );
       }
-      showToast(streamError);
+      showToast(error);
     }
   };
 
