@@ -86,6 +86,9 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const [sending, setSending] = useState(false);
   const [mode, setMode] = useState<Mode>('chat');
   const [hasPersona, setHasPersona] = useState<boolean | null>(null); // null=확인 전
+  // 재생성 중인 메시지 인덱스. null이면 신규 전송(또는 idle). 신규 전송 typing은 별도 bubble로.
+  // (Codex F2: 직전 assistant bubble이 typing으로 잠깐 바뀌던 버그 fix)
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   // StrictMode에서 useEffect가 두 번 호출되어도 consume이 한 번만 일어나도록 가드.
@@ -176,8 +179,10 @@ export default function ChatPage({ params }: { params: { id: string } }) {
   const onRegenerate = async (idx: number) => {
     if (sending) return;
     setSending(true);
+    setRegeneratingIdx(idx);
     try {
-      const data = await api.post<{ reply: string }>('/api/chat/regenerate', { sessionId });
+      // Codex F1: 현재 model을 body에 함께 전달 — 백엔드가 session.model 갱신
+      const data = await api.post<{ reply: string }>('/api/chat/regenerate', { sessionId, model });
       setMessages((prev) =>
         prev.map((m, i) => {
           if (i !== idx) return m;
@@ -189,6 +194,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       showToast(err instanceof ApiError ? err.message : '재생성에 실패했습니다.');
     } finally {
       setSending(false);
+      setRegeneratingIdx(null);
     }
   };
 
@@ -259,13 +265,15 @@ export default function ChatPage({ params }: { params: { id: string } }) {
             charImage={char.image}
             charName={charName}
             isLastAssistant={i === lastAssistantIdx}
-            sending={sending && i === lastAssistantIdx}
+            // 재생성 중인 정확한 메시지에만 typing 표시 (Codex F2)
+            sending={regeneratingIdx === i}
             onRegenerate={() => onRegenerate(i)}
             onPrev={() => onVersion(i, -1)}
             onNext={() => onVersion(i, +1)}
           />
         ))}
-        {sending && lastAssistantIdx !== messages.length - 1 && (
+        {/* 신규 전송 typing은 별도 bubble로 끝에 — 직전 assistant는 그대로 유지 */}
+        {sending && regeneratingIdx === null && (
           <TypingMessage charImage={char.image} charName={charName} mode={mode} />
         )}
       </div>

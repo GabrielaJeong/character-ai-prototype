@@ -244,8 +244,11 @@
 - ⏸ 실제 채팅 동작 (Anthropic/Gemini API 호출) — 브라우저 수동 QA
 
 **체크리스트 진척**:
-- ✅ 섹션 2.6 (채팅 1차)
-- 🟡 노트 / 프로필 모달 / 기존 세션 로드는 Day 6.x
+- 🟡 섹션 2.6 (채팅 1차 — **의도적 미완료**, Codex F5 지적 반영)
+  - ✅ 메시지 송수신 / 재생성 / 모델 전환 / 모드 토글
+  - ⛔ 기존 세션 로드 (`/history` 또는 직접 URL 진입) — chatPrep store가 in-memory zustand만 사용. 새로고침/직접 URL/뒤로가기 시 prep 없어서 /persona로 redirect. 진정한 완성은 sessionId를 URL param이나 sessionStorage로 옮기고 chat 페이지에서 messages를 백엔드에서 다시 불러와야 함 (Day 9 history와 통합 예정).
+- ⛔ 노트 모달 (Day 6.x)
+- ⛔ 캐릭터 프로필 모달 (Day 6.x)
 
 ---
 

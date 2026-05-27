@@ -45,9 +45,11 @@ function PersonaNewInner() {
   const isLinked = !!charId;
 
   const user = useAuthStore((s) => s.user);
+  const ready = useAuthStore((s) => s.ready);
   const { characters } = useCharacters();
   const showToast = useUIStore((s) => s.showToast);
   const setAppReady = useUIStore((s) => s.setAppReady);
+  const showAuthGate = useUIStore((s) => s.showAuthGate);
   const setPrep = useChatPrepStore((s) => s.setPrep);
 
   const char = isLinked ? characters.find((c) => c.id === charId) ?? null : null;
@@ -71,6 +73,19 @@ function PersonaNewInner() {
       router.replace('/');
     }
   }, [isLinked, characters.length, char, router]);
+
+  // Codex F3: standalone(=마이페이지에서 새 페르소나) 모드는 백엔드 저장이 필수.
+  // 비로그인이면 가짜 "저장됨" UX 방지를 위해 AuthGate로 막고 /login으로 보냄.
+  useEffect(() => {
+    if (!ready) return;
+    if (!isLinked && !user) {
+      showAuthGate({
+        title: '페르소나 만들기',
+        desc: '페르소나를 저장하려면 로그인이 필요합니다.',
+        intendedPath: '/persona/new',
+      });
+    }
+  }, [ready, isLinked, user, showAuthGate]);
 
   const fillRecommended = () => {
     const p = char?.recommendedPersona;
@@ -110,6 +125,16 @@ function PersonaNewInner() {
     };
 
     try {
+      // Codex F3: standalone은 백엔드 저장 필수. 비로그인이면 진행 안 함 (AuthGate가 막아야 정상)
+      if (!isLinked && !user) {
+        showAuthGate({
+          title: '페르소나 만들기',
+          desc: '페르소나를 저장하려면 로그인이 필요합니다.',
+          intendedPath: '/persona/new',
+        });
+        return;
+      }
+
       if (user) {
         await api.post('/api/personas', { data });
       }

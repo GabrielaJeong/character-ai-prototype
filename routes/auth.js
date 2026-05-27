@@ -224,14 +224,18 @@ router.patch('/adult-content', (req, res) => {
 });
 
 // ── POST /api/auth/forgot-password ───────────────────────
-// 데모 버전: 실제 이메일 발송 없이 토큰을 응답에 포함
+// 데모/dev 환경에서만 응답에 토큰 포함 (실제 이메일 발송 미구현이라 dev 편의용).
+// 프로덕션에서는 절대 노출 금지 — 노출 시 이메일만 알면 비번 변경 가능해지는 계정 탈취 (L-019).
+const FORGOT_PW_EXPOSE_TOKEN =
+  process.env.NODE_ENV !== 'production' || process.env.DEMO_MODE === 'true';
+
 router.post('/forgot-password', (req, res) => {
   const { email } = req.body;
   const { error } = Joi.string().email({ tlds: { allow: false } }).validate(email);
   if (error) return res.status(400).json({ error: '이메일 형식이 올바르지 않습니다' });
 
   const user = stmt.getUserByEmail.get(email);
-  // 이메일이 존재하지 않아도 동일한 응답 (보안 고려)
+  // 이메일 존재 여부 누설 방지 — 동일 응답 (보안 고려)
   if (!user) {
     return res.json({ ok: true, _demo_token: null });
   }
@@ -242,7 +246,8 @@ router.post('/forgot-password', (req, res) => {
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 30; // 30분 유효
   stmt.createResetToken.run(user.id, token, expiresAt);
 
-  res.json({ ok: true, _demo_token: token });
+  // 프로덕션은 null, dev/DEMO만 token 노출
+  res.json({ ok: true, _demo_token: FORGOT_PW_EXPOSE_TOKEN ? token : null });
 });
 
 // ── POST /api/auth/reset-password ────────────────────────
