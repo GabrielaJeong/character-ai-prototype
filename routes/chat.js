@@ -97,9 +97,11 @@ router.post('/', async (req, res) => {
   // ── SSE streaming ────────────────────────────────────
   sseSetup(res);
 
-  // 클라이언트가 중간에 끊으면 SDK iteration 끝나고 partial 저장.
+  // 클라이언트 연결이 진짜 끊겼을 때만 abort.
+  // 주의: req.on('close')는 Node HTTP에서 request body 다 읽으면 발화되므로 사용 불가.
+  // res.on('close')는 res.end() 호출 전 연결 종료 시에만 발화 → 정확히 우리가 원하는 시점.
   let aborted = false;
-  req.on('close', () => { aborted = true; });
+  res.on('close', () => { if (!res.writableEnded) aborted = true; });
 
   let accumulated = '';
   try {

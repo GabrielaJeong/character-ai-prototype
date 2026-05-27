@@ -60,8 +60,9 @@ module.exports = async (req, res) => {
 
   sseSetup(res);
 
+  // res.on('close')만 true abort 신호 — req.on('close')는 body 읽음 끝에도 발화함
   let aborted = false;
-  req.on('close', () => { aborted = true; });
+  res.on('close', () => { if (!res.writableEnded) aborted = true; });
 
   let accumulated = '';
   try {

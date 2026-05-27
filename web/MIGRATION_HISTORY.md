@@ -419,6 +419,26 @@
 
 ---
 
+### ML-012 — Node Express SSE에서 `req.on('close')`는 abort 신호로 쓸 수 없음 — `res.on('close')` 써야 함
+- **증상**: SSE 엔드포인트 (`POST /api/chat`)에서 응답 헤더만 도착하고 데이터 byte 0개. 백엔드 로그는 모델 응답 정상 수신 + 22개 이벤트 처리 + 348자 완성됐다고 표시. 그런데 클라이언트엔 한 글자도 안 옴.
+- **원인**: 첫 번째 abort 가드 코드를 `req.on('close', () => aborted = true)`로 작성. Node.js HTTP에서 `req.on('close')`는 **클라이언트 연결 종료가 아니라 request body 다 읽힌 직후에도 발화**. POST body가 작아 즉시 다 읽혀 → 모델 응답 도착 전에 `aborted = true` → 모든 `onDelta` 콜백이 `if (aborted) return`으로 skip → res.write 한 번도 호출 안 됨.
+- **검증**:
+  ```js
+  console.log('[onDelta]', deltaCount, 'aborted:', aborted, 'text:', text);
+  // 결과: aborted가 첫 delta부터 true
+  ```
+- **해법**: `res.on('close')` 사용. `res.on('close')`는 `res.end()` 호출 전에 underlying 연결이 끊겼을 때만 발화 → 정확히 "클라이언트가 진짜 중간에 끊었다"는 의미.
+  ```js
+  let aborted = false;
+  res.on('close', () => { if (!res.writableEnded) aborted = true; });
+  ```
+  `res.writableEnded` 체크로 정상 종료 후 fire는 무시.
+- **원칙**: Express에서 SSE/long-polling을 만들 때 **클라이언트 abort 감지는 `res.on('close')`** 또는 `req.on('aborted')`. `req.on('close')`는 의미 다름 — 사용 금지.
+- **참조**: production lesson 후보. Express + SSE 패턴은 다른 long-poll API에서도 재발 가능.
+- **출처**: Day 6.x 스트리밍 (2026-05-28)
+
+---
+
 ### ML-011 — StrictMode에서 "한 번만 실행" 가드는 useState 아닌 useRef로
 - **증상**: 페르소나 setup → "대화 시작" → chat 페이지 진입했다가 즉시 /persona로 다시 리다이렉트되는 무한 루프. 사용자가 입력은 다 했는데 화면은 "안 됨"으로 인지.
 - **원인**: chat 페이지가 `useChatPrepStore.consume()` 호출로 prep을 받아오는데, **React 18 StrictMode (dev)에서 useEffect가 두 번 실행됨**:
