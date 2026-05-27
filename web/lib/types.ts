@@ -58,6 +58,7 @@ export interface Character {
   };
   description?: string[];             // 단락 배열 (인트로 ABOUT 패널 하단)
   worldbuilding?: string;             // 일부 캐릭터
+  recommendedPersona?: PersonaData | null;  // "추천 페르소나 채우기" 버튼 클릭 시 자동 입력
   // 유저 제작 캐릭터에만
   owner_user_id?: number;
   owner_username?: string;

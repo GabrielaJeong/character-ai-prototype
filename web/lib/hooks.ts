@@ -2,7 +2,8 @@
 
 import useSWR from 'swr';
 import { api } from './api';
-import type { Character, Notification, Curation, AppVersion } from './types';
+import type { Character, Notification, Curation, AppVersion, Persona } from './types';
+import { useAuthStore } from '@/store/auth';
 
 const fetcher = <T,>(path: string) => api.get<T>(path);
 
@@ -41,6 +42,20 @@ export function useNotifications() {
 export function useNotifBadgeCount() {
   const { unreadCount } = useNotifications();
   return unreadCount;
+}
+
+/**
+ * GET /api/personas — 로그인 사용자의 페르소나 목록.
+ * 비로그인 시 SWR 비활성 (null key → 요청 안 함).
+ * 응답: Persona[] (each row has `data` already JSON-parsed by backend).
+ */
+export function usePersonas() {
+  const user = useAuthStore((s) => s.user);
+  const { data, error, isLoading, mutate } = useSWR<Persona[]>(
+    user ? '/api/personas' : null,
+    fetcher,
+  );
+  return { personas: data ?? [], error, isLoading, mutate };
 }
 
 /** GET /api/version — 사이트 푸터의 버전·빌드 표기용 */

@@ -107,7 +107,8 @@ export default function CharacterIntroPage({ params }: { params: { id: string } 
   };
 
   const onMore = () => showToast('준비 중입니다.');
-  const onStartChat = () => router.push(`/character/${char.id}/chat`);
+  // 페르소나 setup → /persona가 redirect 결정 (기존 페르소나 있으면 select, 없으면 new)
+  const onStartChat = () => router.push(`/persona?char=${encodeURIComponent(char.id)}`);
 
   // ── 파생값 ────────────────────────────────────────────────
   const roleLabel = [char.role, char.about?.world]

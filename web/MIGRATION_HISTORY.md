@@ -55,11 +55,21 @@
   매번 검증 후 자동화하려면 package.json에 `"clean": "rimraf .next"` 추가 검토.
 - **출처**: Day 3.x 종료 후 (2026-05-27)
 
-### ML-004 — Next.js 14에서 `useSearchParams`는 Suspense로 감싸야 함
+### ML-004 — Next.js 14에서 `useSearchParams`는 **반드시 Suspense boundary**로 감싸야 함
 - **증상**: build 시 prerender 에러 ("useSearchParams() should be wrapped in a suspense boundary")
-- **원인**: `useSearchParams`는 client-side hook. App Router의 정적 생성과 호환 안 됨.
-- **예방**: 사용하는 컴포넌트를 `<Suspense>`로 wrap. 또는 page를 `export const dynamic = 'force-dynamic'`.
-- **출처**: 초기 시도 (rewind 전)
+- **원인**: `useSearchParams`는 client-side hook. App Router 빌드 시 정적 생성과 호환 안 됨.
+- **잘못된 시도**: `export const dynamic = 'force-dynamic'` 만으로는 **해결 안 됨**. 정적 생성을 비활성해도 prerender 에러는 그대로 (Day 5 재발 시 확인).
+- **올바른 해법**: 페이지를 outer + inner 두 컴포넌트로 분리, outer가 `<Suspense fallback={null}>`로 inner를 감쌈. inner에서만 `useSearchParams` 호출.
+  ```tsx
+  export default function MyPage() {
+    return <Suspense fallback={null}><MyPageInner /></Suspense>;
+  }
+  function MyPageInner() {
+    const sp = useSearchParams();
+    // ...
+  }
+  ```
+- **출처**: 초기 시도 (rewind 전), Day 5 재발 (2026-05-27)
 
 ### ML-005 — Express(3000)와 Next.js dev(default 3000) 포트 충돌
 - **증상**: dev 서버 안 열림 ("address already in use")
@@ -134,6 +144,57 @@
 - **후속 (appReady의 다른 entry route 처리)**: home page만 setAppReady(true) 호출하다 보니 BottomNav로 /history /explore /builder /mypage 같은 (아직 미구현, not-found로 fallback되는) 라우트에 가면 splash가 maxTimer(5초) 다 차야 사라지는 문제. **해법**: 데이터 게이팅 안 하는 entry page는 mount 즉시 `setAppReady(true)` 호출. `app/not-found.tsx`에 useEffect 추가. 향후 entry routes(/login, /signup 등 데이터 없는 페이지) 추가 시 동일 패턴 적용 필수.
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
+
+### 2026-05-27 (Day 5) — Persona flow (4 routes)
+
+**작업 범위**: 캐릭터 인트로 → 페르소나 설정 → 채팅 진입 직전까지의 4개 라우트.
+
+**원본 대응**: app.js `openPersonaSetup` / `_routePersonaNew` / `_routePersonaSelect` / `_routePersonaSelectEdit` / `startChat` / `startChatFromSelected` / `fillRecommended` / `selectGender`.
+
+**구현**:
+- `web/app/styles/forms.css` 신규 — 폼·버튼·네비·헤더·셀렉트카드·페르소나 카드 글로벌 패턴 일괄 이식 (style.css L1089~1361, L1651~1697, L2993~3048, L4202~4275). layout.tsx에서 import.
+- `web/lib/format.ts`에 `resolveUser(text, userName)` 추가 — `{{user}}` placeholder를 페르소나 이름으로 치환 (원본과 동일).
+- `web/lib/types.ts`에 `Character.recommendedPersona` 추가.
+- `web/lib/hooks.ts`에 `usePersonas()` 추가 — 비로그인 시 null key로 fetch 비활성.
+- `web/store/chatPrep.ts` 신규 — 채팅 진입 직전 페르소나·safety·characterId 준비 컨텍스트 store. 원본 `window._persona / _characterId / _safety` 대응.
+- `web/app/persona/page.tsx` — 리다이렉터 (캐릭터 컨텍스트 + 로그인 + 페르소나 보유 여부에 따라 분기)
+- `web/app/persona/new/page.tsx` — 신규 페르소나 폼. **linked** (`?char=<id>`) / **standalone** 모드. linked는 `대화 시작` → chat, standalone은 `저장하기` → /mypage.
+- `web/app/persona/select/page.tsx` — 기존 페르소나 목록. 카드 클릭 → edit 페이지, 마지막에 `새 페르소나` CTA.
+- `web/app/persona/select/[id]/page.tsx` — 페르소나 prefill 후 일회성 수정 + chat prep set + /character/<id>/chat 이동.
+- `web/app/character/[id]/page.tsx` 갱신 — `대화 시작 →` 버튼이 `/persona?char=<id>` 로 (리다이렉터로) 이동.
+
+**ML-004 재발 (Suspense)**:
+- 4개 페이지 모두 `useSearchParams` 사용 → build 시 prerender 에러
+- 시도 1: `export const dynamic = 'force-dynamic'` 추가 → **해결 안 됨**
+- 시도 2 (성공): 페이지를 outer + inner 분리, outer가 `<Suspense fallback={null}>`로 감쌈
+- ML-004 강화 규칙 업데이트
+
+**범위 제외 (다음 단계)**:
+- 프로필 이미지 업로드 (원본 personaAvatarUpload) — 별도 컴포넌트 작업
+- 페르소나 detail 페이지 (`/persona/[id]`, mypage에서 진입) — Day 8 mypage와 함께
+- 페르소나 PATCH (기존 페르소나 영구 수정) — Day 8 mypage CRUD와 함께
+
+**Splash 게이팅**:
+- 모든 페르소나 라우트에서 `setAppReady(true)` 즉시 호출 (데이터 게이팅 필요 없는 entry route 패턴)
+
+**모바일 인터랙션**:
+- 모든 폼 input/textarea `font-size: 16px` (iOS 줌인 방지, `@supports (-webkit-touch-callout)`)
+- 모든 버튼 `touch-action: manipulation` + `:active opacity 0.7` + `min-height: 44px`
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ build 통과 (`/persona` 1.75kB / `/persona/new` 3.5kB / `/persona/select` 2.54kB / `/persona/select/[id]` 3.29kB, dynamic)
+- ✅ 백엔드 jest 49/49 통과
+- ⏸ 시각 비교 / 모바일 — 다음 세션
+- ⏸ chat 경로(/character/[id]/chat)는 아직 미구현 → 페르소나 폼 제출 시 404 페이지로 — Day 6에서 해결
+
+**체크리스트 진척**:
+- ✅ 섹션 2.3 (Persona setup)
+- ✅ 섹션 2.4 (Persona select)
+- ✅ 섹션 2.5 (Persona select edit)
+- 🟡 Persona detail / 영구 수정 / 아바타 업로드는 Day 8로
+
+---
 
 ### 2026-05-27 (Day 4) — `/character/[id]` 캐릭터 인트로 1차
 

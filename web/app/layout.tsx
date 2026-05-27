@@ -7,6 +7,7 @@ import { AuthGate } from '@/components/AuthGate';
 import { LogoutModal } from '@/components/LogoutModal';
 import { BottomNav } from '@/components/BottomNav';
 import './globals.css';
+import './styles/forms.css';
 
 export const metadata: Metadata = {
   title: 'Folio',

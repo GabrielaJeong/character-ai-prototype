@@ -28,3 +28,12 @@ export function relativeTime(unixSec: number): string {
 export function notifBadgeText(n: number): string {
   return n > 9 ? '9+' : String(n);
 }
+
+/**
+ * `{{user}}` placeholder를 페르소나 이름으로 치환.
+ * 원본 app.js의 `resolveUser` helper와 동일.
+ */
+export function resolveUser(text: string, userName: string): string {
+  if (!text || !userName) return text;
+  return text.replace(/\{\{user\}\}/g, userName);
+}

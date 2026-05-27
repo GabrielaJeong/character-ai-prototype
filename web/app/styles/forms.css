@@ -1,0 +1,359 @@
+/*
+ * 공통 UI 패턴 — 폼·버튼·네비·헤더·셀렉트카드·페르소나 카드.
+ * 원본 public/css/style.css의 글로벌 패턴들 (form-group / btn-primary / page-nav 등)을 그대로 이식.
+ * 여러 라우트에서 재사용되므로 CSS Module이 아닌 글로벌로 유지.
+ */
+
+/* ── 페이지 네비 (뒤로 + 라벨) ──────────────────────────── */
+.page-nav {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  text-transform: uppercase;
+  flex: 1;
+}
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 6px 0 0;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  font-family: var(--font);
+  min-height: 44px;
+  touch-action: manipulation;
+}
+.btn-back:hover { color: var(--text); }
+.btn-back:active { opacity: 0.7; }
+
+/* ── 컨텐츠 헤더 (섹션 타이틀 + 부제) ─────────────────── */
+.content-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.content-header-title {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.content-header-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── 페이지 body wrapper ──────────────────────────────── */
+.page-body {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.page-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 추천 버튼 ────────────────────────────────────────── */
+.recommend-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: border-color 0.15s, background 0.15s;
+  touch-action: manipulation;
+  min-height: 36px;
+}
+.recommend-btn:hover {
+  border-color: var(--accent-dim);
+  background: rgba(91,143,185,0.06);
+}
+.recommend-btn:active { opacity: 0.7; }
+
+/* ── 폼 그룹 ─────────────────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.required { color: var(--accent); margin-left: 2px; }
+
+.form-group input,
+.form-group textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font);
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+  line-height: 1.5;
+}
+/* iOS 포커스 자동 줌인 방지 — Safari에서 font-size < 16px 입력에 zoom 적용됨 */
+@supports (-webkit-touch-callout: none) {
+  .form-group input,
+  .form-group textarea {
+    font-size: 16px;
+  }
+}
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-dim);
+}
+
+/* ── 성별 선택 버튼 ──────────────────────────────────── */
+.gender-btn-group {
+  display: flex;
+  gap: 8px;
+}
+.gender-btn {
+  flex: 1;
+  padding: 9px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  touch-action: manipulation;
+  min-height: 44px;
+  font-family: var(--font);
+}
+.gender-btn:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+.gender-btn:active { opacity: 0.7; }
+.gender-btn.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+/* ── 공통 버튼 (primary / ghost) ─────────────────────── */
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, opacity 0.15s;
+  text-align: center;
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.btn-primary:hover { background: #4a7ea8; }
+.btn-primary:active { opacity: 0.7; }
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  width: 100%;
+  padding: 14px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+.btn-ghost:active { opacity: 0.7; }
+
+/* ── 셀렉트 카드 (큰 카드 리스트) ─────────────────────── */
+.select-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.select-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+  font-family: var(--font);
+  touch-action: manipulation;
+}
+.select-card:hover {
+  border-color: var(--accent-dim);
+  background: rgba(91,143,185,0.05);
+}
+.select-card:active { opacity: 0.7; }
+.select-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(91,143,185,0.1);
+  border: 1px solid rgba(91,143,185,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.select-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.select-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.select-card-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.select-card-arrow {
+  font-size: 20px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ── 페르소나 / 캐릭터 카드 그리드 (2열) ───────────────── */
+.mypage-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.mypage-card-grid > p {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.mypage-p-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #1c2135 0%, #252b40 100%);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mypage-p-card:active { opacity: 0.7; }
+.mypage-p-card.is-default {
+  border-color: var(--accent);
+}
+.mypage-p-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mypage-p-no-img {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mypage-p-add-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.35);
+}
+.mypage-p-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 12px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%);
+}
+.mypage-p-card:not(.has-image) .mypage-p-overlay {
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0) 100%);
+}
+.mypage-p-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.mypage-p-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.default-badge {
+  display: inline-block;
+  font-size: 10px;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
