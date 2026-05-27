@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams, notFound } from 'next/navigation';
-import { useCharacters, useSession } from '@/lib/hooks';
+import { useCharacters, useCharacterDetail, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { ApiError, streamSSE } from '@/lib/api';
@@ -191,17 +191,18 @@ function ChatInner({ params }: { params: { id: string } }) {
   const setAppReady = useUIStore((s) => s.setAppReady);
   const consumePrep = useChatPrepStore((s) => s.consume);
 
-  // Codex R4 F4: 세션 detail이 character 메타를 임베드해서 옴 →
-  // existing session이면 session.character 우선, 신규는 list에서.
-  // (이전 useCharacterDetail 경유는 /api/characters/:id가 adult gate 우회하던 문제 — R4 F4)
+  // 캐릭터 해상도: list 우선, 없으면 단건 endpoint fallback.
+  // /api/characters/:id는 백엔드에서 adult_only일 때 session-ownership/admin 게이트로
+  // 노출 제어 (Codex R4 F4 경량화). 본인 세션 보유자만 통과 → adult 필터 우회 우려 없음.
   const charInList = useMemo(
     () => characters.find((c) => c.id === params.id) ?? null,
     [characters, params.id],
   );
-  const char = useMemo(() => {
-    if (isExistingSession && loadedSession?.character) return loadedSession.character;
-    return charInList;
-  }, [isExistingSession, loadedSession, charInList]);
+  const needFallback = !isLoading && !charInList;
+  const { character: charFallback, isLoading: fallbackLoading } = useCharacterDetail(
+    needFallback ? params.id : null,
+  );
+  const char = useMemo(() => charInList ?? charFallback, [charInList, charFallback]);
 
   // chat session state
   const [persona, setPersona] = useState<PersonaData | null>(null);
@@ -307,19 +308,8 @@ function ChatInner({ params }: { params: { id: string } }) {
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
 
-  // notFound: list 로드 끝났고 session도 로드 끝났는데 char를 못 구하면 진짜 없는 캐릭터.
-  // 신규 채팅인데 list에 없음 → 진짜 없음.
-  // 기존 세션인데 backend가 character: null 반환 → 캐릭터 디렉터리 삭제됨.
-  if (!isLoading && !charInList && !isExistingSession) notFound();
-  if (
-    !isLoading &&
-    isExistingSession &&
-    !sessionLoading &&
-    loadedSession &&
-    !loadedSession.character
-  ) {
-    notFound();
-  }
+  // notFound: list와 fallback 둘 다 끝났는데 char가 없으면 진짜 없는 캐릭터.
+  if (!isLoading && !fallbackLoading && needFallback && !charFallback) notFound();
   if (!char || hasPersona !== true || !persona) {
     return <div className={styles.wrap} />;
   }

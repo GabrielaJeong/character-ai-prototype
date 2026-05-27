@@ -131,16 +131,40 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/characters/:id — single character config
+// Codex R4 F4 (가벼운 대안): adult_only 캐릭터는 어드민 또는
+//   (1) 본인의 adult_content_enabled === 1 인 사용자
+//   (2) 해당 캐릭터로 만든 기존 세션 소유자 (user_id 또는 guest_id 매칭)
+// 에게만 노출. 나머지(all/toggleable)는 누구나 조회 가능 (필터 없음).
 router.get('/:id', (req, res) => {
-  const configPath = path.join(CHARS_DIR, req.params.id, 'config.json');
+  const charId = req.params.id;
+  const configPath = path.join(CHARS_DIR, charId, 'config.json');
   if (!fs.existsSync(configPath)) {
     return res.status(404).json({ error: 'Character not found' });
   }
+  let config;
   try {
-    res.json(JSON.parse(fs.readFileSync(configPath, 'utf-8')));
+    config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
   } catch (err) {
-    res.status(500).json({ error: 'Failed to read character config' });
+    return res.status(500).json({ error: 'Failed to read character config' });
   }
+
+  if (config.rating === 'adult_only') {
+    const uid = req.session?.userId || null;
+    const guestId = req.session?.guestId || null;
+    let allowed = false;
+    if (uid) {
+      const user = stmt.getUserById.get(uid);
+      if (user?.role === 'admin') allowed = true;
+      else if (user?.adult_content_enabled) allowed = true;
+    }
+    // 본인이 기존에 대화한 세션이 있으면 통과 (history에서 그 세션 진입 가능하도록)
+    if (!allowed && (uid || guestId)) {
+      if (stmt.hasSessionForChar.get(charId, uid, guestId)) allowed = true;
+    }
+    if (!allowed) return res.status(403).json({ error: '권한이 없습니다' });
+  }
+
+  res.json(config);
 });
 
 // POST /api/characters/create

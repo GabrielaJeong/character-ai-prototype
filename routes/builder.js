@@ -7,11 +7,9 @@ const { callGemini } = require('../lib/gemini');
 
 const client = new Anthropic();
 
-// Codex R4 F2: builder는 공개 AI 비용 endpoint — requireAuth로 무단 호출 차단
-function requireAuth(req, res, next) {
-  if (!req.session?.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
-  next();
-}
+// Codex R4 F2 → 롤백: 포트폴리오/데모 흐름이 비로그인 빌더 시연을 의도함.
+// 비용 차단은 server.js의 apiLimiter(15분 200req) + 추후 per-IP rate limit으로 처리 예정.
+// 저장 단계(POST /api/characters/create)는 여전히 requireAuth라 orphan은 생성 안 됨.
 
 const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const ALLOWED_MODELS    = new Set([
@@ -29,7 +27,7 @@ const builderSessions = new Map();
 // POST /api/builder/chat
 // Body: { builderSessionId?, message, model? }
 // Returns: { reply, builderSessionId, isReady }
-router.post('/chat', requireAuth, async (req, res) => {
+router.post('/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
 
@@ -71,7 +69,7 @@ router.post('/chat', requireAuth, async (req, res) => {
 // POST /api/builder/generate
 // Body: { characterData } — parsed JSON from [CHARACTER_READY] block
 // Returns: { systemPrompt, characterData }
-router.post('/generate', requireAuth, async (req, res) => {
+router.post('/generate', async (req, res) => {
   const { characterData } = req.body;
   if (!characterData) return res.status(400).json({ error: 'characterData required' });
 

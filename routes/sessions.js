@@ -1,38 +1,10 @@
 const express = require('express');
 const router  = express.Router();
-const fs      = require('fs');
-const path    = require('path');
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 
-const CHARS_DIR = path.join(__dirname, '..', 'prompts', 'characters');
-
-/**
- * Codex R4 F4: 세션 detail에 character config 임베드.
- * 클라이언트가 별도로 /api/characters/:id를 호출하면 adult filter를 우회하는 문제 →
- * "본인이 소유한 세션" 권한 안에서만 character 정보를 받도록 함.
- */
-function loadCharacterMeta(id) {
-  if (!id) return null;
-  const p = path.join(CHARS_DIR, id, 'config.json');
-  if (!fs.existsSync(p)) return null;
-  try {
-    const config = JSON.parse(fs.readFileSync(p, 'utf-8'));
-    // 채팅에 필요한 필드만 노출 (notes/_builderData 같은 IP 노출 안 함)
-    return {
-      id:           config.id || id,
-      name:         config.name,
-      nameEn:       config.nameEn,
-      role:         config.role,
-      team:         config.team,
-      image:        config.image,
-      rating:       config.rating,
-      defaultSafety: config.defaultSafety,
-      safetyToggle: config.safetyToggle,
-      owner_username: config.owner_username,
-    };
-  } catch { return null; }
-}
+// Codex R4 F4 → 롤백: 세션 detail에 character 임베드 대신, /api/characters/:id에
+// session-ownership/adult gate를 추가하는 더 가벼운 방식으로 (API shape 보존).
 
 // GET /api/sessions — list sessions (filtered by auth state)
 router.get('/', (req, res) => {
@@ -52,7 +24,7 @@ router.get('/', (req, res) => {
   res.json(sessions);
 });
 
-// GET /api/sessions/:id — get session + full message history + character meta
+// GET /api/sessions/:id — get session + full message history
 router.get('/:id', (req, res) => {
   const session = verifyOwnership(req.params.id, req, res);
   if (!session) return;
@@ -61,7 +33,6 @@ router.get('/:id', (req, res) => {
   res.json({
     id:            session.id,
     character_id:  session.character_id,
-    character:     loadCharacterMeta(session.character_id), // Codex R4 F4
     safety:        session.safety || 'on',
     model:         session.model,
     persona:       JSON.parse(session.persona),

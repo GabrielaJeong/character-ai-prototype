@@ -217,6 +217,12 @@ const stmt = {
   deleteSession:        db.prepare('DELETE FROM sessions WHERE id = ?'),
   updateSessionModel:   db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
   updateSessionSafety:  db.prepare('UPDATE sessions SET safety = ? WHERE id = ?'),
+  // user 또는 guest가 특정 character와 대화한 세션 존재 여부 (adult char gate에 사용)
+  hasSessionForChar:    db.prepare(`
+    SELECT 1 FROM sessions
+    WHERE character_id = ? AND ((user_id IS NOT NULL AND user_id = ?) OR (guest_id IS NOT NULL AND guest_id = ?))
+    LIMIT 1
+  `),
 
   listSessionsByUser: db.prepare(`
     SELECT s.id, s.persona, s.model, s.character_id, s.safety, s.created_at,
