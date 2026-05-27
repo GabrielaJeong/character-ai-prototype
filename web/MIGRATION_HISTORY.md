@@ -145,6 +145,65 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-28 (Day 6.x) — 채팅 SSE 스트리밍 (token-by-token typewriter UX)
+
+**작업 범위**: 기존 non-stream 일괄 응답을 Server-Sent Events 스트리밍으로 전환.
+원본 SPA는 한꺼번에 응답 받아 표시했는데, 사용자 요청으로 ChatGPT/Claude.ai 같은 점진 표시 UX 도입.
+
+**원본 대비 차이 (의도된 개선)**:
+- 백엔드: `anthropic.messages.create` / `gemini.generateContent` → stream API
+- 응답 형식: JSON `{ reply, ... }` → SSE `data: {"type":"delta"|"done"|"error",...}\n\n`
+- 프론트: `await fetch` → `for await (event of streamSSE(...))`
+
+**구현**:
+- `lib/streamReply.js` 신규 — Anthropic + Gemini stream 통일 인터페이스
+  - `streamReply({ model, systemPrompt, history, maxTokens, onDelta })` → 완성된 전체 텍스트 반환
+  - Anthropic: `messages.create({...stream:true})` async iterator, `content_block_delta` 이벤트에서 text_delta 추출
+  - Gemini: `models.generateContentStream(...)`, chunk.text로 thought parts 자동 제외
+- `routes/chat.js` SSE 전환
+  - SSE 헤더 (`text/event-stream` + `no-cache` + `X-Accel-Buffering: no` for nginx proxy)
+  - `req.on('close')` abort 감지 → SDK iteration 끝나면 partial이라도 DB 저장 (사용자 history 보존)
+  - 에러 시 `data: {"type":"error","error":"..."}\n\n` 후 partial 저장 + res.end
+  - 정상 종료 시 `data: {"type":"done","sessionId","model","characterId"}\n\n`
+  - 안전 위반 자동 로그 (전연령 모드)는 누적 텍스트 기준 그대로 작동
+- `routes/regenerate.js` 동일 패턴 SSE 전환 (sessionId + model 받음, session.model 갱신, 옛 assistant 메시지 삭제 후 stream)
+- `web/lib/api.ts` `streamSSE<T>(path, body, { signal? })` 헬퍼 추가
+  - AsyncGenerator로 SSE 블록 yield
+  - `data:` 라인만 처리, `event:`/`id:`/`retry:` 무시 (스펙 준수)
+  - HTTP 4xx/5xx에는 ApiError 던짐 (스트림 시작 전 에러)
+  - 깨진 JSON 블록은 silently skip
+  - AbortSignal 지원 (페이지 이탈 시 호출자가 중단 가능 — Day 6.x에서 호출자 측 abort는 아직 미사용)
+- `web/app/character/[id]/chat/page.tsx` 리팩토링
+  - `api.post` → `streamSSE` 호출로 변경
+  - 첫 delta 도착 시 assistant 메시지 append, 이후 delta는 마지막 메시지의 versions[0] in-place 갱신
+  - 재생성: 빈 새 버전을 미리 추가해 typing dots 보여주고, delta 도착하면 그 버전 텍스트 채움
+  - 에러 시 partial이 있으면 텍스트에 (에러) 덧붙임, 없으면 별도 assistant 메시지로 추가
+  - 재생성 실패 + partial 없음 → 빈 새 버전 제거하고 이전 버전으로 복귀
+- `MessageBubble` props 정리
+  - `sending` → `streaming` 으로 리네이밍 (의미 명확화)
+  - `showTyping = streaming && text.length === 0` — 텍스트가 없을 때만 dots, 한 글자라도 오면 즉시 점진 표시
+  - streaming 중엔 pagination/regen 버튼 숨김 (사용자 spam 방지)
+
+**원본 대비 변경 (외부 호환 영향)**:
+- `POST /api/chat` 응답 형식 변경 (JSON → SSE). 원본 SPA(public/js/app.js)는 아직 JSON 기대하므로, **원본 SPA로 채팅 화면 진입 시 깨짐**. 단 마이그레이션 후엔 Next.js 클라이언트만 사용하므로 영향 없음.
+- 마이그레이션 완료 전까지 원본 SPA를 함께 운영하려면 별도 endpoint 분리 검토 필요 (현재는 안 함).
+
+**lib/gemini.js**:
+- non-streaming `callGemini`는 그대로 유지 (memory.js / builder.js / admin.js / releaseNotify.js가 사용)
+- 채팅/재생성만 streamReply로 전환
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ web build 통과 (`/character/[id]/chat` 5.74 kB, dynamic)
+- ✅ 백엔드 jest 49/49 통과 (chat/regenerate에 대한 테스트 없음 — 추후 SSE 테스트 추가 검토)
+- ⏸ 브라우저 실측: 첫 delta 지연 / 누적 텍스트 정확성 / Gemini와 Claude 모두 / 재생성 / 에러 시 partial 저장 / abort 시 partial 저장
+
+**잔여**:
+- 페이지 이탈 시 호출자 측 AbortController로 stream 명시적 중단 (현재 백엔드 `req.on('close')` 자동 감지에 의존)
+- SSE 테스트 (jest로 supertest + fake 모델 응답 mock)
+
+---
+
 ### 2026-05-27 (Day 7) — Auth (login / signup / forgot / reset-password)
 
 **작업 범위**: 인증 4종 (`/login` 안에 login / register / forgot 뷰 토글 + 별도 `/reset-password?token=`).

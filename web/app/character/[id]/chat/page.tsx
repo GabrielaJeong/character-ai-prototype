@@ -5,7 +5,7 @@ import { useRouter, notFound } from 'next/navigation';
 import { useCharacters } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
-import { api, ApiError } from '@/lib/api';
+import { ApiError, streamSSE } from '@/lib/api';
 import { CHAT_DEFAULT_MODEL } from '@/lib/models';
 import { ChatInput } from '@/components/ChatInput';
 import { ModelPicker } from '@/components/ModelPicker';
@@ -15,7 +15,7 @@ import styles from './page.module.css';
 /**
  * 채팅 — `/character/[id]/chat`
  *
- * 원본: index.html L450~508 (#screen-chat) + app.js sendMessage (L2412~2456) / regenerate (L2606~2639) / renderMessage (L2477~2577).
+ * 원본: index.html L450~508 (#screen-chat) + app.js sendMessage / regenerate / renderMessage.
  *
  * 데이터 흐름:
  *   1. 페르소나 setup이 useChatPrepStore에 prep 세팅 후 이 페이지로 navigate
@@ -24,18 +24,30 @@ import styles from './page.module.css';
  *   4. 첫 메시지 POST 시 백엔드가 세션 생성 (persona + safety + characterId 함께 전송)
  *   5. 이후 메시지는 sessionId만으로 컨텍스트 유지
  *
+ * SSE 스트리밍 (Day 6.x):
+ *   - POST /api/chat 과 /api/chat/regenerate는 SSE로 응답
+ *   - 첫 delta 도착 전에는 typing dots (기존 동작)
+ *   - delta 도착하면 그 시점부터 메시지 텍스트가 점진적으로 채워짐 (ChatGPT 같은 UX)
+ *   - done 이벤트 = 종료, error 이벤트 = 메시지 추가
+ *
  * 기능:
- *   - 메시지 송수신 (POST /api/chat)
- *   - 응답 재생성 (POST /api/chat/regenerate) + 버전 페이지네이션
- *   - 채팅 ↔ 소설 모드 토글 (UI만, 백엔드 영향 없음)
- *   - 모델 선택 (POST 시 model 함께 전송)
- *   - typing indicator
+ *   - 메시지 송수신 (POST /api/chat — SSE)
+ *   - 응답 재생성 (POST /api/chat/regenerate — SSE) + 버전 페이지네이션
+ *   - 채팅 ↔ 소설 모드 토글
+ *   - 모델 선택 (model 변경 시 다음 요청부터 적용)
+ *   - typing indicator (첫 delta 도착 전까지만)
  *
  * 미구현 (다음 단계):
- *   - 노트 모달 (사용자 노트 저장)
- *   - 캐릭터 프로필 모달 (헤더 프로필 클릭)
- *   - 기존 세션 로드 (history → 이 페이지로 재진입)
+ *   - 노트 모달 / 캐릭터 프로필 모달 / 기존 세션 로드
  */
+interface SSEEvent {
+  type: 'delta' | 'done' | 'error';
+  text?: string;
+  error?: string;
+  sessionId?: string;
+  model?: string;
+  characterId?: string;
+}
 
 type Role = 'user' | 'assistant';
 interface Msg {
@@ -148,31 +160,69 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       { role: 'user', sender: userName, versions: [text], vIdx: 0 },
     ]);
 
+    const isFirstMessage = messages.length === 0;
+    const body: Record<string, unknown> = { sessionId, message: text, model };
+    if (isFirstMessage) {
+      body.persona = persona;
+      body.characterId = char.id;
+      body.safety = safety;
+    }
+
+    let accumulated = '';
+    let assistantPlaced = false;
+    let streamError: string | null = null;
+
     try {
-      // 새 세션이면 persona/characterId/safety 함께. 기존이면 sessionId만.
-      const isFirstMessage = messages.length === 0;
-      const body: Record<string, unknown> = { sessionId, message: text, model };
-      if (isFirstMessage) {
-        body.persona = persona;
-        body.characterId = char.id;
-        body.safety = safety;
+      for await (const ev of streamSSE<SSEEvent>('/api/chat', body)) {
+        if (ev.type === 'delta' && ev.text) {
+          accumulated += ev.text;
+          if (!assistantPlaced) {
+            // 첫 delta — assistant 메시지 append
+            assistantPlaced = true;
+            setMessages((prev) => [
+              ...prev,
+              { role: 'assistant', sender: charName, versions: [accumulated], vIdx: 0 },
+            ]);
+          } else {
+            // 이후 delta — 마지막 메시지 (= 방금 추가한 assistant) versions[0] 갱신
+            setMessages((prev) => {
+              if (prev.length === 0) return prev;
+              const next = prev.slice();
+              const last = next[next.length - 1];
+              next[next.length - 1] = { ...last, versions: [accumulated] };
+              return next;
+            });
+          }
+        } else if (ev.type === 'error') {
+          streamError = ev.error ?? '응답에 실패했습니다.';
+        }
+        // done은 별도 처리 불필요 (loop 자체가 끝남)
       }
-      const data = await api.post<{ reply: string; sessionId: string; model: string }>(
-        '/api/chat',
-        body,
-      );
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', sender: charName, versions: [data.reply], vIdx: 0 },
-      ]);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : '연결에 실패했습니다.';
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', sender: charName, versions: [`(${msg})`], vIdx: 0 },
-      ]);
+      streamError = err instanceof ApiError ? err.message : '연결에 실패했습니다.';
     } finally {
       setSending(false);
+    }
+
+    if (streamError) {
+      if (assistantPlaced) {
+        // partial 텍스트가 있으면 끝에 에러 안내 덧붙임
+        setMessages((prev) => {
+          if (prev.length === 0) return prev;
+          const next = prev.slice();
+          const last = next[next.length - 1];
+          next[next.length - 1] = {
+            ...last,
+            versions: [`${accumulated}\n\n(${streamError})`],
+          };
+          return next;
+        });
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', sender: charName, versions: [`(${streamError})`], vIdx: 0 },
+        ]);
+      }
     }
   };
 
@@ -180,21 +230,53 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     if (sending) return;
     setSending(true);
     setRegeneratingIdx(idx);
+
+    // 빈 새 버전을 미리 추가하고 vIdx 이동 → 그 자리에 typing dots가 보임
+    setMessages((prev) =>
+      prev.map((m, i) => {
+        if (i !== idx) return m;
+        return { ...m, versions: [...m.versions, ''], vIdx: m.versions.length };
+      }),
+    );
+
+    let accumulated = '';
+    let streamError: string | null = null;
+
     try {
-      // Codex F1: 현재 model을 body에 함께 전달 — 백엔드가 session.model 갱신
-      const data = await api.post<{ reply: string }>('/api/chat/regenerate', { sessionId, model });
-      setMessages((prev) =>
-        prev.map((m, i) => {
-          if (i !== idx) return m;
-          const newVersions = [...m.versions, data.reply];
-          return { ...m, versions: newVersions, vIdx: newVersions.length - 1 };
-        }),
-      );
+      for await (const ev of streamSSE<SSEEvent>('/api/chat/regenerate', { sessionId, model })) {
+        if (ev.type === 'delta' && ev.text) {
+          accumulated += ev.text;
+          setMessages((prev) =>
+            prev.map((m, i) => {
+              if (i !== idx) return m;
+              const last = m.versions.length - 1;
+              const newVersions = m.versions.map((v, vi) => (vi === last ? accumulated : v));
+              return { ...m, versions: newVersions };
+            }),
+          );
+        } else if (ev.type === 'error') {
+          streamError = ev.error ?? '재생성에 실패했습니다.';
+        }
+      }
     } catch (err) {
-      showToast(err instanceof ApiError ? err.message : '재생성에 실패했습니다.');
+      streamError = err instanceof ApiError ? err.message : '재생성에 실패했습니다.';
     } finally {
       setSending(false);
       setRegeneratingIdx(null);
+    }
+
+    if (streamError) {
+      // 빈 새 버전 제거 (실패 시 원래 버전으로 복귀)
+      if (!accumulated) {
+        setMessages((prev) =>
+          prev.map((m, i) => {
+            if (i !== idx) return m;
+            const newVersions = m.versions.slice(0, -1);
+            return { ...m, versions: newVersions, vIdx: newVersions.length - 1 };
+          }),
+        );
+      }
+      showToast(streamError);
     }
   };
 
@@ -265,15 +347,15 @@ export default function ChatPage({ params }: { params: { id: string } }) {
             charImage={char.image}
             charName={charName}
             isLastAssistant={i === lastAssistantIdx}
-            // 재생성 중인 정확한 메시지에만 typing 표시 (Codex F2)
-            sending={regeneratingIdx === i}
+            // streaming 중이면 controls(regen/pagination) 숨김 (Codex F2 + streaming UX)
+            streaming={regeneratingIdx === i || (sending && i === lastAssistantIdx && regeneratingIdx === null)}
             onRegenerate={() => onRegenerate(i)}
             onPrev={() => onVersion(i, -1)}
             onNext={() => onVersion(i, +1)}
           />
         ))}
-        {/* 신규 전송 typing은 별도 bubble로 끝에 — 직전 assistant는 그대로 유지 */}
-        {sending && regeneratingIdx === null && (
+        {/* 신규 전송: assistant 메시지가 첫 delta로 추가되기 전까지만 typing dots 표시 */}
+        {sending && regeneratingIdx === null && (messages.length === 0 || messages[messages.length - 1].role === 'user') && (
           <TypingMessage charImage={char.image} charName={charName} mode={mode} />
         )}
       </div>
@@ -302,7 +384,8 @@ interface MsgProps {
   charImage?: string;
   charName: string;
   isLastAssistant: boolean;
-  sending: boolean;
+  /** true면 controls (pagination / regen 버튼) 숨김 — streaming/regen in progress */
+  streaming: boolean;
   onRegenerate: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -314,7 +397,7 @@ function MessageBubble({
   charImage,
   charName,
   isLastAssistant,
-  sending,
+  streaming,
   onRegenerate,
   onPrev,
   onNext,
@@ -323,6 +406,9 @@ function MessageBubble({
   const isUser = msg.role === 'user';
   const versionsCount = msg.versions.length;
   const isNovel = mode === 'novel';
+  // streaming 중에 아직 텍스트가 없으면 typing dots (regen 초기, 새 메시지 첫 delta 전).
+  // 텍스트가 한 글자라도 오면 즉시 점진 표시.
+  const showTyping = streaming && (!text || text.length === 0);
 
   if (isUser) {
     return (
@@ -346,52 +432,51 @@ function MessageBubble({
       )}
       <div className={styles.msgInner}>
         <div className={styles.msgSender}>{msg.sender}</div>
-        {sending ? (
+        {showTyping ? (
           <div className={styles.typingBubble}>
             <span className={styles.dot} />
             <span className={styles.dot} />
             <span className={styles.dot} />
           </div>
         ) : (
-          <>
-            <div className={styles.msgBubble}>
-              {isNovel ? highlightDialogue(text) : text}
-            </div>
-            {versionsCount > 1 && (
-              <div className={styles.msgPagination}>
-                <button
-                  type="button"
-                  className={styles.btnPg}
-                  onClick={onPrev}
-                  disabled={msg.vIdx === 0}
-                  aria-label="이전 버전"
-                >
-                  ←
-                </button>
-                <span className={styles.pgCounter}>
-                  {msg.vIdx + 1} / {versionsCount}
-                </span>
-                <button
-                  type="button"
-                  className={styles.btnPg}
-                  onClick={onNext}
-                  disabled={msg.vIdx === versionsCount - 1}
-                  aria-label="다음 버전"
-                >
-                  →
-                </button>
-              </div>
-            )}
-            {isLastAssistant && (
-              <button
-                type="button"
-                className={styles.btnRegenerate}
-                onClick={onRegenerate}
-              >
-                ↺ 다시 생성
-              </button>
-            )}
-          </>
+          <div className={styles.msgBubble}>
+            {isNovel ? highlightDialogue(text) : text}
+          </div>
+        )}
+        {/* streaming 중엔 controls 숨김 — 사용자 spam 방지 */}
+        {!streaming && versionsCount > 1 && (
+          <div className={styles.msgPagination}>
+            <button
+              type="button"
+              className={styles.btnPg}
+              onClick={onPrev}
+              disabled={msg.vIdx === 0}
+              aria-label="이전 버전"
+            >
+              ←
+            </button>
+            <span className={styles.pgCounter}>
+              {msg.vIdx + 1} / {versionsCount}
+            </span>
+            <button
+              type="button"
+              className={styles.btnPg}
+              onClick={onNext}
+              disabled={msg.vIdx === versionsCount - 1}
+              aria-label="다음 버전"
+            >
+              →
+            </button>
+          </div>
+        )}
+        {!streaming && isLastAssistant && (
+          <button
+            type="button"
+            className={styles.btnRegenerate}
+            onClick={onRegenerate}
+          >
+            ↺ 다시 생성
+          </button>
         )}
       </div>
     </div>

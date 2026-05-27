@@ -71,7 +71,7 @@ export const api = {
 };
 
 /**
- * 스트리밍 응답을 위한 raw fetch (채팅에서 사용 예정).
+ * 스트리밍 응답을 위한 raw fetch.
  * SWR / 일반 api.* 와 별도.
  */
 export async function rawFetch(path: string, options: RequestInit = {}): Promise<Response> {
@@ -79,4 +79,82 @@ export async function rawFetch(path: string, options: RequestInit = {}): Promise
     credentials: 'include',
     ...options,
   });
+}
+
+/**
+ * Server-Sent Events 스트림을 AsyncGenerator로 노출.
+ *
+ * 각 `data: {...}\n\n` 블록을 JSON 파싱해서 yield.
+ * 파싱 실패 블록은 조용히 건너뜀.
+ *
+ * 사용 예:
+ *   for await (const ev of streamSSE<{ type: string; text?: string }>('/api/chat', body, { signal })) {
+ *     if (ev.type === 'delta') append(ev.text);
+ *   }
+ *
+ * 중단:
+ *   - AbortSignal로 호출자가 중단 가능 (페이지 이탈, 사용자 cancel 등)
+ *   - 백엔드는 `req.on('close')`로 partial 저장 처리
+ */
+export async function* streamSSE<T = unknown>(
+  path: string,
+  body: unknown,
+  options: { signal?: AbortSignal } = {},
+): AsyncGenerator<T, void, unknown> {
+  const res = await rawFetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  });
+
+  if (!res.ok) {
+    // SSE 시작 전에 에러 응답이면 JSON으로 파싱 시도
+    let message = `API error: ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data && typeof data.error === 'string') message = data.error;
+      throw new ApiError(res.status, data, message);
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw new ApiError(res.status, null, message);
+    }
+  }
+  if (!res.body) {
+    throw new ApiError(res.status, null, '스트림 응답이 비어있습니다.');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE 메시지는 `\n\n`으로 구분. 각 메시지의 `data: ...` 라인을 추출.
+      let sep: number;
+      while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+
+        // 한 블록 안에 여러 라인 — data: 만 처리 (event:, id:, retry: 무시)
+        const dataLines = block
+          .split('\n')
+          .filter((l) => l.startsWith('data: '))
+          .map((l) => l.slice(6));
+        if (dataLines.length === 0) continue;
+        const payloadStr = dataLines.join('\n');
+        try {
+          yield JSON.parse(payloadStr) as T;
+        } catch {
+          // 깨진 JSON은 건너뜀
+        }
+      }
+    }
+  } finally {
+    try { reader.releaseLock(); } catch { /* ignore */ }
+  }
 }

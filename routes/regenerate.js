@@ -1,14 +1,10 @@
-const Anthropic = require('@anthropic-ai/sdk');
-const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
+const { streamReply } = require('../lib/streamReply');
 
-const anthropic         = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
-// chat.js와 동일하게 화이트리스트 검증 (요청 body에서 model 받을 때 사용)
 const ALLOWED_MODELS = new Set([
   'claude-sonnet-4-6',
   'claude-opus-4-6',
@@ -18,21 +14,19 @@ const ALLOWED_MODELS = new Set([
   'gemini-3.1-pro-preview',
 ]);
 
-async function getReply({ model, systemPrompt, history, maxTokens = 8192 }) {
-  if (GEMINI_MODELS.has(model)) {
-    return callGemini({ model, systemInstruction: systemPrompt, history, maxTokens });
-  }
-  const response = await anthropic.messages.create({
-    model,
-    max_tokens: maxTokens,
-    system:     systemPrompt,
-    messages:   history,
-  });
-  return response.content[0].text;
+function sseSetup(res) {
+  res.setHeader('Content-Type',  'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection',    'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+}
+function sseWrite(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-// POST /api/chat/regenerate
-// Body: { sessionId, model? }  — model 전달 시 세션 모델 갱신 (Codex F1).
+// POST /api/chat/regenerate — SSE streaming
+// Body: { sessionId, model? }
 module.exports = async (req, res) => {
   const { sessionId, model: rawModel } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
@@ -45,7 +39,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'No assistant message to regenerate' });
   }
 
-  // 요청에서 새 모델이 왔고 화이트리스트면 세션에 반영. 아니면 기존 session.model 유지.
+  // 새 모델 받으면 세션에 반영 (Codex F1 patch와 동일 정책)
   let model = session.model || DEFAULT_MODEL;
   if (rawModel && ALLOWED_MODELS.has(rawModel) && rawModel !== model) {
     stmt.updateSessionModel.run(rawModel, sessionId);
@@ -64,12 +58,37 @@ module.exports = async (req, res) => {
   const safety       = session.safety || 'on';
   const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety, model);
 
+  sseSetup(res);
+
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+
+  let accumulated = '';
   try {
-    const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });
-    stmt.addMessage.run(sessionId, 'assistant', reply);
-    res.json({ reply, model });
+    accumulated = await streamReply({
+      model,
+      systemPrompt,
+      history,
+      maxTokens: 8192,
+      onDelta: (text) => {
+        if (aborted) return;
+        sseWrite(res, { type: 'delta', text });
+      },
+    });
   } catch (err) {
-    console.error('Regenerate error:', err.message);
-    res.status(500).json({ error: 'Failed to regenerate' });
+    console.error('Regenerate stream error:', err.message);
+    if (!aborted) sseWrite(res, { type: 'error', error: '재생성에 실패했습니다.' });
+    if (accumulated) stmt.addMessage.run(sessionId, 'assistant', accumulated);
+    if (!aborted) res.end();
+    return;
+  }
+
+  if (accumulated) {
+    stmt.addMessage.run(sessionId, 'assistant', accumulated);
+  }
+
+  if (!aborted) {
+    sseWrite(res, { type: 'done', model });
+    res.end();
   }
 };
