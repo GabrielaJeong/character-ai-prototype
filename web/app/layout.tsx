@@ -21,7 +21,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko">
+    // suppressHydrationWarning: <head>의 inline script가 sessionStorage 체크 후
+    // <html>에 'splash-shown' 클래스를 부여 → React 트리엔 없는 속성이라
+    // hydration warning 발생. 의도된 동작이므로 억제. (ML-009 후속)
+    <html lang="ko" suppressHydrationWarning>
       <head>
         {/* Pretendard 폰트 — CSS @import 대신 link 태그로 로드 (Next.js dev 호환) */}
         <link
