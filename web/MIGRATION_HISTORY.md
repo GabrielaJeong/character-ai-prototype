@@ -131,7 +131,9 @@
   - critical 시각 속성은 inline `style={{}}` — CSS 로드/hydration 타이밍 모두에 안전
 - **6차 (실제 원인 발견)**: 위 모든 작업에도 사용자가 "여전히 home이 먼저 보이고 splash가 그 다음에 로딩되는 것처럼 보임" 호소. 원인: **Splash.module.css의 `.splash`에 `animation: fadeIn 0.3s ease` 가 들어있어서** opacity 0→1로 페이드인. 첫 0.3초 동안 splash가 반투명이라 home이 비쳐 보임. 원본 style.css의 `#splash`엔 fadeIn 없음 (로고·카피만 fadeIn). 마이그레이션 때 잘못 추가한 룰. 제거.
   - **교훈**: 원본 CSS 1:1 이식이라고 했지만 작은 추가(`animation: fadeIn`)가 시각적 인지에 결정적 영향. CSS 이식 시 **원본의 빠진 룰을 보강하기보다 원본대로만**.
+- **후속 (appReady의 다른 entry route 처리)**: home page만 setAppReady(true) 호출하다 보니 BottomNav로 /history /explore /builder /mypage 같은 (아직 미구현, not-found로 fallback되는) 라우트에 가면 splash가 maxTimer(5초) 다 차야 사라지는 문제. **해법**: 데이터 게이팅 안 하는 entry page는 mount 즉시 `setAppReady(true)` 호출. `app/not-found.tsx`에 useEffect 추가. 향후 entry routes(/login, /signup 등 데이터 없는 페이지) 추가 시 동일 패턴 적용 필수.
 - **출처**: Day 3.x fix (2026-05-27)
+- **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
 ### ML-010 — Next.js App Router의 favicon은 `web/app/favicon.ico` 에 있어야 함
 - **증상**: 브라우저 탭 favicon 안 뜸. 원본 `public/favicon.ico`는 Express가 서빙하지만 Next.js 3001은 모름.

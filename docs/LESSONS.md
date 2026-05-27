@@ -499,6 +499,55 @@
 
 ---
 
+## L-018: SSR 오버레이(Splash) FOUC — 6번의 잘못된 시도 끝에 진짜 원인은 fadeIn 0.3s 애니메이션
+
+**날짜**: 2026-05-27
+**위험도**: 중간 (UX 저하 — 사용자가 "마이그레이션 전엔 이러지 않았다" 호소)
+**컨텍스트**: React 마이그레이션 Day 3.x. SPA → Next.js App Router 이식. Splash 컴포넌트가 home 화면을 가려야 하는데 사용자가 "home이 먼저 보이고 splash가 그 다음에 로딩되는 것처럼 보임" 호소.
+
+**발생 맥락 (디버깅 여정)**:
+
+표면 증상만 보고 6번 잘못된 방향으로 시도. 매 시도마다 새로운 React/Next.js 함정에 빠짐:
+
+1. **1차 — `'use client'` + `useEffect`에서 visible 토글**: hydration 후에야 마운트 → 첫 페인트에 home 노출.
+2. **2차 — `useState(true)`로 SSR HTML에 마크업 포함 + CSS Module**: dev 모드에서 CSS Module 로드 지연 시 `position:fixed`가 적용 전 → 인라인 흐름으로 렌더되어 home이 비침.
+3. **3차 — inline `<script>` + `<html>` 클래스 + CSS hide rule**: React 트리 밖에서 `<html>` 클래스 조작 → hydration이 reconcile 시도하다 `removeChild`에서 null parent 만나 `TypeError`.
+4. **4차 — Server Component + 인접 `<script>`로 vanilla JS dismiss**: SSR HTML에 splash 박고 인접 script가 즉시 element.remove() → React가 자기 트리의 splash와 실제 DOM 불일치 발견 → `Hydration failed because the initial UI does not match what was rendered on the server` 폭주.
+5. **5차 — Client Component + state로만 dismiss + 800ms timer**: splash는 잘 가리는데 사라진 직후 SWR이 데이터 받아오느라 home placeholder "불러오는 중..." → 캐릭터 grid로 바뀌는 깜빡임. 사용자가 "0.1~0.3초 안에 후루룩 화면 보임" 호소.
+6. **사용자 핵심 지적 → appReady gating**: 원본 SPA app.js L159~186의 `_tryDismissSplash`는 `_dataReady && _timerReady` 둘 다 true일 때만 dismiss. Zustand `useUIStore.appReady` 추가, 홈 페이지가 isLoading=false면 setAppReady(true). Splash는 (timerReady && appReady)일 때만 fadeOut. 깜빡임은 잡혔으나 사용자가 "여전히 home이 먼저 보이는 것처럼 보임" 호소 — appReady gating은 정답이었지만 진짜 원인은 따로 있었음.
+7. **진짜 원인 발견**: `Splash.module.css`의 `.splash`에 `animation: fadeIn 0.3s ease` 들어있었음 (키프레임 `from { opacity: 0 } to { opacity: 1 }`). 첫 0.3초 동안 splash가 반투명 → home이 비쳐 보임. 원본 `#splash`엔 fadeIn 없음 (로고·카피만 fadeIn). 마이그레이션 때 잘못 추가한 룰.
+
+**재발 이유**:
+- 사용자가 본 현상("home이 먼저 보이고 splash가 나중 로딩")의 표면 해석에 매달려 React/hydration/SSR 함정만 파다가, **CSS opacity 애니메이션이 원흉**이라는 단순한 가능성을 안 봄
+- "원본 1:1 이식" 라고 했지만 미세한 추가 룰(`animation: fadeIn`)이 시각 인지에 결정적 영향
+- 디버그 시 코드 자체("내 CSS에 뭘 더 넣었는가")보다 환경 가설("Next.js dev의 CSS 로드 타이밍? hydration race?")부터 의심
+- 6번 시도하는 동안 ML-009를 계속 갱신하면서도 CSS Module 안을 다시 안 읽어봄
+
+**해결**:
+- `web/components/Splash.module.css`에서 `.splash`의 `animation: fadeIn` + `@keyframes fadeIn` 제거 (commit `73ac3e1`)
+- 원본 `#splash` 첫 페인트부터 완전 불투명 동작 복원
+
+**강화 규칙**:
+1. 🚩 **Red Flag — SSR 오버레이/모달 작성 중**: 컨테이너 element에 `opacity` / `visibility` 키프레임 애니메이션 넣지 말 것. 자식 element(로고·카피)에만 페이드인 허용. 컨테이너는 첫 페인트부터 완전 불투명이어야 함.
+2. **CSS 1:1 이식이라고 선언했으면 원본에 없는 룰 추가 금지** — "마이그레이션이 깔끔해 보이라고" `animation: fadeIn` 같은 작은 추가가 시각 동작을 바꾼다. 추가 룰이 정말 필요하면 PR/커밋 메시지에 명시.
+3. **시각 버그 디버깅 우선순위**:
+   - (1) 자기 코드의 최근 변경 diff 먼저 — 환경/프레임워크 가설은 그 다음
+   - (2) DevTools Computed Style에서 의심 element의 실제 opacity/transform/visibility 확인
+   - (3) `animation`, `transition`, keyframe 룰부터 의심 (특히 `opacity 0 → 1`)
+4. **React/Next.js SSR 오버레이 패턴 (확정)**:
+   - Client Component + `useState(true)` (SSR/client 초기 동기화로 hydration mismatch 회피)
+   - critical positioning은 inline `style={{}}` (CSS Module 로드 타이밍 무관)
+   - 컨테이너에 opacity 페이드인 금지 (FOUC 유발)
+   - dismiss는 setState로만 (DOM 직접 조작 절대 금지 — `element.remove()`, inline script 등은 hydration 충돌)
+   - 원본 SPA의 `_dataReady && _timerReady` 패턴 = `useUIStore.appReady` + setTimeout 조합
+5. **inline script로 `<html>` 같은 React 관리 요소 조작 절대 금지** — 한 번도 안전한 적이 없음.
+
+**참고**:
+- 6차 시도 전체 기록: `web/MIGRATION_HISTORY.md` ML-009 (시도-실패 + 최종 해법 + 원칙)
+- 관련 ML: ML-001 (`@import` Next.js dev 충돌), ML-009 (이 이슈의 마이그레이션 측 기록)
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시
