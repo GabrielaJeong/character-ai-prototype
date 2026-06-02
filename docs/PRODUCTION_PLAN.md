@@ -214,6 +214,23 @@ Phase A는 다음 조건 만족 시 종료 선언:
 
 ---
 
+## 9.5 보안·인프라 백로그 (Codex R5, 2026-05-28)
+
+> React 프론트 마이그레이션 **스코프 밖**의 기존 백엔드/배포 인프라 이슈.
+> 원본 SPA 시절부터 존재했거나 배포 환경 작업이라, 마이그레이션 흐름과 분리하여 별도 처리 (ML-013).
+> cutover 전 또는 프로덕션 안정화 단계에서 일괄 처리.
+
+| # | 심각도 | 항목 | 위치 | 메모 |
+|---|---|---|---|---|
+| R5-1 | Critical | 아바타·제작 캐릭터 파일이 ephemeral 디렉터리 저장 → Railway 재배포 시 유실 | `public/images`, `prompts/characters` | L-015/L-016 위반. `/data/uploads`·`/data/characters` Volume 또는 외부 스토리지로 분리 |
+| R5-2 | High | 탈퇴 시 파일 데이터(제작 캐릭터 dir, 캐릭터·아바타 이미지) 미정리 → orphan + 개인정보 잔존 | `routes/auth.js` DELETE `/me` | DB는 CASCADE로 정리됨. 파일 정리 로직 추가. admin 삭제도 동일. (프론트 탈퇴 문구는 실제 범위로 수정 완료) |
+| R5-3 | High | Builder 비용 엔드포인트 보호 부족 | `routes/builder.js`, `builderSessions` Map | 전체 apiLimiter(200req/15분)만. 전용 limiter + 동시요청·입력길이 제한 + Map TTL/최대세션 필요. (비로그인 데모 흐름은 유지) |
+| R5-4 | Medium | 아바타 5MB 제한이 프론트만 | `routes/auth.js` PATCH `/me` | 서버측 decoded byte 검증 + 이전 확장자 파일 정리 |
+| R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |
+| R5-6 | Low | 루트 `npm run lint` 실패 (ESLint v10 flat config 부재) | `eslint.config.js` 없음 | `.eslintrc` → flat config 마이그레이션. 프론트 lint는 정상 |
+
+---
+
 ## 10. 참고 문서
 
 - `docs/DECISIONS.md` — D-014 (React), D-017 (DB 영속화)

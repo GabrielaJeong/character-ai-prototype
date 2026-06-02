@@ -171,10 +171,12 @@ export default function MypagePage() {
   };
 
   // ── 탈퇴 ─────────────────────────────────────────────
+  // 실제 삭제 범위 (routes/auth.js DELETE /me + DB CASCADE): 대화 기록·페르소나·북마크·알림.
+  // 제작 캐릭터(파일)와 아바타 이미지는 현재 백엔드가 정리 안 함 → 문구에서 제외 (Codex R5 정확성).
   const onWithdraw = () => {
     showDeleteConfirm({
       title: '정말 탈퇴하시겠습니까?',
-      desc: '모든 대화, 페르소나, 제작 캐릭터가 삭제됩니다. 복구할 수 없습니다.',
+      desc: '모든 대화 기록과 페르소나가 삭제됩니다. 복구할 수 없습니다.',
       confirmLabel: '탈퇴',
       onConfirm: async () => {
         try {
