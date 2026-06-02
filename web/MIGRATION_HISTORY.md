@@ -320,6 +320,33 @@
 
 ---
 
+### 2026-05-28 (Day 6.x-2) — 노트 모달 + 캐릭터 프로필 모달 (채팅 완성)
+
+**작업 범위**: chat 헤더의 마지막 placeholder 2개(📝 노트, 프로필 버튼) 동작화. 새 page 없음 → Tier 1~2.
+
+**원본 대응**: index.html L466~496 (#char-profile-overlay, #note-overlay) + app.js openCharProfile (L2311) / openNote·saveNote (L2372~2409).
+
+**추가**:
+- `web/lib/types.ts`: Character에 `fullName` / `subtitle` / `profile` 추가 (list 응답이 config 전체를 `...config`로 펼치므로 이미 옴)
+- `web/app/character/[id]/chat/CharProfileModal.{tsx,module.css}` — 이미지/이름/subtitle/profile rows/제작자 노트(description)
+- `web/app/character/[id]/chat/NoteModal.{tsx,module.css}` — GET/PUT `/api/sessions/:id/note`, 1000자 카운트, 저장 시 onSaved(hasNote)
+- `web/app/character/[id]/chat/page.tsx`:
+  - 프로필 버튼 → setProfileOpen, 노트 버튼 → setNoteOpen + hasNote dot
+  - 기존 세션 진입 시 노트 존재 여부 로드 → 헤더 dot
+  - 두 모달 렌더
+
+**노트 한계 (원본 동일)**:
+- 첫 메시지 전(백엔드 세션 미생성)엔 GET/PUT 404 → 빈 노트, 저장 시 안내 toast
+- 첫 메시지 후 ?session= 생기고 백엔드 세션 존재하므로 정상
+
+**종료 체크**:
+- ✅ type-check / ESLint clean
+- ⏸ jest/build/dev재시작 skip (하네스)
+
+**채팅 화면 완성**: 송수신·스트리밍·재생성·모델·모드토글·노트·프로필·기존세션로드 전부 동작. Safety segment(인트로)만 잔여(Day 4.x).
+
+---
+
 ### 2026-05-28 (Day 6.x) — 채팅 SSE 스트리밍 (token-by-token typewriter UX)
 
 **작업 범위**: 기존 non-stream 일괄 응답을 Server-Sent Events 스트리밍으로 전환.

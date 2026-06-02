@@ -6,10 +6,12 @@ import { useCharacters, useCharacterDetail, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { useRequireAuth } from '@/lib/useRequireAuth';
-import { ApiError, streamSSE } from '@/lib/api';
+import { api, ApiError, streamSSE } from '@/lib/api';
 import { CHAT_DEFAULT_MODEL } from '@/lib/models';
 import { ChatInput } from '@/components/ChatInput';
 import { ModelPicker } from '@/components/ModelPicker';
+import { NoteModal } from './NoteModal';
+import { CharProfileModal } from './CharProfileModal';
 import type { PersonaData, Safety } from '@/lib/types';
 import styles from './page.module.css';
 
@@ -224,6 +226,10 @@ function ChatInner({ params }: { params: { id: string } }) {
   // 재생성 중인 메시지 인덱스. null이면 신규 전송(또는 idle). 신규 전송 typing은 별도 bubble로.
   // (Codex F2: 직전 assistant bubble이 typing으로 잠깐 바뀌던 버그 fix)
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+  // 노트 / 프로필 모달 (Day 6.x)
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [hasNote, setHasNote] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   // StrictMode에서 useEffect가 두 번 호출되어도 consume이 한 번만 일어나도록 가드.
@@ -320,6 +326,16 @@ function ChatInner({ params }: { params: { id: string } }) {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, sending]);
+
+  // 기존 세션 진입 시 노트 존재 여부 로드 → 헤더 dot (Day 6.x)
+  useEffect(() => {
+    if (!isExistingSession || !sessionId) return;
+    let cancelled = false;
+    api.get<{ note: string }>(`/api/sessions/${sessionId}/note`)
+      .then((d) => { if (!cancelled) setHasNote(!!d.note?.trim()); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isExistingSession, sessionId]);
 
   // 비로그인 → AuthGate가 떠있는 상태, 채팅 로직 진행 안 함
   if (!ready || !user) return <div className={styles.wrap} />;
@@ -497,7 +513,7 @@ function ChatInner({ params }: { params: { id: string } }) {
       {/* Header */}
       <div className={styles.header}>
         <button type="button" className={styles.btnBack} onClick={onBack} aria-label="뒤로">←</button>
-        <button type="button" className={styles.profileBtn} onClick={() => showToast('프로필 모달 준비중')}>
+        <button type="button" className={styles.profileBtn} onClick={() => setProfileOpen(true)}>
           {char.image ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={char.image} alt={charName} className={styles.avatar} />
@@ -515,11 +531,12 @@ function ChatInner({ params }: { params: { id: string } }) {
         <button
           type="button"
           className={styles.btnNote}
-          onClick={() => showToast('노트 모달 준비중')}
+          onClick={() => setNoteOpen(true)}
           title="유저 노트"
           aria-label="유저 노트"
         >
           📝
+          {hasNote && <span className={styles.noteDot} />}
         </button>
       </div>
 
@@ -563,6 +580,16 @@ function ChatInner({ params }: { params: { id: string } }) {
         placeholder={`${charName}에게 메시지를 보내세요...`}
         autoFocus
       />
+
+      {/* 모달 (Day 6.x) */}
+      {profileOpen && <CharProfileModal char={char} onClose={() => setProfileOpen(false)} />}
+      {noteOpen && (
+        <NoteModal
+          sessionId={sessionId}
+          onClose={() => setNoteOpen(false)}
+          onSaved={(has) => setHasNote(has)}
+        />
+      )}
     </div>
   );
 }

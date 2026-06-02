@@ -123,6 +123,7 @@
 .btnMode:active { opacity: 0.7; }
 
 .btnNote {
+  position: relative;
   padding: 6px 8px;
   background: transparent;
   border: 1px solid var(--border);
@@ -137,6 +138,17 @@
 }
 .btnNote:hover { border-color: var(--accent-dim); color: var(--accent); }
 .btnNote:active { opacity: 0.7; }
+/* 노트 있을 때 빨간 dot (원본 .note-dot) */
+.noteDot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e05c5c;
+  pointer-events: none;
+}
 
 /* ── Messages container ──────────────────────────── */
 .messages {

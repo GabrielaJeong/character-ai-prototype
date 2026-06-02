@@ -59,6 +59,10 @@ export interface Character {
   description?: string[];             // 단락 배열 (인트로 ABOUT 패널 하단)
   worldbuilding?: string;             // 일부 캐릭터
   recommendedPersona?: PersonaData | null;  // "추천 페르소나 채우기" 버튼 클릭 시 자동 입력
+  // 캐릭터 프로필 모달용 (config.json 그대로, list 응답에 포함됨)
+  fullName?: string;
+  subtitle?: string;
+  profile?: Record<string, string>;   // { '나이': '29세', '직업': '...' }
   // 유저 제작 캐릭터에만
   owner_user_id?: number;
   owner_username?: string;
