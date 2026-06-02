@@ -160,6 +160,28 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-28 (Day 8.3) — 아바타 업로드 + 탈퇴 (Mypage 완성)
+
+**작업 범위**: mypage의 마지막 placeholder 2개 동작화. 새 page/컴포넌트 없음 → 검증 Tier 1~2.
+
+**원본 대응**: app.js handleAvatarChange (L3851~3867) / confirmDeleteAccount (L4305~4314).
+
+**구현 (mypage page.tsx 내부)**:
+- **아바타 업로드**: hidden file input + ref. 클릭 → `avatarInputRef.click()`.
+  - 5MB 초과 가드 (base64 ~33% 팽창 → express.json 10mb 한도 내, body-parser 한도 사전 확인 — CLAUDE.md 버그 패턴)
+  - FileReader.readAsDataURL → `PATCH /api/auth/me { avatarData }` → setUser
+  - 같은 파일 재선택 위해 input.value 리셋
+- **탈퇴**: `showDeleteConfirm` 재사용 (전용 모달 안 만듦)
+  - 확인 → `DELETE /api/auth/me` → setUser(null) → `/` 이동 + toast
+
+**종료 체크**:
+- ✅ type-check / ESLint clean
+- ⏸ jest / build / dev 재시작 — 백엔드·page 변경 없어 skip (하네스)
+
+**Mypage 전체 완료 (8.1~8.3)**: 프로필 / 설정 / 탭(페르소나·캐릭터·책갈피) / 정보수정 / 성인인증 / 아바타 / 탈퇴 / 로그아웃. 잔여: 페르소나 편집 페이지, 빌더 편집 (별도 Day).
+
+---
+
 ### 2026-05-28 (Day 8.2) — 정보수정 모달 + 성인 인증 모달 + adult 토글 동작
 
 **작업 범위**: mypage의 EDIT/정보수정 → 모달, 성인 콘텐츠 토글 실제 동작. 새 page 없음 → 검증 Tier 1~2만.

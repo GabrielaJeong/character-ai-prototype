@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
@@ -13,7 +13,7 @@ import {
   useAppVersion,
 } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
-import type { Persona, Character } from '@/lib/types';
+import type { Persona, Character, User } from '@/lib/types';
 import { MypageInfoModal } from './MypageInfoModal';
 import styles from './page.module.css';
 
@@ -44,11 +44,13 @@ export default function MypagePage() {
     title: '마이페이지',
     desc: '마이페이지를 보려면 로그인이 필요합니다.',
   });
+  const setUser = useAuthStore((s) => s.setUser);
   const showToast = useUIStore((s) => s.showToast);
   const showDeleteConfirm = useUIStore((s) => s.showDeleteConfirm);
   const openLogout = useUIStore((s) => s.openLogout);
   const setAppReady = useUIStore((s) => s.setAppReady);
   const version = useAppVersion();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const { personas, mutate: mutatePersonas } = usePersonas();
   const { characters, mutate: mutateCharacters } = useCharacters();
@@ -144,6 +146,49 @@ export default function MypagePage() {
     }
   };
 
+  // ── 아바타 업로드 ────────────────────────────────────
+  const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일 재선택 가능하도록 리셋
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('이미지는 5MB 이하만 업로드 가능합니다.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const avatarData = ev.target?.result;
+      if (typeof avatarData !== 'string') return;
+      try {
+        const data = await api.patch<{ user: User }>('/api/auth/me', { avatarData });
+        setUser(data.user);
+        showToast('프로필 사진이 변경되었습니다.');
+      } catch (err) {
+        showToast(err instanceof ApiError ? err.message : '사진 업로드에 실패했습니다.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ── 탈퇴 ─────────────────────────────────────────────
+  const onWithdraw = () => {
+    showDeleteConfirm({
+      title: '정말 탈퇴하시겠습니까?',
+      desc: '모든 대화, 페르소나, 제작 캐릭터가 삭제됩니다. 복구할 수 없습니다.',
+      confirmLabel: '탈퇴',
+      onConfirm: async () => {
+        try {
+          await api.delete('/api/auth/me');
+          setUser(null);
+          showToast('탈퇴가 완료되었습니다.');
+          router.push('/');
+        } catch (err) {
+          showToast(err instanceof ApiError ? err.message : '탈퇴에 실패했습니다.');
+        }
+      },
+    });
+  };
+
   return (
     <div className="page-wrap">
       <div className={styles.tabHeader}>
@@ -164,7 +209,7 @@ export default function MypagePage() {
             <button
               type="button"
               className={styles.avatarWrap}
-              onClick={() => showToast('아바타 업로드는 Day 8.3에서')}
+              onClick={() => avatarInputRef.current?.click()}
               aria-label="아바타 변경"
             >
               {user.avatar ? (
@@ -177,6 +222,13 @@ export default function MypagePage() {
               )}
               <div className={styles.avatarEdit}>✎</div>
             </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={onAvatarChange}
+            />
             <div className={styles.profileInfo}>
               <p className={styles.nickname}>{user.nickname}</p>
               <p className={styles.email}>{user.email}</p>
@@ -521,7 +573,7 @@ export default function MypagePage() {
           <button
             type="button"
             className={`${styles.textBtn} ${styles.textBtnDanger}`}
-            onClick={() => showToast('탈퇴 모달은 Day 8.3에서')}
+            onClick={onWithdraw}
             style={{ marginTop: 10 }}
           >
             탈퇴하기
