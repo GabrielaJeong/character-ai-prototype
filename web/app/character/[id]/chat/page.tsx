@@ -247,6 +247,10 @@ function ChatInner({ params }: { params: { id: string } }) {
   // ref 가드로 StrictMode 안전 (ML-011).
   useEffect(() => {
     if (consumedRef.current) return;
+    if (!ready) return;
+    // 비로그인 → useRequireAuth가 AuthGate 띄움. hydration 진행 시 useSession 401 →
+    // setHasPersona(false) → /history redirect가 AuthGate intendedPath를 덮어쓰는 버그 차단.
+    if (!user) return;
     if (isLoading) return;
     // char fallback 로드 중이면 대기 (F2)
     if (!char) return;
@@ -295,10 +299,12 @@ function ChatInner({ params }: { params: { id: string } }) {
         setHasPersona(false);
       }
     }
-  }, [isLoading, isExistingSession, sessionLoading, sessionError, loadedSession, params.id, consumePrep, char]);
+  }, [ready, user, isLoading, isExistingSession, sessionLoading, sessionError, loadedSession, params.id, consumePrep, char]);
 
-  // 실패 시 redirect — 기존 세션 로드 실패면 /history, 신규 prep 없으면 /persona
+  // 실패 시 redirect — 기존 세션 로드 실패면 /history, 신규 prep 없으면 /persona.
+  // 비로그인은 AuthGate가 처리하므로 redirect 안 함 (intendedPath 보존).
   useEffect(() => {
+    if (!user) return;
     if (hasPersona === false) {
       if (isExistingSession) {
         router.replace('/history');
@@ -306,7 +312,7 @@ function ChatInner({ params }: { params: { id: string } }) {
         router.replace(`/persona?char=${encodeURIComponent(params.id)}`);
       }
     }
-  }, [hasPersona, isExistingSession, params.id, router]);
+  }, [user, hasPersona, isExistingSession, params.id, router]);
 
   // 메시지 추가 시 스크롤 하단으로
   useEffect(() => {
