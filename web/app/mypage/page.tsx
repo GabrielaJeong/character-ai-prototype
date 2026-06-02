@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
 import { useRequireAuth } from '@/lib/useRequireAuth';
+import { useAdultContent } from '@/lib/useAdultContent';
 import {
   usePersonas,
   useCharacters,
@@ -13,6 +14,7 @@ import {
 } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
 import type { Persona, Character } from '@/lib/types';
+import { MypageInfoModal } from './MypageInfoModal';
 import styles from './page.module.css';
 
 /**
@@ -51,8 +53,10 @@ export default function MypagePage() {
   const { personas, mutate: mutatePersonas } = usePersonas();
   const { characters, mutate: mutateCharacters } = useCharacters();
   const { bookmarks, mutate: mutateBookmarks } = useBookmarks();
+  const { setAdult } = useAdultContent();
 
   const [tab, setTab] = useState<Tab>('persona');
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
 
   useEffect(() => {
     setAppReady(true);
@@ -152,7 +156,7 @@ export default function MypagePage() {
           <button
             type="button"
             className={styles.editBtn}
-            onClick={() => showToast('정보 수정 모달은 Day 8.2에서')}
+            onClick={() => setInfoModalOpen(true)}
           >
             EDIT
           </button>
@@ -191,7 +195,7 @@ export default function MypagePage() {
           <button
             type="button"
             className={styles.row}
-            onClick={() => showToast('정보 수정 모달은 Day 8.2에서')}
+            onClick={() => setInfoModalOpen(true)}
           >
             <div className={styles.rowLeft}>
               <span className={styles.rowLabel}>내 정보 수정하기</span>
@@ -203,11 +207,11 @@ export default function MypagePage() {
               <div>
                 <span className={styles.rowLabel}>성인 콘텐츠 허용</span>
                 <p className={styles.rowSub}>
-                  {user.adult_verified
-                    ? user.adult_content_enabled
-                      ? 'ON'
-                      : 'OFF'
-                    : '성인 인증 후 이용 가능'}
+                  {!user.adult_verified
+                    ? '성인 인증 후 이용 가능'
+                    : user.adult_content_enabled
+                      ? '현재 성인 콘텐츠 표시 중'
+                      : '현재 전연령 콘텐츠만 표시'}
                 </p>
               </div>
             </div>
@@ -215,7 +219,7 @@ export default function MypagePage() {
               <input
                 type="checkbox"
                 checked={!!user.adult_content_enabled}
-                onChange={() => showToast('성인 인증/토글은 Day 8.2에서')}
+                onChange={(e) => setAdult(e.target.checked, '/mypage')}
                 aria-label="성인 콘텐츠 허용 토글"
               />
               <span className={styles.toggleThumb} />
@@ -524,6 +528,8 @@ export default function MypagePage() {
           </button>
         </div>
       </div>
+
+      {infoModalOpen && <MypageInfoModal onClose={() => setInfoModalOpen(false)} />}
     </div>
   );
 }

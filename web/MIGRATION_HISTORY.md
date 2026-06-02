@@ -160,6 +160,43 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-05-28 (Day 8.2) — 정보수정 모달 + 성인 인증 모달 + adult 토글 동작
+
+**작업 범위**: mypage의 EDIT/정보수정 → 모달, 성인 콘텐츠 토글 실제 동작. 새 page 없음 → 검증 Tier 1~2만.
+
+**원본 대응**: app.js openMypageModal('info') (L4146~4192) / saveInfo / setAdultToggle (L3310) / openAdultVerify / confirmAdultVerify (L3353~3389).
+
+**구현**:
+- `web/store/ui.ts`: `adultVerify` 상태 + openAdultVerify/closeAdultVerify (closeAdultVerify는 onClose 콜백으로 토글 원복 지원)
+- `web/lib/useAdultContent.ts` 신규 — 토글 로직 공유 훅
+  - `setAdult(enable, intendedPath)`: OFF 즉시 / 비로그인 AuthGate / 인증완료 즉시 PATCH / 미인증 AdultVerifyModal
+  - 토글 후 useCharacters mutate (서버 필터링 반영)
+- `web/components/AdultVerifyModal.{tsx,module.css}` 신규 — 글로벌 모달
+  - 체크박스 동의 → POST /api/auth/adult-verify (verified=1 + enabled=1)
+  - layout.tsx에 마운트
+- `web/components/LandingHeader.tsx` 리팩토링 — 중복 setAdult 로직 제거, useAdultContent 사용 (코드 -55줄). 이제 18+ 토글이 AdultVerifyModal 띄움 (이전엔 "모달 구현 예정" toast)
+- `web/app/mypage/MypageInfoModal.{tsx,module.css}` 신규 — mypage 전용
+  - 닉네임 / @아이디(debounced 가용성 체크) / 이메일 / 비밀번호 변경 (current+new)
+  - 변경된 필드만 PATCH /api/auth/me
+- `web/app/mypage/page.tsx`: EDIT/정보수정 → setInfoModalOpen, adult 토글 → setAdult 연결
+
+**username 정책 (반박 → 사용자 결정)**:
+- 원본 모달은 username 수정 제공, routes/auth.js PATCH도 허용
+- CLAUDE.md 절대금지 7번("username immutable")과 충돌 → 사용자에게 확인
+- **결정: 원본대로 수정 허용**. CLAUDE.md 7번은 현실과 안 맞는 구조문 → docs 업데이트 필요 (TODO).
+
+**모달 아키텍처 결정**:
+- AdultVerifyModal = 글로벌 (LandingHeader + mypage 공유) → useUIStore + layout 마운트
+- MypageInfoModal = mypage 로컬 (다른 데서 안 씀) → mypage 폴더 안에 둠
+
+**종료 체크**:
+- ✅ type-check 통과
+- ✅ ESLint clean
+- ⏸ jest — 백엔드 변경 없어 skip (하네스 Tier 4 해당 안 됨)
+- ⏸ build/dev 재시작 — 새 page 없어 skip (하네스: 컴포넌트/layout은 HMR)
+
+---
+
 ### 2026-05-28 (Day 8.1) — Mypage 1차 (profile + settings + tabs + lists)
 
 **작업 범위**: `/mypage` 라우트의 핵심 구조. 모달/업로드/탈퇴는 Day 8.2/8.3로 분리.

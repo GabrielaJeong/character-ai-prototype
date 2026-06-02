@@ -1,0 +1,22 @@
+/* 원본: public/css/style.css .adult-verify-check-row (L4555~4573) */
+.checkRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  touch-action: manipulation;
+}
+.checkRow input[type='checkbox'] {
+  margin-top: 2px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}

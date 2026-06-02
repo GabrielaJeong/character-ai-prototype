@@ -43,6 +43,11 @@ interface UIState {
   showDeleteConfirm: (p: DeleteConfirmPayload) => void;
   closeDeleteConfirm: () => void;
 
+  // 성인 인증 모달 (LandingHeader 18+ / mypage 토글 공유). 닫힐 때 onClose 콜백으로 UI 원복.
+  adultVerify: { onClose?: () => void } | null;
+  openAdultVerify: (p?: { onClose?: () => void }) => void;
+  closeAdultVerify: () => void;
+
   // Splash gating — 현재 route의 critical 데이터가 준비되면 true.
   // Splash는 (minTimer 경과 && appReady)일 때만 dismiss → 원본 SPA의 _dataReady + _timerReady 패턴.
   appReady: boolean;
@@ -79,6 +84,15 @@ export const useUIStore = create<UIState>((set, get) => ({
   deleteConfirm: null,
   showDeleteConfirm: (p) => set({ deleteConfirm: p }),
   closeDeleteConfirm: () => set({ deleteConfirm: null }),
+
+  // ── Adult verify ───────────────────────────────────────
+  adultVerify: null,
+  openAdultVerify: (p) => set({ adultVerify: p ?? {} }),
+  closeAdultVerify: () => {
+    const cb = get().adultVerify?.onClose;
+    set({ adultVerify: null });
+    cb?.();
+  },
 
   // ── Splash gating ──────────────────────────────────────
   appReady: false,

@@ -5,6 +5,7 @@ import { Toast } from '@/components/Toast';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { AuthGate } from '@/components/AuthGate';
 import { LogoutModal } from '@/components/LogoutModal';
+import { AdultVerifyModal } from '@/components/AdultVerifyModal';
 import { BottomNav } from '@/components/BottomNav';
 import './globals.css';
 import './styles/forms.css';
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthGate />
         <LogoutModal />
         <DeleteConfirmModal />
+        <AdultVerifyModal />
         <Toast />
       </body>
     </html>
