@@ -182,9 +182,16 @@
 **결정/회고**:
 - **loading을 라우트가 아닌 오버레이 state로**: 원본은 `showScreen('screen-builder-loading')`로 URL 안 바꿈. charData/systemMd가 in-memory store라 별도 /loading 라우트로 빼면 새로고침 시 컨텍스트 소실. progress state(null=비활성)로 같은 페이지 위에 표시.
 - **chat→preview state 전달은 zustand store**: D-019의 "URL query as source of truth" 원칙 예외. charData/systemMd가 크고 JSON이라 URL 부적합 + 단방향 1-hop. reload 시 store 비면 /builder로 안전 복귀.
-- 제작 전체 로그인 필수(useRequireAuth) — 원본 openBuilder/Chat/Manual 모두 authGate. BottomNav는 기존 HIDE_PATTERNS `/builder/(chat|manual|loading|preview)`로 sub-screen 숨김.
+- **인증 정책 (중요)**: 빌더는 **UI만 로그인 게이트**(useRequireAuth) — 원본 openBuilder/Chat/Manual의 authGate와 동일. **백엔드 `/api/builder/chat`·`/generate`는 의도적으로 비인증 개방**(routes/builder.js L10-12: 포트폴리오 데모 시연 목적, Codex R4 F2 롤백 결정). 저장 단계 `POST /api/characters/create`만 requireAuth라 orphan 캐릭터는 안 생김. 직접 API 호출 비용 차단(per-IP rate limit)은 백로그.
+- BottomNav는 기존 HIDE_PATTERNS `/builder/(chat|manual|loading|preview)`로 sub-screen 숨김.
 
 **종료 체크**: ✅ type-check / lint / build (builder 4 라우트: 선택 4.75kB, chat 5.22kB, manual 3.23kB, preview 3.01kB)
+
+**QA 2차 (Codex, 2026-06-03)**: build/type-check/lint/jest(49) 통과. Findings 처리 —
+- 🟢 수정: Creator 프로필 adult_only 필터 누락(선재 백엔드 버그, routes/creator.js) — 비성인/비로그인에 숨김(owner 본인은 노출).
+- 🟢 수정: AvatarUpload 클라 5MB 체크 추가(mypage와 일관). 서버 강제는 백로그.
+- 🔵 반박(조치 안 함): Builder 백엔드 비인증 = 의도된 데모 개방(위 정책). preview 검증이 manual보다 약함 = 원본 registerCharacter도 이름만 검증(회귀 아님, AI가 완전 데이터 보장).
+- 🟡 백로그: 캐릭터 생성 이미지 서버측 5MB 검증, 알림 단건 read 소유권 조건.
 
 ### 2026-06-03 (Day 12) — Creator 프로필 (/creator/@:username)
 

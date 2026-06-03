@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import { useUIStore } from '@/store/ui';
 import styles from './AvatarUpload.module.css';
 
 /**
@@ -21,11 +22,17 @@ interface Props {
 
 export function AvatarUpload({ value, onChange, hint = '1장 업로드 가능' }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const showToast = useUIStore((s) => s.showToast);
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    // mypage 아바타와 동일 기준 (5MB). 실제 강제는 서버측 검증 필요 — 백로그.
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('이미지는 5MB 이하만 업로드 가능합니다.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       const url = ev.target?.result;

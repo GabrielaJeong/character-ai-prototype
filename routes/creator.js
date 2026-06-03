@@ -12,6 +12,16 @@ router.get('/:username', (req, res) => {
   const user = stmt.getUserByUsername.get(username);
   if (!user) return res.status(404).json({ error: '크리에이터를 찾을 수 없습니다' });
 
+  const isOwner = req.session?.userId === user.id;
+
+  // 성인 콘텐츠 접근 여부 (characters.js GET / 와 동일 기준).
+  // 비성인/비로그인 유저에게는 adult_only 작품을 숨긴다. 단, 본인 프로필 조회 시 owner는 전부 노출.
+  let adultEnabled = false;
+  if (req.session?.userId) {
+    const viewer = stmt.getUserById.get(req.session.userId);
+    adultEnabled = !!(viewer?.adult_content_enabled);
+  }
+
   // Collect user's characters from file system
   const chars = [];
   try {
@@ -29,6 +39,8 @@ router.get('/:username', (req, res) => {
       try {
         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
         if (cfg.owner_user_id !== user.id) continue;
+        // 성인 캐릭터는 성인 토글 ON 또는 본인 프로필일 때만 노출 (선재 누수 차단)
+        if (cfg.rating === 'adult_only' && !adultEnabled && !isOwner) continue;
         chars.push({
           id,
           name:        cfg.name || '',
@@ -54,8 +66,6 @@ router.get('/:username', (req, res) => {
     if (!a.pinned && b.pinned) return 1;
     return (b.stats.sessions + b.stats.bookmarks) - (a.stats.sessions + a.stats.bookmarks);
   });
-
-  const isOwner = req.session?.userId === user.id;
 
   res.json({
     user: {
