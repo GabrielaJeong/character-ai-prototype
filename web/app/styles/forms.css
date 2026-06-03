@@ -463,3 +463,126 @@
   text-align: center;
   line-height: 1.6;
 }
+
+/* ── 태그 입력 (빌더 직접 제작 / 검토) ─────────────────── */
+/* 원본 public/css/style.css L860~949 */
+.label-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+.tag-input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input, 10px);
+  cursor: text;
+}
+.tag-input-wrap:focus-within { border-color: var(--accent-dim); }
+.tag-chips { display: contents; }
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #5b8fb9;
+  background: rgba(91, 143, 185, 0.15);
+  border: 1px solid rgba(91, 143, 185, 0.3);
+  border-radius: 20px;
+  padding: 3px 8px 3px 10px;
+  white-space: nowrap;
+}
+.tag-chip-x {
+  background: none;
+  border: none;
+  color: rgba(91, 143, 185, 0.7);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+}
+.tag-chip-x:hover { color: #e05c5c; }
+.tag-text-input {
+  flex: 1;
+  min-width: 80px;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+  padding: 0;
+}
+.tag-text-input::placeholder { color: var(--text-dim); }
+/* iOS 줌인 방지 */
+@supports (-webkit-touch-callout: none) {
+  .tag-text-input { font-size: 16px; }
+}
+
+/* 추천 태그 */
+.tag-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.tag-suggest-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-right: 2px;
+}
+.tag-suggest-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-raised, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  touch-action: manipulation;
+}
+.tag-suggest-btn:hover {
+  color: #5b8fb9;
+  border-color: rgba(91, 143, 185, 0.4);
+}
+
+/* ── 콘텐츠 등급 선택 ──────────────────────────────────── */
+/* 원본 public/css/style.css L4576~4602 */
+.rating-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rating-select-btn {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+  touch-action: manipulation;
+}
+.rating-select-btn.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.rating-select-btn[data-value='adult_only'].active {
+  border-color: #c94f4f;
+}

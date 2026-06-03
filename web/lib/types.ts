@@ -164,6 +164,28 @@ export interface CreatorProfile {
   isOwner: boolean;
 }
 
+// ── Builder (캐릭터 제작) ─────────────────────────────────
+export type BuilderRating = 'all_ages' | 'toggleable' | 'adult_only';
+
+/** AI 빌더 [CHARACTER_READY] 블록 / 직접 제작 폼에서 모은 캐릭터 데이터 */
+export interface BuilderCharData {
+  name: string;
+  age?: string | number;
+  occupation?: string;
+  subtitle?: string;
+  appearance?: string;
+  background?: string;
+  worldbuilding?: string;
+  personality?: string;
+  speechStyle?: string;
+  speechExamples?: string[];
+  relationship?: string;
+  boundaries?: string;
+  hasProfanity?: boolean;
+  tags?: string[];
+  rating?: BuilderRating;
+}
+
 // ── Bookmark ─────────────────────────────────────────────
 export interface Bookmark {
   id: number;
