@@ -109,8 +109,11 @@ export const CHART_LABELS: Record<ChartSort, ChartLabel> = {
     title: 'THIS WEEK · TOP 20',
     date: () => {
       const d = new Date();
+      // 월요일 시작 주. getDay(): 일=0..토=6 → 월요일부터의 offset (월=0, 일=6).
+      // Codex R7: 원본은 `d - getDay() + 1`이라 일요일에 다음 주 월요일로 밀리던 버그.
+      const offset = (d.getDay() + 6) % 7;
       const mon = new Date(d);
-      mon.setDate(d.getDate() - d.getDay() + 1);
+      mon.setDate(d.getDate() - offset);
       const sun = new Date(mon);
       sun.setDate(mon.getDate() + 6);
       return `${mon.getMonth() + 1}.${pad(mon.getDate())} — ${sun.getMonth() + 1}.${pad(sun.getDate())}`;
