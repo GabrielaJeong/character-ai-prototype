@@ -1,0 +1,190 @@
+/* 원본: public/css/style.css L4729~4928 (bc-carousel / broadcast / editor-picks / tag-cloud) */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── BROADCAST 캐러셀 ─────────────────────────────── */
+.bcCarousel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  margin: 20px;
+}
+.bcTrack {
+  display: flex;
+  transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.broadcastBanner {
+  position: relative;
+  flex: 0 0 100%;
+  background: #141420;
+  padding: 14px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.broadcastImg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60%;
+  height: 100%;
+  background-size: cover;
+  background-position: center 25%;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 55%);
+  mask-image: linear-gradient(to right, transparent, black 55%);
+}
+.broadcastInner {
+  position: relative;
+  z-index: 0;
+}
+.broadcastBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #6ce5d5;
+  background: rgba(108, 229, 213, 0.09);
+  border: 1px solid rgba(108, 229, 213, 0.27);
+  border-radius: 3px;
+  padding: 2px 6px;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+.broadcastDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6ce5d5;
+  box-shadow: 0 0 6px #6ce5d5;
+  flex-shrink: 0;
+}
+.broadcastTitle {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font);
+  color: var(--text);
+  margin: 0 0 4px;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+}
+.broadcastMeta {
+  font-size: 11px;
+  font-family: var(--font);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+  max-width: 180px;
+}
+.bcDots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 0 4px;
+}
+.bcDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background 0.2s, width 0.2s;
+}
+.bcDotActive {
+  background: var(--accent);
+  width: 14px;
+  border-radius: 3px;
+}
+
+/* ── TAG.CLOUD ────────────────────────────────────── */
+.tagCloud {
+  padding: 10px 20px 20px;
+}
+.tagPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tagPill {
+  display: inline-block;
+  padding: 6px 14px;
+  background: #1a1a24;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: var(--font);
+}
+
+/* ── EDITOR.PICKS ─────────────────────────────────── */
+.editorPicks {
+  padding: 20px;
+}
+.collectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.collectionCard {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1a2634, #0c1622);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  cursor: pointer;
+}
+.collectionImg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 60%;
+  background-size: cover;
+  background-position: center 25%;
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 55%);
+  mask-image: linear-gradient(to right, transparent, #000 55%);
+}
+.collectionInner {
+  position: absolute;
+  inset: 0;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 0;
+}
+.collectionNum {
+  font-size: 9px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #6ce5d5;
+  margin-bottom: 5px;
+}
+.collectionTitle {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font);
+  color: #fff;
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.4px;
+  max-width: 78%;
+}
+.collectionMeta {
+  font-size: 10.5px;
+  font-family: var(--font);
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  letter-spacing: 0.6px;
+  max-width: 70%;
+}

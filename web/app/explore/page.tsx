@@ -6,6 +6,7 @@ import { useUIStore } from '@/store/ui';
 import { matchesQuery } from '@/lib/search';
 import { CHART_DATA, CHART_LABELS, type ChartSort } from '@/lib/exploreChart';
 import { CharacterCard } from '@/components/CharacterCard';
+import { ExploreCuration } from './ExploreCuration';
 import styles from './page.module.css';
 
 /**
@@ -139,6 +140,9 @@ export default function ExplorePage() {
               </button>
             ))}
           </div>
+
+          {/* 큐레이션 섹션 (BROADCAST/TAG.CLOUD/EDITOR.PICKS) — 필터 비active일 때만 */}
+          {query === '' && activeTags.size === 0 && <ExploreCuration />}
 
           {/* 결과 grid */}
           <div className={styles.body}>
