@@ -160,6 +160,61 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-03 (Day 13) — Builder 캐릭터 제작 (AI 대화형 + 직접 제작)
+
+**작업 범위**: 빌더 전체 4개 화면. 원본 #screen-builder/-chat/-loading/-manual/-edit (index.html L512~777, app.js L2130~3275).
+
+**라우트**:
+- `/builder` — 방식 선택 (select-card 2개: AI 빌더 / 직접 만들기). placeholder였던 페이지 교체.
+- `/builder/chat` — AI 대화형. 마운트 시 '시작해줘' 자동 전송(1회 재시도, useRef StrictMode 가드). ModelPicker(Sonnet 4.6 기본)+ChatInput 재사용. `[CHARACTER_READY]` 감지 → CTA → generate → preview.
+- `/builder/manual` — 직접 폼. 클라이언트 system.md 생성 → create → 홈.
+- `/builder/preview` — AI 결과 검토/편집. 등록 또는 ↺ 재생성. store 비면 `/builder` 리다이렉트(reload 안전).
+
+**공통 신규**:
+- `store/builder.ts` — `useBuilderStore` (model/sessionId/charData/systemMd). chat→preview 컨텍스트 유지. 원본 글로벌 변수 대응.
+- `components/AvatarUpload.{tsx,module.css}` — FileReader dataURL 업로드 (원본 createAvatarUpload). persona 등 재사용 가능.
+- `components/TagInput.tsx` — 칩+추천 태그 입력(중복불가/#제거/최대8). forms.css 글로벌 클래스 사용.
+- `components/BuilderLoading.{tsx,module.css}` — 진행바 로딩 오버레이(fixed). 라우트가 아닌 state 오버레이로 처리(원본 showScreen 대응).
+- `lib/builder.ts` — cleanBuilderReply / extractCharReady / generateManualSystemPrompt.
+- `lib/types.ts` — BuilderCharData / BuilderRating.
+- `app/styles/forms.css` — label-hint / tag-input-wrap / tag-chip / tag-suggest / rating-select 글로벌 추가(manual+preview 공유).
+
+**결정/회고**:
+- **loading을 라우트가 아닌 오버레이 state로**: 원본은 `showScreen('screen-builder-loading')`로 URL 안 바꿈. charData/systemMd가 in-memory store라 별도 /loading 라우트로 빼면 새로고침 시 컨텍스트 소실. progress state(null=비활성)로 같은 페이지 위에 표시.
+- **chat→preview state 전달은 zustand store**: D-019의 "URL query as source of truth" 원칙 예외. charData/systemMd가 크고 JSON이라 URL 부적합 + 단방향 1-hop. reload 시 store 비면 /builder로 안전 복귀.
+- 제작 전체 로그인 필수(useRequireAuth) — 원본 openBuilder/Chat/Manual 모두 authGate. BottomNav는 기존 HIDE_PATTERNS `/builder/(chat|manual|loading|preview)`로 sub-screen 숨김.
+
+**종료 체크**: ✅ type-check / lint / build (builder 4 라우트: 선택 4.75kB, chat 5.22kB, manual 3.23kB, preview 3.01kB)
+
+### 2026-06-03 (Day 12) — Creator 프로필 (/creator/@:username)
+
+**작업 범위**: 원본 #screen-creator (index.html L1240~1250, style.css L5069~5250, app.js L1104~1216).
+
+- `app/creator/[handle]/page.{tsx,module.css}` — 동적 `[handle]`=`@username`(decode 후 @ 제거). 헤더(avatar+nick+handle+액션) / 통계 바 WORKS·CHATS·LIKES / PINNED.WORK / ALL.WORKS.
+- isOwner면 프로필 편집(MypageInfoModal 재사용) + 핀 토글(⊛/⊙), 아니면 팔로우(toast).
+- `lib/hooks.ts` `useCreator(handle)` SWR + mutate. `lib/types.ts` CreatorProfile/CreatorCharacter **정확한 타입으로 교체**(기존 미사용 stub 제거 — 백엔드 응답 shape에 맞춤).
+- 공개 페이지(비로그인 조회 가능), BottomNav 표시(원본과 동일).
+
+**종료 체크**: ✅ type-check / lint / build (2.3kB)
+
+### 2026-06-03 (Day 11) — Notification 알림함 (/notification)
+
+**작업 범위**: 원본 #screen-notification (index.html L838~868, style.css L3307~3622, app.js L878~1059).
+
+- `app/notification/page.{tsx,module.css}` — 헤더(INBOX.feed + [N new] + MARK ALL) / 필터 탭 ALL·SOCIAL·SYSTEM·NOTICE / 날짜 그룹 TODAY·YESTERDAY·THIS.WEEK·EARLIER / 알림 행(아이콘+뱃지+recent/read 보더).
+- NOTICE 아코디언: `useLayoutEffect`로 scrollHeight 측정 → 오버플로 시 더보기/접기(원본 applyNoticeAccordions).
+- 읽음 처리/MARK ALL: 낙관적 mutate + PATCH. 로그인 시만(원본 _currentUser 가드).
+- 정책: 알림은 공개 — 비로그인은 브로드캐스트만(전부 unread).
+
+**종료 체크**: ✅ type-check / lint / build (4.48kB)
+
+### 2026-06-03 (Day 10.3) — Explore 큐레이션 섹션 (BROADCAST/TAG.CLOUD/EDITOR.PICKS)
+
+- `app/explore/ExploreCuration.{tsx,module.css}` — BroadcastCarousel(4초 auto-advance+dots+스와이프) / TAG.CLOUD(FeedHeader+tag-pill) / EDITOR.PICKS(collection 카드). useCuration의 broadcast/tags/collections.
+- explore page: 검색/태그 비active일 때만 큐레이션 섹션 표시(원본은 항상이나 검색 중엔 결과 집중 UX). Explore 완성.
+
+**종료 체크**: ✅ type-check / lint (새 라우트 아님 — build 생략)
+
 ### 2026-05-28 (Day 8.3) — 아바타 업로드 + 탈퇴 (Mypage 완성)
 
 **작업 범위**: mypage의 마지막 placeholder 2개 동작화. 새 page/컴포넌트 없음 → 검증 Tier 1~2.
