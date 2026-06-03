@@ -548,6 +548,74 @@
 
 ---
 
+## L-019: React StrictMode에서 "한 번만 실행" 가드는 useState 아닌 useRef
+
+**날짜**: 2026-05-27
+**위험도**: 중간 (dev에서 무한 루프 / 일회성 부수효과 중복)
+
+**발생 맥락**:
+- 채팅 진입 시 `useChatPrepStore.consume()`으로 prep을 소비하는데, StrictMode(dev)가 useEffect를 두 번 호출
+- `useState` 가드(`if (hasConsumed) return`)는 effect closure가 stale → 두 번 다 통과 → 두 번째 consume이 null 반환 → /persona로 redirect 무한 루프
+
+**재발 이유**:
+- React 18 StrictMode의 effect 이중 호출 + closure 캡처 타이밍 미고려
+- state 업데이트는 같은 effect 사이클 안에서 closure에 반영 안 됨
+
+**해결**: `useRef` 가드 (`consumedRef.current`). ref는 closure 영향 없이 실행 시점에 최신값 평가.
+
+**강화 규칙**:
+1. "한 번만 실행되어야 하는 부수효과" (store consume, init API 호출, analytics fire 등)는 항상 `useRef` 가드
+2. useState 가드는 StrictMode에서 한 번 더 통과 가능 → 사용 금지
+3. 출처: `web/MIGRATION_HISTORY.md` ML-011
+
+---
+
+## L-020: Express SSE에서 클라이언트 abort 감지는 `res.on('close')` (req.on 아님)
+
+**날짜**: 2026-05-28
+**위험도**: 높음 (스트리밍 전면 미동작)
+
+**발생 맥락**:
+- `POST /api/chat` SSE 엔드포인트가 응답 헤더만 보내고 데이터 0 byte. 백엔드 로그는 모델 응답 정상 수신
+- abort 가드를 `req.on('close', () => aborted = true)`로 작성 → Node HTTP에서 `req.on('close')`는 **request body를 다 읽은 직후에도 발화**. POST body가 작아 즉시 발화 → 모델 응답 도착 전에 `aborted=true` → 모든 write skip
+
+**재발 이유**:
+- `req`(요청 스트림)의 close와 `res`(응답/연결) close 의미 혼동
+
+**해결**: `res.on('close', () => { if (!res.writableEnded) aborted = true; })`. 응답 종료 전 연결 끊김만 잡음.
+
+**강화 규칙**:
+1. 🚩 Red Flag: SSE / long-polling 엔드포인트에서 클라이언트 abort 감지 작성 중
+   → `res.on('close')` 또는 `req.on('aborted')` 사용. `req.on('close')`는 의미 다름 → 금지
+2. `res.writableEnded` 체크로 정상 종료 후 fire 무시
+3. 출처: `web/MIGRATION_HISTORY.md` ML-012
+
+---
+
+## L-021: 외부 코드리뷰(Codex 등)의 finding은 severity·영향범위로 분리, 묶음 적용 금지
+
+**날짜**: 2026-05-28
+**위험도**: 중간 (의도된 UX/API 정책 훼손)
+
+**발생 맥락**:
+- Codex 리뷰 5건 중 critical 보안(F1)에 묻혀 F2(builder requireAuth)·F4(API shape 변경)를 동시 반영
+- 결과적으로 데모/포트폴리오 흐름(비로그인 빌더 체험)이 깨지고 `/api/characters/:id` 응답 형태·사용처가 함께 바뀜 → 롤백 발생
+
+**재발 이유**:
+- critical을 빨리 막아야 한다는 압박 → 같은 리뷰의 다른 finding도 같은 우선순위로 일괄 처리
+- 각 finding의 의도된 UX·API 정책 충돌을 검토하지 않음 (반박·수정 정책 미적용)
+
+**해결**: finding을 severity·영향범위로 분리. 보안 critical만 즉시. UX/API 정책 변경 동반은 반박 → 대안 의논 → 사용자 확정 → 적용.
+
+**강화 규칙** (외부 리뷰 반영 전 체크리스트):
+1. 데모/체험 모드를 막는가? → rate-limit 등 대안 검토
+2. API 응답 shape를 바꾸는가? → 게이트만 추가하는 가벼운 대안 우선
+3. 기존 게스트 흐름을 깨는가? → guest_id 기반 처리 확인
+4. 기존 백엔드·배포 인프라 이슈는 마이그레이션/기능 작업과 분리 → 별도 백로그
+5. 출처: `web/MIGRATION_HISTORY.md` ML-013
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시

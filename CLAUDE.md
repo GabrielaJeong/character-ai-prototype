@@ -199,7 +199,7 @@ character-ai-prototype/
 4. **`disabled` 속성만으로 버튼 비활성화** — 클릭 이벤트 차단됨, CSS 클래스 사용
 5. **API 응답에서 DB 컬럼 누락** — list/detail/SQL 3곳 동시 검토 필수
 6. **프롬프트 엔지니어링 노하우 전체 공개** — `notes.rules`에는 관찰 가능한 특성만
-7. **username 변경** — DB 레벨에서 unique + immutable
+7. **username 충돌** — 변경 자체는 허용(정보수정 모달), 단 변경 시 DB unique 재검증 필수 (D-019. 과거 immutable 정책에서 완화됨)
 8. **프로덕션 DB 파일 수정** — `db/chat.db` 직접 편집 금지 (마이그레이션 스크립트 사용)
 9. **config.json과 system.md 독립 작성** — notes 내용은 system.md 기반으로만
 

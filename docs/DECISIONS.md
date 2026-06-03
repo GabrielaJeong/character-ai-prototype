@@ -486,3 +486,42 @@
 - [ ] 승격된 admin 계정 비밀번호 즉시 변경
 
 ---
+
+## D-019: React (Next.js) 마이그레이션 핵심 설계 결정
+
+**날짜**: 2026-05-27 ~ (진행 중)
+**버전**: Phase A (dev)
+**상태**: 적용 중
+
+> Vanilla SPA(`public/`) → Next.js 14 App Router + TypeScript(`web/`) 이식 중 내린 결정 묶음.
+> 상세 작업 일지는 `web/MIGRATION_HISTORY.md` (ML-001~ML-014).
+
+**결정 1 — 상태 전달은 URL query 우선, store는 1-hop만**
+- 채팅 진입에 필요한 persona/safety/characterId를 인트로 → 페르소나 → 챗으로 전달
+- 원본은 글로벌 변수(`window._persona` 등). React에선 `useChatPrepStore`(zustand)가 persona setup → chat 한 hop만 담당하고, 그 외(safety, sessionId)는 URL query/param이 source of truth
+- **근거**: 새로고침/뒤로가기/직접 URL 진입 안전. in-memory store는 reload 시 소실 (ML-009, Codex F5)
+
+**결정 2 — SSE 스트리밍 (token-by-token)**
+- `POST /api/chat`·`/regenerate`를 JSON 일괄 응답 → SSE로 전환 (`lib/streamReply.js`)
+- 프론트는 `streamSSE` AsyncGenerator + requestAnimationFrame typewriter smoothing
+- **트레이드오프**: 원본 `public/` SPA는 JSON 기대 → SSE 응답에 깨짐. 마이그레이션 완료 후 `public/` 폐기 전제
+
+**결정 3 — 라우트 인증 정책 매트릭스 + `useRequireAuth`**
+- public: `/`, `/character/[id]`, `/explore`, `/login`, `/signup`, `/reset-password`
+- login required: `/persona/*`, `/character/[id]/chat`, `/history`, `/mypage`
+- 공통 훅으로 일관 적용 (ML-014)
+
+**결정 4 — username 정책 완화 (immutable → 변경 허용)**
+- 과거 CLAUDE.md 절대금지 7은 "username immutable". 그러나 원본 정보수정 모달 + `PATCH /api/auth/me`는 변경 허용이 이미 구현됨
+- **결정**: 원본대로 변경 허용 유지. 단 변경 시 DB unique 재검증 필수. CLAUDE.md 7번 문구 완화
+- **근거**: 1:1 이식 원칙 + 현실 코드와 정책 정합
+
+**결정 5 — 보안 리뷰(Codex)의 묶음 적용 금지**
+- 외부 QA finding은 severity·영향범위로 분리. critical만 즉시, UX/API 정책 변경 동반은 반박 → 사용자 확정 후 적용 (ML-013)
+- 기존 백엔드·배포 인프라 이슈(파일 영속화, Builder 강화 등)는 마이그레이션 스코프와 분리 → `docs/PRODUCTION_PLAN.md` 9.5 백로그
+
+**대안 검토**:
+- 상태 전달에 Context/전역 store만 사용 → reload 취약. URL 병행이 우수
+- streaming 없이 일괄 응답 유지 → 체감 대기 길어 UX 저하
+
+---

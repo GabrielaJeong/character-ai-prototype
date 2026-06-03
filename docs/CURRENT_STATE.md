@@ -1,7 +1,35 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-05-05 (v0.30)
+> 최종 업데이트: 2026-05-28 (React 마이그레이션 Phase A 진행 중)
+
+---
+
+## 🔄 React (Next.js) 마이그레이션 — Phase A (진행 중)
+
+> Vanilla SPA(`public/`) → Next.js 14 App Router + TS(`web/`). 상세: `web/MIGRATION_HISTORY.md`.
+> `dev` 브랜치에서 진행. cutover 전까지 `public/` SPA가 프로덕션. **SSE 전환으로 일부 API는 web 전용** (D-019).
+
+### 이식 완료 화면 (web/app/)
+- [x] 홈 `/` (큐레이션: 추천/공지/TOP.creators/GENRE/UPCOMING/footer)
+- [x] 캐릭터 인트로 `/character/[id]` (hero/safety segment/탭/세계관)
+- [x] 페르소나 4종 `/persona`, `/persona/new`, `/persona/select`, `/persona/select/[id]`
+- [x] 채팅 `/character/[id]/chat` (SSE 스트리밍/재생성/노트·프로필 모달/기존 세션 로드)
+- [x] 히스토리 `/history`, 마이페이지 `/mypage` (정보수정/성인인증/아바타/탈퇴/탭)
+- [x] 인증 `/login`(로그인·가입·비번찾기), `/reset-password`
+- [x] 탐색 `/explore` — 큐레이션 뷰(검색+태그+grid)만. 랭킹·섹션 미완
+- [x] 404 `not-found` / 에러 `error.tsx`
+
+### 미이식 화면
+- [ ] 탐색 랭킹 뷰 + BROADCAST/TAG.CLOUD/EDITOR.PICKS (Day 10.2)
+- [ ] 알림 `/notification`, 크리에이터 `/creator/@[username]`, 빌더 `/builder/*`
+- [ ] 페르소나 detail/편집, 어드민
+
+### 인프라 (web/)
+- SSE 스트리밍(`lib/streamReply.js`), zustand 스토어, SWR 훅
+- 공통 훅: `useRequireAuth`, `useAdultContent`, `useDragScroll`, `lib/search.ts`
+- 검증 하네스: type-check(항상)/lint(UI)/build(새 라우트)/jest(백엔드)
+- 백로그(cutover 전): `docs/PRODUCTION_PLAN.md` 9.5 (파일 영속화·Builder limiter·아바타 서버검증·회귀테스트)
 
 ---
 
