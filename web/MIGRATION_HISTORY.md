@@ -698,7 +698,7 @@
 - **현재 적용된 정책** (Day 8.1 시점):
   | 라우트 | 인증 |
   |---|---|
-  | `/`, `/character/[id]`, `/login`, `/signup`, `/reset-password` | public |
+  | `/`, `/character/[id]`, `/explore`, `/login`, `/signup`, `/reset-password` | public |
   | `/persona`, `/persona/new`, `/persona/select`, `/persona/select/[id]` | login required |
   | `/character/[id]/chat` | login required |
   | `/history` | login required |

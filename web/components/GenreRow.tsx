@@ -11,7 +11,7 @@ import styles from './GenreRow.module.css';
  *
  * 동작:
  *   - 가로 스크롤: 모바일 native pan-x / 데스크탑 `useDragScroll` 마우스 드래그
- *   - 카드 클릭 → `/explore?tag=<label>` 으로 이동
+ *   - 카드 클릭 → `/explore` (원본 동일 — 장르 label과 캐릭터 태그가 매칭 안 되므로 필터 query 안 붙임)
  *   - 빈 배열일 땐 섹션 자체 미렌더
  *
  * 카드:
@@ -42,7 +42,7 @@ export function GenreRow({ genres }: Props) {
             type="button"
             className={styles.card}
             style={{ backgroundImage: `url('${g.img}')` }}
-            onClick={() => router.push(`/explore?tag=${encodeURIComponent(g.label)}`)}
+            onClick={() => router.push('/explore')}
           >
             <div className={styles.overlay}>
               <span className={styles.label}>{g.label}</span>
