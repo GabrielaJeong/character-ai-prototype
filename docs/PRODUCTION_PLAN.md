@@ -227,7 +227,7 @@ Phase A는 다음 조건 만족 시 종료 선언:
 | R5-3 | High | Builder 비용 엔드포인트 보호 부족 | `routes/builder.js`, `builderSessions` Map | 전체 apiLimiter(200req/15분)만. 전용 limiter + 동시요청·입력길이 제한 + Map TTL/최대세션 필요. (비로그인 데모 흐름은 유지) |
 | R5-4 | Medium | 아바타 5MB 제한이 프론트만 | `routes/auth.js` PATCH `/me` | 서버측 decoded byte 검증 + 이전 확장자 파일 정리 |
 | R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |
-| R5-6 | Low | 루트 `npm run lint` 실패 (ESLint v10 flat config 부재) | `eslint.config.js` 없음 | `.eslintrc` → flat config 마이그레이션. 프론트 lint는 정상 |
+| ~~R5-6~~ | ~~Low~~ | ✅ **해결** — 루트 lint flat config 전환 완료 | `eslint.config.js` | 원인: `eslintrc.json`(dot 누락)이라 미작동 + ESLint v10 flat config 요구. flat config 작성, public/·web/ ignore, jest globals 분리. error 0. 잔여 warning 9개(기존 백엔드 unused var)는 별도 정리 대상 |
 
 ---
 

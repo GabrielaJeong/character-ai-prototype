@@ -41,7 +41,8 @@ router.delete('/:id', requireAuth, (req, res) => {
   const uid = req.session.userId;
   // If this was the default persona, clear default
   const user = stmt.getUserById.get(uid);
-  if (user?.default_persona_id == req.params.id) {
+  // default_persona_id(INTEGER) vs req.params.id(string) — 명시적 변환 비교 (eqeqeq)
+  if (user?.default_persona_id === Number(req.params.id)) {
     stmt.updateDefaultPersona.run(null, uid);
   }
   stmt.deletePersona.run(req.params.id, uid);
