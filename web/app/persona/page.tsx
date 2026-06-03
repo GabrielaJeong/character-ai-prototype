@@ -33,7 +33,9 @@ function PersonaIndexInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
-  const intendedPath = charId ? `/persona?char=${encodeURIComponent(charId)}` : '/persona';
+  const safety = sp.get('safety'); // 'on' | 'off' | null — 인트로 SafetySegment 선택값
+  const safetyQ = safety ? `&safety=${safety}` : '';
+  const intendedPath = charId ? `/persona?char=${encodeURIComponent(charId)}${safetyQ}` : '/persona';
   const { user, ready } = useRequireAuth(intendedPath, {
     title: '페르소나 설정',
     desc: '페르소나를 사용하려면 로그인이 필요합니다.',
@@ -54,12 +56,13 @@ function PersonaIndexInner() {
       return;
     }
     if (isLoading) return;
+    const cq = encodeURIComponent(charId);
     if (personas.length > 0) {
-      router.replace(`/persona/select?char=${encodeURIComponent(charId)}`);
+      router.replace(`/persona/select?char=${cq}${safetyQ}`);
     } else {
-      router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
+      router.replace(`/persona/new?char=${cq}${safetyQ}`);
     }
-  }, [ready, user, charId, personas.length, isLoading, router]);
+  }, [ready, user, charId, safetyQ, personas.length, isLoading, router]);
 
   return null;
 }

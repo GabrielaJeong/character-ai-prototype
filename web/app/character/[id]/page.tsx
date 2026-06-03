@@ -9,6 +9,8 @@ import { useUIStore } from '@/store/ui';
 import { api, ApiError } from '@/lib/api';
 import { fmtK } from '@/lib/format';
 import { IntroAccordion } from '@/components/IntroAccordion';
+import { SafetySegment } from '@/components/SafetySegment';
+import type { Safety } from '@/lib/types';
 import styles from './page.module.css';
 
 /**
@@ -51,6 +53,7 @@ export default function CharacterIntroPage({ params }: { params: { id: string } 
   const [tab, setTab] = useState<Tab>('about');
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [safety, setSafety] = useState<Safety>('on');
 
   const char = characters.find((c) => c.id === params.id) ?? null;
 
@@ -58,6 +61,17 @@ export default function CharacterIntroPage({ params }: { params: { id: string } 
   useEffect(() => {
     if (!isLoading) setAppReady(true);
   }, [isLoading, setAppReady]);
+
+  // Safety segment 초기값 — 원본 mountSafetySegment (L553~570) 로직.
+  // toggleable인데 성인 미인증이면 전연령 고정, 아니면 char.defaultSafety.
+  const adultEnabled = !!user?.adult_content_enabled;
+  const ratingLocked = char?.rating === 'toggleable' && !adultEnabled;
+  const canToggleSafety = char ? char.safetyToggle !== false && !ratingLocked : false;
+  useEffect(() => {
+    if (!char) return;
+    const def = char.defaultSafety === 'off' ? 'off' : 'on';
+    setSafety(ratingLocked ? 'on' : def);
+  }, [char, ratingLocked]);
 
   // 로딩 끝났는데 해당 id 없으면 not-found 처리 (Next.js 표준 notFound)
   if (!isLoading && !char) notFound();
@@ -107,8 +121,9 @@ export default function CharacterIntroPage({ params }: { params: { id: string } 
   };
 
   const onMore = () => showToast('준비 중입니다.');
-  // 페르소나 setup → /persona가 redirect 결정 (기존 페르소나 있으면 select, 없으면 new)
-  const onStartChat = () => router.push(`/persona?char=${encodeURIComponent(char.id)}`);
+  // 페르소나 setup → /persona가 redirect 결정. safety는 query로 전달돼 chat 진입까지 유지.
+  const onStartChat = () =>
+    router.push(`/persona?char=${encodeURIComponent(char.id)}&safety=${safety}`);
 
   // ── 파생값 ────────────────────────────────────────────────
   const roleLabel = [char.role, char.about?.world]
@@ -153,7 +168,7 @@ export default function CharacterIntroPage({ params }: { params: { id: string } 
               </svg>
             </button>
             <div className={styles.floatNavRight}>
-              {/* TODO: Safety segment — Day 6 chat 작업과 함께 */}
+              <SafetySegment value={safety} canToggle={canToggleSafety} onChange={setSafety} />
               <button
                 type="button"
                 className={`${styles.actionBtn} ${liked ? styles.actionActive : ''}`}

@@ -34,8 +34,10 @@ function PersonaSelectEditInner({ params }: { params: { id: string } }) {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
+  const safetyParam = sp.get('safety');
+  const safetyQ = safetyParam ? `&safety=${safetyParam}` : '';
   const intendedPath = charId
-    ? `/persona/select/${params.id}?char=${encodeURIComponent(charId)}`
+    ? `/persona/select/${params.id}?char=${encodeURIComponent(charId)}${safetyQ}`
     : `/persona/select/${params.id}`;
   const { user, ready } = useRequireAuth(intendedPath, {
     title: '페르소나 편집',
@@ -121,11 +123,12 @@ function PersonaSelectEditInner({ params }: { params: { id: string } }) {
       ...(persona.data.avatar ? { avatar: persona.data.avatar } : {}),
     };
 
-    setPrep({
-      characterId: charId,
-      persona: data,
-      safety: char.defaultSafety === 'off' ? 'off' : 'on',
-    });
+    // safety: 인트로 SafetySegment 선택값(query) 우선, 없으면 char.defaultSafety
+    const safety: 'on' | 'off' =
+      safetyParam === 'off' ? 'off'
+      : safetyParam === 'on' ? 'on'
+      : char.defaultSafety === 'off' ? 'off' : 'on';
+    setPrep({ characterId: charId, persona: data, safety });
     router.push(`/character/${charId}/chat`);
   };
 

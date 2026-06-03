@@ -320,6 +320,41 @@
 
 ---
 
+### 2026-05-28 (Day 4.x) — 인트로 Safety segment (전연령/성인 모드 토글)
+
+**작업 범위**: 캐릭터 인트로 floating nav의 Safety segment placeholder 채우기 + safety 값을 chat 진입까지 전달.
+
+**원본 대응**: app.js createSafetySegment (L504~547) + mountSafetySegment (L553~570) + style.css safety-segment (L1008~1077, intro 변형 L2472~2486).
+
+**추가**:
+- `web/components/SafetySegment.{tsx,module.css}` — 🔒 전연령 / 🔞 성인 토글
+  - 슬라이딩 배경 pill (`data-safety` attribute로 CSS 제어)
+  - canToggle false면 잠김 (opacity 0.55)
+- `web/app/character/[id]/page.tsx`:
+  - 원본 mountSafetySegment 로직: `ratingLocked = rating==='toggleable' && !adultEnabled`, `canToggle = safetyToggle !== false && !ratingLocked`
+  - safety 초기값 = ratingLocked ? 'on' : defaultSafety (char 로드 시 useEffect)
+  - floating nav에 SafetySegment 렌더
+  - "대화 시작" → `/persona?char=<id>&safety=<safety>`
+
+**safety URL 전달 (전 persona 흐름)**:
+- `/persona?char=&safety=` 리다이렉터가 select/new로 넘길 때 safety 유지
+- `/persona/select?char=&safety=` → select/[id]로 전달
+- `/persona/new`, `/persona/select/[id]`: setPrep의 safety를 query 우선(없으면 char.defaultSafety)
+- 새로고침 안전 (URL이 source of truth)
+
+**설계 결정 (safety 전달 방식)**:
+- 원본은 글로벌 `currentSafety` 변수. React에선 URL query로 — chatPrep store는 한 hop(persona→chat)만 담당하므로, 인트로→persona 사이는 URL이 적절. 새로고침/뒤로가기 안전.
+
+**종료 체크 (전체 검토용 풀 검증)**:
+- ✅ type-check 통과
+- ✅ ESLint clean
+- ✅ build 통과 (`/character/[id]` 6.xx kB)
+- ✅ 백엔드 jest 49/49
+
+**인트로 화면 완성**: hero / safety segment / 좋아요·책갈피 / identity / stats / created.by / 탭(about·notes·comments) / 세계관 accordion / 대화 시작. 좋아요·Follow·More는 백엔드 미구현이라 toast (원본 동일).
+
+---
+
 ### 2026-05-28 (Day 6.x-2) — 노트 모달 + 캐릭터 프로필 모달 (채팅 완성)
 
 **작업 범위**: chat 헤더의 마지막 placeholder 2개(📝 노트, 프로필 버튼) 동작화. 새 page 없음 → Tier 1~2.

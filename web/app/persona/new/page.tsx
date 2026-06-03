@@ -42,9 +42,11 @@ function PersonaNewInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
+  const safetyParam = sp.get('safety'); // 인트로 SafetySegment 선택값
   const isLinked = !!charId;
 
-  const intendedPath = isLinked ? `/persona/new?char=${encodeURIComponent(charId!)}` : '/persona/new';
+  const safetyQ = safetyParam ? `&safety=${safetyParam}` : '';
+  const intendedPath = isLinked ? `/persona/new?char=${encodeURIComponent(charId!)}${safetyQ}` : '/persona/new';
   const { user, ready } = useRequireAuth(intendedPath, {
     title: '페르소나 만들기',
     desc: '페르소나를 만들려면 로그인이 필요합니다.',
@@ -123,11 +125,12 @@ function PersonaNewInner() {
       }
 
       if (isLinked && charId) {
-        setPrep({
-          characterId: charId,
-          persona: data,
-          safety: char?.defaultSafety === 'off' ? 'off' : 'on',
-        });
+        // safety: 인트로 SafetySegment 선택값(query) 우선, 없으면 char.defaultSafety
+        const safety: 'on' | 'off' =
+          safetyParam === 'off' ? 'off'
+          : safetyParam === 'on' ? 'on'
+          : char?.defaultSafety === 'off' ? 'off' : 'on';
+        setPrep({ characterId: charId, persona: data, safety });
         router.push(`/character/${charId}/chat`);
       } else {
         showToast('페르소나가 저장되었습니다.');

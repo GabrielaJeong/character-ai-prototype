@@ -32,7 +32,11 @@ function PersonaSelectInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const charId = sp.get('char');
-  const intendedPath = charId ? `/persona/select?char=${encodeURIComponent(charId)}` : '/persona/select';
+  const safetyParam = sp.get('safety');
+  const safetyQ = safetyParam ? `&safety=${safetyParam}` : '';
+  const intendedPath = charId
+    ? `/persona/select?char=${encodeURIComponent(charId)}${safetyQ}`
+    : '/persona/select';
   const { user, ready } = useRequireAuth(intendedPath, {
     title: '페르소나 선택',
     desc: '페르소나를 선택하려면 로그인이 필요합니다.',
@@ -52,19 +56,19 @@ function PersonaSelectInner() {
       return;
     }
     if (!isLoading && personas.length === 0) {
-      router.replace(`/persona/new?char=${encodeURIComponent(charId)}`);
+      router.replace(`/persona/new?char=${encodeURIComponent(charId)}${safetyQ}`);
     }
-  }, [ready, user, charId, isLoading, personas.length, router]);
+  }, [ready, user, charId, safetyQ, isLoading, personas.length, router]);
 
   if (!ready || !user || !charId || isLoading) {
     return null;
   }
 
+  const cq = encodeURIComponent(charId);
   const onBack = () => router.push(`/character/${charId}`);
   const onPickPersona = (pid: number) =>
-    router.push(`/persona/select/${pid}?char=${encodeURIComponent(charId)}`);
-  const onNewPersona = () =>
-    router.push(`/persona/new?char=${encodeURIComponent(charId)}`);
+    router.push(`/persona/select/${pid}?char=${cq}${safetyQ}`);
+  const onNewPersona = () => router.push(`/persona/new?char=${cq}${safetyQ}`);
 
   const defaultId = user.default_persona_id;
 
