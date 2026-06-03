@@ -530,9 +530,15 @@ function ChatInner({ params }: { params: { id: string } }) {
         </button>
         <button
           type="button"
-          className={styles.btnNote}
-          onClick={() => setNoteOpen(true)}
-          title="유저 노트"
+          // Codex R6: 첫 메시지 전엔 백엔드 세션이 없어 노트 저장 불가 → dim + 안내.
+          // disabled 속성 대신 CSS dim (Red Flag 2: 클릭 이벤트 유지하여 toast 안내).
+          className={`${styles.btnNote} ${messages.length === 0 ? styles.btnNoteDim : ''}`}
+          onClick={() =>
+            messages.length === 0
+              ? showToast('첫 메시지를 보낸 뒤 노트를 사용할 수 있습니다.')
+              : setNoteOpen(true)
+          }
+          title={messages.length === 0 ? '첫 메시지 후 사용 가능' : '유저 노트'}
           aria-label="유저 노트"
         >
           📝

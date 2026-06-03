@@ -99,8 +99,9 @@ function PersonaSelectEditInner({ params }: { params: { id: string } }) {
     setGender((cur) => (cur === v ? null : v));
   };
 
+  // Codex R6: safety query 유지 — 뒤로가기 시 인트로 선택 safety 손실 방지
   const onBack = () =>
-    router.push(`/persona/select?char=${encodeURIComponent(charId)}`);
+    router.push(`/persona/select?char=${encodeURIComponent(charId)}${safetyQ}`);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();

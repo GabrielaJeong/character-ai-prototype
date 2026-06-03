@@ -138,6 +138,9 @@
 }
 .btnNote:hover { border-color: var(--accent-dim); color: var(--accent); }
 .btnNote:active { opacity: 0.7; }
+/* 첫 메시지 전 — dim (클릭은 가능, toast 안내) */
+.btnNoteDim { opacity: 0.4; }
+.btnNoteDim:hover { border-color: var(--border); color: var(--text-muted); }
 /* 노트 있을 때 빨간 dot (원본 .note-dot) */
 .noteDot {
   position: absolute;
