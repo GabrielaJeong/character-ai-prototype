@@ -320,6 +320,26 @@
 
 ---
 
+### 2026-05-28 (Day 10.2) — Explore 랭킹 뷰 (mock 차트 TOP 20)
+
+**작업 범위**: explore의 랭킹 뷰. 원본 _chartData/_chartLabels/_renderChart 이식.
+
+**추가**:
+- `web/lib/exploreChart.ts` — CHART_DATA(daily/weekly/monthly × 20) + CHART_LABELS (원본 1:1, ⚠️ 시연용 mock)
+- `web/app/explore/page.tsx` — RankingView 컴포넌트 (placeholder 교체)
+  - 일간/주간/월간 sort 버튼 + 날짜 라벨 (주간은 월~일 범위 계산)
+  - 차트 행: rank / avatar / name / role·chats / change(▲▼—)
+- `page.module.css` — chart-* 1:1 이식
+
+**비고**: 랭킹 데이터는 **하드코딩 mock** (실제 집계 API 없음 — 원본도 동일). 포트폴리오 차트 UI 데모.
+
+**종료 체크**:
+- ✅ type-check / ESLint clean (page 수정, 새 라우트 아님 → build skip)
+
+**Day 10.3 (잔여)**: BROADCAST 배너 / TAG.CLOUD / EDITOR.PICKS 큐레이션 섹션 (useCuration의 broadcast/tags/collections)
+
+---
+
 ### 2026-05-28 (Day 10.1) — Explore 큐레이션 뷰 (검색 + 태그 필터 + grid)
 
 **작업 범위**: `/explore` 라우트의 큐레이션 뷰. 랭킹 차트 + 큐레이션 데이터 섹션(BROADCAST/TAG.CLOUD/EDITOR.PICKS)은 Day 10.2.

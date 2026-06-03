@@ -140,3 +140,122 @@
   padding: 40px 0;
   margin: 0;
 }
+
+/* ── 랭킹 차트 ─────────────────────────────────────── */
+.rankingWrap {
+  margin: 0 20px;
+  flex: 1;
+}
+.chartHeader {
+  padding: 20px 0 8px;
+}
+.chartEyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-family: var(--font);
+}
+.chartChevron {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.8;
+}
+.chartTitle {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font);
+  color: var(--text);
+  margin: 4px 0 2px;
+  letter-spacing: -0.4px;
+}
+.chartDate {
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--text-muted);
+  margin: 0;
+}
+.chartSortBar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 0 16px;
+}
+.chartSortBtn {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font);
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  touch-action: manipulation;
+  min-height: 30px;
+}
+.chartSortBtn:active { opacity: 0.7; }
+.chartSortBtnActive {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(108, 229, 213, 0.07);
+}
+.chartList {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 40px;
+}
+.chartRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.chartRow:last-child { border-bottom: none; }
+.chartRank {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font);
+  color: var(--accent);
+  min-width: 36px;
+  letter-spacing: -0.5px;
+}
+.chartAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  object-position: top;
+  flex-shrink: 0;
+}
+.chartInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.chartName {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font);
+  color: var(--text);
+}
+.chartMeta {
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--text-muted);
+}
+.chartChange {
+  font-size: 12px;
+  font-family: var(--font);
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.chartChangeUp { color: #6ce5d5; }
+.chartChangeDown { color: #f87171; }
+.chartChangeNone { color: var(--text-muted); }

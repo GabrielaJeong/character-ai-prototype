@@ -4,22 +4,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCharacters } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import { matchesQuery } from '@/lib/search';
+import { CHART_DATA, CHART_LABELS, type ChartSort } from '@/lib/exploreChart';
 import { CharacterCard } from '@/components/CharacterCard';
 import styles from './page.module.css';
 
 /**
  * 탐색 — `/explore`
  *
- * 원본: index.html L779~835 (#screen-explore) + app.js loadExplore / _applyExploreFilter (L1610~1708).
+ * 원본: index.html L779~835 (#screen-explore) + app.js loadExplore / _renderChart (L1610~1834).
  *
- * Day 10.1 범위 (큐레이션 뷰):
- *   - 검색 (이름·태그·설명 + 초성, 300ms debounce)
- *   - 태그 바 (추천 태그 + 캐릭터 태그, 다중 선택 AND)
- *   - char grid (CharacterCard 재사용)
- *   - 뷰 탭 (큐레이션 / 랭킹) — 랭킹은 Day 10.2 placeholder
+ * 구현:
+ *   - 큐레이션 뷰: 검색(초성, 300ms debounce) + 태그 바(다중 AND) + char grid
+ *   - 랭킹 뷰: mock 차트 (일간/주간/월간 TOP 20)
  *
- * Day 10.2 (다음):
- *   - 랭킹 차트 (mock 데이터)
+ * 미완 (Day 10.3):
  *   - BROADCAST 배너 / TAG.CLOUD / EDITOR.PICKS 큐레이션 섹션
  */
 const SUGGESTED_TAGS = [
@@ -158,10 +156,65 @@ export default function ExplorePage() {
           </div>
         </>
       ) : (
-        <div className={styles.body}>
-          <p className={styles.empty}>랭킹은 준비 중입니다.</p>
-        </div>
+        <RankingView />
       )}
+    </div>
+  );
+}
+
+/** 랭킹 뷰 — mock 차트 (일간/주간/월간 TOP 20). 원본 _renderChart. */
+function RankingView() {
+  const [sort, setSort] = useState<ChartSort>('weekly');
+  const label = CHART_LABELS[sort];
+  const data = CHART_DATA[sort];
+
+  return (
+    <div className={styles.rankingWrap}>
+      <div className={styles.chartHeader}>
+        <span className={styles.chartEyebrow}>
+          <span className={styles.chartChevron}>›</span> {label.eyebrow}
+        </span>
+        <h2 className={styles.chartTitle}>{label.title}</h2>
+        <p className={styles.chartDate}>{label.date()}</p>
+      </div>
+
+      <div className={styles.chartSortBar}>
+        {(['daily', 'weekly', 'monthly'] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            className={`${styles.chartSortBtn} ${sort === s ? styles.chartSortBtnActive : ''}`}
+            onClick={() => setSort(s)}
+          >
+            {s === 'daily' ? '일간' : s === 'weekly' ? '주간' : '월간'}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.chartList}>
+        {data.map((item) => (
+          <div key={item.rank} className={styles.chartRow}>
+            <span className={styles.chartRank}>#{item.rank}</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className={styles.chartAvatar} src={item.img} alt={item.name} />
+            <div className={styles.chartInfo}>
+              <span className={styles.chartName}>{item.name}</span>
+              <span className={styles.chartMeta}>{item.role} · {item.chats} chats</span>
+            </div>
+            <span
+              className={`${styles.chartChange} ${
+                item.dir === 'up' ? styles.chartChangeUp
+                : item.dir === 'down' ? styles.chartChangeDown
+                : styles.chartChangeNone
+              }`}
+            >
+              {item.dir === 'up' ? `▲ ${item.change}`
+                : item.dir === 'down' ? `▼ ${item.change}`
+                : '—'}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
