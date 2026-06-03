@@ -138,6 +138,32 @@ export interface Notification {
   is_read?: boolean;                  // join 결과
 }
 
+// ── Creator profile (GET /api/creator/:username) ─────────
+export interface CreatorCharacter {
+  id: string;
+  name: string;
+  role: string;
+  image: string | null;
+  tags: string[];
+  status?: string;
+  rating?: string;
+  description: string[];
+  pinned: boolean;
+  stats: { sessions: number; bookmarks: number };
+}
+export interface CreatorProfile {
+  user: {
+    id: number;
+    username: string;
+    nickname: string;
+    avatar: string | null;
+    public_id: string;
+    created_at: number;
+  };
+  characters: CreatorCharacter[];
+  isOwner: boolean;
+}
+
 // ── Bookmark ─────────────────────────────────────────────
 export interface Bookmark {
   id: number;
@@ -189,8 +215,3 @@ export interface AppVersion {
   version: string;                     // "v0.30"
 }
 
-// ── Creator profile ──────────────────────────────────────
-export interface CreatorProfile {
-  user: Pick<User, 'public_id' | 'email' | 'nickname' | 'username' | 'avatar' | 'role' | 'created_at'>;
-  characters: Character[];
-}

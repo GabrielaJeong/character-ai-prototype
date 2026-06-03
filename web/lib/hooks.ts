@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { api } from './api';
-import type { Character, Notification, Curation, AppVersion, Persona, Session, SessionDetail } from './types';
+import type { Character, Notification, Curation, AppVersion, Persona, Session, SessionDetail, CreatorProfile } from './types';
 import { useAuthStore } from '@/store/auth';
 
 const fetcher = <T,>(path: string) => api.get<T>(path);
@@ -24,6 +24,18 @@ export function useCharacterDetail(id: string | null) {
     fetcher,
   );
   return { character: data ?? null, error, isLoading };
+}
+
+/**
+ * GET /api/creator/:username — 크리에이터 프로필 + 작품 목록.
+ * handle은 `@username` 또는 `username` (백엔드가 @ 제거). null이면 비활성.
+ */
+export function useCreator(handle: string | null) {
+  const { data, error, isLoading, mutate } = useSWR<CreatorProfile>(
+    handle ? `/api/creator/${encodeURIComponent(handle)}` : null,
+    fetcher,
+  );
+  return { profile: data ?? null, error, isLoading, mutate };
 }
 
 /** GET /api/curation */
