@@ -320,6 +320,34 @@
 
 ---
 
+### 2026-05-28 (Day 10.1) — Explore 큐레이션 뷰 (검색 + 태그 필터 + grid)
+
+**작업 범위**: `/explore` 라우트의 큐레이션 뷰. 랭킹 차트 + 큐레이션 데이터 섹션(BROADCAST/TAG.CLOUD/EDITOR.PICKS)은 Day 10.2.
+
+**원본 대응**: index.html L779~835 (#screen-explore) + app.js loadExplore / _buildExploreTagBar / _applyExploreFilter / matchesQuery / getChosung (L1577~1708).
+
+**추가**:
+- `web/lib/search.ts` — `matchesQuery(char, q)` + `getChosung(str)` (한글 초성 검색). 원본 1:1.
+- `web/app/explore/page.tsx` + `.module.css`:
+  - 뷰 탭 (큐레이션 / 랭킹) — 랭킹은 "준비 중" placeholder (Day 10.2)
+  - 검색 (300ms debounce, ESC로 초기화, 초성 지원)
+  - 태그 바 (추천 12태그 + 캐릭터 태그 병합, 다중 선택 AND, 전체 chip)
+  - char grid (CharacterCard 재사용)
+
+**필터 로직 (원본 _applyExploreFilter)**:
+- `matchesQuery(c, query) && (activeTags 비었거나 모든 선택 태그 포함)`
+- useMemo로 characters/query/activeTags 변경 시만 재계산
+
+**종료 체크**:
+- ✅ type-check / ESLint clean
+- ✅ build 통과 (`/explore` 1.96 kB / 113 kB, static)
+
+**Day 10.2 (다음)**:
+- 랭킹 차트 (mock _chartData daily/weekly/monthly + sort)
+- BROADCAST 배너 / TAG.CLOUD / EDITOR.PICKS 큐레이션 섹션 (useCuration의 broadcast/tags/collections)
+
+---
+
 ### 2026-05-28 (Day 4.x) — 인트로 Safety segment (전연령/성인 모드 토글)
 
 **작업 범위**: 캐릭터 인트로 floating nav의 Safety segment placeholder 채우기 + safety 값을 chat 진입까지 전달.
