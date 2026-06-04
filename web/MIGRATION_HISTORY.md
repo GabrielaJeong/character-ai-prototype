@@ -188,7 +188,7 @@
 **종료 체크**: ✅ type-check / lint / build (builder 4 라우트: 선택 4.75kB, chat 5.22kB, manual 3.23kB, preview 3.01kB)
 
 **QA 2차 (Codex, 2026-06-03)**: build/type-check/lint/jest(49) 통과. Findings 처리 —
-- 🟢 수정: Creator 프로필 adult_only 필터 누락(선재 백엔드 버그, routes/creator.js) — 비성인/비로그인에 숨김(owner 본인은 노출).
+- 🟢 수정: Creator 프로필 adult_only 필터 누락(선재 백엔드 버그, routes/creator.js) — 비성인/비로그인에 숨김. (self-eval에서 owner-bypass가 mypage와 불일치함을 발견 → bypass 제거해 characters.js·mypage와 완전 일관.)
 - 🟢 수정: AvatarUpload 클라 5MB 체크 추가(mypage와 일관). 서버 강제는 백로그.
 - 🔵 반박(조치 안 함): Builder 백엔드 비인증 = 의도된 데모 개방(위 정책). preview 검증이 manual보다 약함 = 원본 registerCharacter도 이름만 검증(회귀 아님, AI가 완전 데이터 보장).
 - 🟡 백로그: 캐릭터 생성 이미지 서버측 5MB 검증, 알림 단건 read 소유권 조건.

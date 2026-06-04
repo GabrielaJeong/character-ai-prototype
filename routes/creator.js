@@ -15,7 +15,8 @@ router.get('/:username', (req, res) => {
   const isOwner = req.session?.userId === user.id;
 
   // 성인 콘텐츠 접근 여부 (characters.js GET / 와 동일 기준).
-  // 비성인/비로그인 유저에게는 adult_only 작품을 숨긴다. 단, 본인 프로필 조회 시 owner는 전부 노출.
+  // 비성인/비로그인 유저에게는 adult_only 작품을 숨긴다. owner 예외 없음 —
+  // mypage '내 캐릭터'(useCharacters, 서버 필터됨)와 일관 유지 (self-eval 불일치 수정).
   let adultEnabled = false;
   if (req.session?.userId) {
     const viewer = stmt.getUserById.get(req.session.userId);
@@ -39,8 +40,8 @@ router.get('/:username', (req, res) => {
       try {
         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
         if (cfg.owner_user_id !== user.id) continue;
-        // 성인 캐릭터는 성인 토글 ON 또는 본인 프로필일 때만 노출 (선재 누수 차단)
-        if (cfg.rating === 'adult_only' && !adultEnabled && !isOwner) continue;
+        // 성인 캐릭터는 성인 토글 ON일 때만 노출 (선재 누수 차단)
+        if (cfg.rating === 'adult_only' && !adultEnabled) continue;
         chars.push({
           id,
           name:        cfg.name || '',
