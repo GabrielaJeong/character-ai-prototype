@@ -178,12 +178,17 @@
 adminPageGuard로 서버 차단 중이라 오히려 강함 → 이전 시 동등 보호 유지하려면 middleware 필수.
 3안(HTML유지/Next+클라게이트/Next+서버게이트) 중 사용자가 **Next+서버게이트(middleware)** 선택.
 
+**런타임 검증 (2026-06-04, 두 서버 기동 curl)**:
+- ⓐ 쿠키 없음 → 307 `/` ✅  ⓑ 가짜 쿠키 → 307 `/` ✅  ⓒ 로그인·비어드민(role=user) → 307 `/` ✅
+- 백엔드 불통 → fail-closed 307 `/` ✅  ·  `/` 등 비대상 라우트 200(matcher 정확) ✅
+- ⓒ는 임시 계정 register→login→테스트→DELETE /me로 정리(chat.db 무변경).
+- ⓓ 어드민 통과(200)는 미실증 — 어드민 비번(시크릿)·DB 권한주입(rule#8) 불가. 로직상 `role==='admin'`만 next(), 나머지 전부 redirect 확인됨. **브라우저에서 어드민 로그인 후 :3001/admin 1회 확인 권장.**
+
 **미해결/주의**:
 - **prod에서 `API_INTERNAL_URL` 설정 필요**(서버 fetch는 dev rewrites 못 씀). 미설정 시 localhost 폴백.
-- **런타임 게이트 동작은 미검증**(두 서버 동시 기동 필요) — build/type/lint만 통과. 신뢰 전 런타임 확인 권장.
 - Step 2(admin.js 1654줄 기능 이전)는 별도. 그 전까진 admin.html이 운영용.
 
-**종료 체크**: ✅ type-check / lint / build (/admin 2.38kB, Middleware 26.6kB)
+**종료 체크**: ✅ type-check / lint / build (/admin 2.38kB, Middleware 26.6kB) + 런타임 block 경로 실증
 
 ### 2026-06-04 (Day 14.1) — persona/new 아바타 업로드 연결
 
