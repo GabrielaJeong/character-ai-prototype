@@ -1,7 +1,7 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-05-28 (React 마이그레이션 Phase A 진행 중)
+> 최종 업데이트: 2026-06-04 (React 마이그레이션 Phase A — 어드민 제외 전 화면 이식 완료)
 
 ---
 
@@ -17,13 +17,16 @@
 - [x] 채팅 `/character/[id]/chat` (SSE 스트리밍/재생성/노트·프로필 모달/기존 세션 로드)
 - [x] 히스토리 `/history`, 마이페이지 `/mypage` (정보수정/성인인증/아바타/탈퇴/탭)
 - [x] 인증 `/login`(로그인·가입·비번찾기), `/reset-password`
-- [x] 탐색 `/explore` — 큐레이션 뷰(검색+태그+grid)만. 랭킹·섹션 미완
+- [x] 탐색 `/explore` — 큐레이션 뷰(검색+태그+grid) + 랭킹 뷰 + BROADCAST/TAG.CLOUD/EDITOR.PICKS (Day 10.1~10.3)
+- [x] 알림 `/notification` (Day 11), 크리에이터 `/creator/@[handle]` (Day 12)
+- [x] 빌더 `/builder` `/builder/chat` `/builder/manual` `/builder/preview` (Day 13)
+- [x] 페르소나 상세/편집 `/persona/[id]` (Day 14, 전체 필드 영구 편집)
 - [x] 404 `not-found` / 에러 `error.tsx`
 
 ### 미이식 화면
-- [ ] 탐색 랭킹 뷰 + BROADCAST/TAG.CLOUD/EDITOR.PICKS (Day 10.2)
-- [ ] 알림 `/notification`, 크리에이터 `/creator/@[username]`, 빌더 `/builder/*`
-- [ ] 페르소나 detail/편집, 어드민
+- [ ] **어드민 `/admin`** — 별도 `public/admin.html` + `admin.js`. 마이그레이션 범위/우선순위 재정의 필요 (유저 화면과 분리)
+- [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
+- [ ] 페르소나 `/persona/new` 아바타 업로드 (Phase A placeholder) — AvatarUpload 컴포넌트 생겼으니 연결만 하면 됨
 
 ### 인프라 (web/)
 - SSE 스트리밍(`lib/streamReply.js`), zustand 스토어, SWR 훅
