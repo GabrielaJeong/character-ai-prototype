@@ -161,6 +161,13 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-04 (Day 14.1) — persona/new 아바타 업로드 연결
+
+Day 5에서 placeholder로 둔 `/persona/new` 프로필 이미지 업로드를 `AvatarUpload`(Day 13 신규 컴포넌트)로 연결.
+- 폼 최상단에 AvatarUpload 추가, `avatar` state.
+- 제출 data에 `...(avatar ? { avatar } : {})` 포함 — linked/standalone 양쪽. avatar는 dataURL이라 resolveUser 치환 제외(원본 startChat 동일).
+- 검증: type-check / lint (기존 라우트, build 불필요).
+
 ### 2026-06-04 (Day 14) — 페르소나 상세/편집 (/persona/[id])
 
 **작업 범위**: 마이페이지 '편집' 버튼이 toast였던 것을 실제 페이지로. 원본 #screen-persona-detail (index.html L992~1011, app.js `_routePersonaDetail`/`onPdImgSelected`).

@@ -11,6 +11,7 @@ import { useChatPrepStore } from '@/store/chatPrep';
 import { api, ApiError } from '@/lib/api';
 import { resolveUser } from '@/lib/format';
 import type { PersonaData } from '@/lib/types';
+import { AvatarUpload } from '@/components/AvatarUpload';
 import styles from './page.module.css';
 
 /**
@@ -26,9 +27,7 @@ import styles from './page.module.css';
  *   - 추천 페르소나 채우기 버튼 (캐릭터의 `recommendedPersona`가 있을 때)
  *   - 제출 시 텍스트 필드에 `{{user}}` placeholder를 페르소나 이름으로 치환 (resolveUser)
  *   - 페르소나 저장은 로그인 시에만 (비로그인은 chat prep만 set하고 진행)
- *
- * 미구현 (다음 단계):
- *   - 프로필 이미지 업로드 (원본 personaAvatarUpload). Phase A는 placeholder만.
+ *   - 프로필 이미지 업로드 (AvatarUpload) — avatar dataURL을 persona.data.avatar로 저장
  */
 export default function PersonaNewPage() {
   return (
@@ -65,6 +64,7 @@ function PersonaNewInner() {
   const [appearance, setAppearance] = useState('');
   const [personality, setPersonality] = useState('');
   const [notes, setNotes] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -116,6 +116,8 @@ function PersonaNewInner() {
       appearance: r(appearance),
       personality: r(personality),
       notes: r(notes),
+      // avatar는 dataURL이므로 resolveUser 치환 대상 아님 (원본 startChat 동일)
+      ...(avatar ? { avatar } : {}),
     };
 
     try {
@@ -174,7 +176,10 @@ function PersonaNewInner() {
         )}
 
         <form onSubmit={onSubmit} className={styles.form}>
-          {/* TODO: 아바타 업로드 — Phase A에서 placeholder */}
+          <div className="form-group">
+            <label>프로필 이미지</label>
+            <AvatarUpload value={avatar} onChange={setAvatar} />
+          </div>
 
           <div className="form-group">
             <label htmlFor="p-name">이름 <span className="required">*</span></label>

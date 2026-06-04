@@ -26,7 +26,6 @@
 ### 미이식 화면
 - [ ] **어드민 `/admin`** — 별도 `public/admin.html` + `admin.js`. 마이그레이션 범위/우선순위 재정의 필요 (유저 화면과 분리)
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
-- [ ] 페르소나 `/persona/new` 아바타 업로드 (Phase A placeholder) — AvatarUpload 컴포넌트 생겼으니 연결만 하면 됨
 
 ### 인프라 (web/)
 - SSE 스트리밍(`lib/streamReply.js`), zustand 스토어, SWR 훅
