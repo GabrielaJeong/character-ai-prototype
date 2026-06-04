@@ -160,6 +160,24 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-04 (Day 14) — 페르소나 상세/편집 (/persona/[id])
+
+**작업 범위**: 마이페이지 '편집' 버튼이 toast였던 것을 실제 페이지로. 원본 #screen-persona-detail (index.html L992~1011, app.js `_routePersonaDetail`/`onPdImgSelected`).
+
+- `app/persona/[id]/page.{tsx,module.css}` — 전체 필드 편집 + PATCH 영구 저장.
+  · 필드: 아바타(AvatarUpload 재사용)/이름/나이/성별/외형/성격/특이사항.
+  · 저장 → `PATCH /api/personas/:id { data }` → mutate → /mypage.
+  · 액션: 기본 설정 / 기본 해제(default DELETE) / 삭제(showDeleteConfirm). default 변경 시 authStore.user.default_persona_id 로컬 동기화.
+  · 잘못된 id → /mypage 리다이렉트(원본 동작).
+- `app/mypage/page.tsx`: onEditPersona → `router.push('/persona/:id')` (toast 제거).
+
+**결정**:
+- **원본 detail은 읽기전용+아바타만**이었으나, web mypage가 이미 '기본으로/편집/삭제'로 분리돼 detail-only면 기능 중복·빈약 → 사용자 확인 후 **전체 필드 영구 편집**으로 확장(백엔드 PATCH가 full data 교체 지원). 원본 `/persona/select/:id`(채팅 진입 일회성 수정)와 역할 구분: 이건 **영구 저장**, 그건 **그 대화 한정**.
+- 정적 세그먼트(new/select) 우선이라 `/persona/[id]`가 `/persona/new`·`/persona/select` 안 가로챔(build 확인).
+- BottomNav는 기존 HIDE_PATTERNS `/persona(\/.*)?`로 숨김 — 원본 detail은 nav 표시였으나 web 컨벤션(Day 5) 유지.
+
+**종료 체크**: ✅ type-check / lint / build (/persona/[id] 4.67kB)
+
 ### 2026-06-03 (Day 13) — Builder 캐릭터 제작 (AI 대화형 + 직접 제작)
 
 **작업 범위**: 빌더 전체 4개 화면. 원본 #screen-builder/-chat/-loading/-manual/-edit (index.html L512~777, app.js L2130~3275).

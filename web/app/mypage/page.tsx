@@ -109,8 +109,7 @@ export default function MypagePage() {
     });
   };
   const onEditPersona = (p: Persona) => {
-    // 페르소나 detail/edit 페이지는 후속. 지금은 toast.
-    showToast('페르소나 편집은 준비 중입니다.');
+    router.push(`/persona/${p.id}`);
   };
 
   // ── 캐릭터 액션 ──────────────────────────────────────
