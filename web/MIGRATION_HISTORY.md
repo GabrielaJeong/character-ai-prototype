@@ -30,7 +30,7 @@
 |---|---|---|---|
 | 1 | 모든 코드 변경 | `npm run type-check` | 빠르고 쌈. 거의 항상. |
 | 2 | UI/컴포넌트/CSS | + `npm run lint` | **dev 재시작 불필요** — HMR로 자동 반영 |
-| 3 | 새 라우트 / Suspense / 정적생성 영향 | `npm run build` | prerender·useSearchParams 에러는 여기서만. 그 후 `.next` 삭제 + dev 재시작 (ML-003) |
+| 3 | 새 라우트 / Suspense / 정적생성 영향 | `npm run build` | prerender·useSearchParams 에러는 여기서만. **build 후 `.next`는 그대로 둔다**(IDE 타입 유지). dev는 `predev` 훅이 자동 정리 (ML-003 갱신) |
 | 4 | 백엔드 routes/db/lib | `npx jest` | 49개 |
 
 - **build와 dev 재시작은 매번 X.** 기존 페이지 로직/CSS 수정은 Tier 1~2만.
@@ -59,16 +59,17 @@
 - **예방**: SWR 훅 / 응답 타입 작성 전에 반드시 해당 `routes/*.js`의 `res.json(...)` 줄을 먼저 grep으로 확인. JSON 데이터 파일도 직접 열어볼 것.
 - **출처**: Day 3 (Curation), Day 3.x fix (notifications) (2026-05-27)
 
-### ML-003 — `next build` 직후 `next dev`로 전환 시 `.next` 폴더 충돌
+### ML-003 — `next build` 직후 `next dev`로 전환 시 `.next` 폴더 충돌 + (추가) 수동 `.next` 삭제가 IDE 오류 유발
 - **증상**: `Error: Cannot find module './XXX.js'` (webpack-runtime), 페이지 렌더 실패
 - **원인**: production chunk와 dev chunk가 같은 `.next` 폴더 공유. webpack runtime이 잘못된 chunk hash를 참조.
-- **예방**: build로 검증한 직후엔 dev 띄우기 전에 `.next` 삭제.
-  ```powershell
-  Remove-Item -Recurse -Force web\.next
-  npm run dev
+- **(2026-06-04 추가 발견)**: 이를 피하려고 build 후 **`.next`를 수동 삭제**해 왔는데, 그러면 `.next/types/app/**/page.ts`(라우트당 1개씩 생성되는 타입)가 사라져 **IDE의 `next` TS 플러그인이 tsconfig의 `.next/types/**/*.ts` include를 못 채워 라우트 수만큼 오류**를 표시한다(예: 18라우트 → "오류 18~19개"). CLI `tsc --noEmit`은 빈 glob을 무시해 통과하므로 IDE만 빨개지는 함정. → **수동 삭제 자체가 새 마찰의 원인**이었음.
+- **해결 (영구)**: `package.json`에 **`predev` 훅** 추가 — dev 시작 전 `.next`를 자동 정리하므로 build→dev 충돌이 구조적으로 불가능해지고, **수동 `rm -rf .next`를 더 이상 하지 않는다**(= IDE 오류 미발생). 의존성 없이 node 내장 사용:
+  ```json
+  "predev": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+  "dev": "next dev -p 3001",
   ```
-  매번 검증 후 자동화하려면 package.json에 `"clean": "rimraf .next"` 추가 검토.
-- **출처**: Day 3.x 종료 후 (2026-05-27)
+- **새 워크플로**: build로 검증한 뒤 `.next`를 **그대로 둔다**(IDE 타입 유지). 다음에 dev를 켜면 `predev`가 알아서 정리. IDE가 오류를 계속 보이면 "TypeScript: Restart TS Server" 1회.
+- **출처**: Day 3.x 종료 후(2026-05-27), Day 14 후 IDE 19 오류 사건으로 갱신(2026-06-04)
 
 ### ML-004 — Next.js 14에서 `useSearchParams`는 **반드시 Suspense boundary**로 감싸야 함
 - **증상**: build 시 prerender 에러 ("useSearchParams() should be wrapped in a suspense boundary")
