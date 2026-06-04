@@ -161,6 +161,30 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-04 (Day 15) — 어드민 Step 1: 서버 측 게이트 (middleware)
+
+어드민을 Next로 이전하기로 결정(민감 페이지를 옛 admin.html로 방치 안 함). 단, 유저 화면이 쓰는
+**클라이언트 게이트(useRequireAuth)는 어드민에 부적합** — 셸 번들이 비어드민에게도 내려가 UI구조·엔드포인트 노출.
+원본 server.js `adminPageGuard`(서버 redirect)와 **동등한 서버 측 보호**를 Next에 도입.
+
+- `web/middleware.ts` (신규, **이 코드베이스 첫 서버측 auth**):
+  · matcher `['/admin','/admin/:path*']`. 진입 시 세션 쿠키를 `API_INTERNAL_URL`(없으면 `localhost:3000`)
+    의 `/api/auth/me`로 포워드 → `role==='admin'` 아니면 `/` redirect. 쿠키 없으면 즉시 차단(백엔드 호출 회피).
+    백엔드 불통 시 fail-closed(통과 안 시킴).
+- `app/admin/page.{tsx,module.css}`: placeholder('이전 중'). 게이트 통과 확인용.
+- `BottomNav` HIDE_PATTERNS에 `/admin*` 추가.
+
+**결정 근거**: "HTML이냐 Next냐"가 아니라 "서버 게이트냐 클라 게이트냐"가 보안 축. 현재 admin.html은
+adminPageGuard로 서버 차단 중이라 오히려 강함 → 이전 시 동등 보호 유지하려면 middleware 필수.
+3안(HTML유지/Next+클라게이트/Next+서버게이트) 중 사용자가 **Next+서버게이트(middleware)** 선택.
+
+**미해결/주의**:
+- **prod에서 `API_INTERNAL_URL` 설정 필요**(서버 fetch는 dev rewrites 못 씀). 미설정 시 localhost 폴백.
+- **런타임 게이트 동작은 미검증**(두 서버 동시 기동 필요) — build/type/lint만 통과. 신뢰 전 런타임 확인 권장.
+- Step 2(admin.js 1654줄 기능 이전)는 별도. 그 전까진 admin.html이 운영용.
+
+**종료 체크**: ✅ type-check / lint / build (/admin 2.38kB, Middleware 26.6kB)
+
 ### 2026-06-04 (Day 14.1) — persona/new 아바타 업로드 연결
 
 Day 5에서 placeholder로 둔 `/persona/new` 프로필 이미지 업로드를 `AvatarUpload`(Day 13 신규 컴포넌트)로 연결.

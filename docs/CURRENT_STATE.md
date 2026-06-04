@@ -24,13 +24,14 @@
 - [x] 404 `not-found` / 에러 `error.tsx`
 
 ### 미이식 화면
-- [ ] **어드민 `/admin`** — 별도 `public/admin.html` + `admin.js`. 마이그레이션 범위/우선순위 재정의 필요 (유저 화면과 분리)
+- [~] **어드민 `/admin`** — Step 1(서버 게이트 `web/middleware.ts` + placeholder) 완료. Step 2(차트/모더레이션/캐릭터·큐레이션 관리, admin.js 1654줄) 미착수. 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
 
 ### 인프라 (web/)
 - SSE 스트리밍(`lib/streamReply.js`), zustand 스토어, SWR 훅
 - 공통 훅: `useRequireAuth`, `useAdultContent`, `useDragScroll`, `lib/search.ts`
-- 검증 하네스: type-check(항상)/lint(UI)/build(새 라우트)/jest(백엔드)
+- 검증 하네스: type-check(항상)/lint(UI)/build(새 라우트)/jest(백엔드). build 후 `.next` 그대로 둠(IDE 타입), dev는 `predev` 훅이 정리 (ML-003)
+- **서버 측 auth 첫 도입**: `web/middleware.ts` — `/admin*` 진입 시 세션 쿠키를 백엔드 `/api/auth/me`로 포워드해 role 검증. 서버 fetch origin은 `API_INTERNAL_URL`(없으면 dev `localhost:3000`) → **prod 배포 시 env 설정 필요**
 - 백로그(cutover 전): `docs/PRODUCTION_PLAN.md` 9.5 (파일 영속화·Builder limiter·아바타 서버검증·회귀테스트)
 
 ---

@@ -40,6 +40,7 @@ const HIDE_PATTERNS: RegExp[] = [
   /^\/reset-password$/,
   /^\/notification$/,
   /^\/persona(\/.*)?$/,           // /persona, /persona/new, /persona/select, /persona/select/[id], /persona/[id]
+  /^\/admin(\/.*)?$/,             // 어드민 콘솔 — 유저 BottomNav 숨김
 ];
 
 export function BottomNav() {
