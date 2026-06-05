@@ -81,3 +81,32 @@ export interface AdminCharDetail {
   system: string;
   sessionCount: number;
 }
+
+// ── Moderation ───────────────────────────────────────────
+export interface AdminModerationLog {
+  public_id: string;
+  created_at: number;
+  user_id: number | null;
+  user_nickname: string | null;
+  character_id: string | null;
+  model: string | null;
+  trigger_step: number | null;
+  user_input_masked: string | null;
+  ai_response_summary: string | null;
+  safety_status?: string | null;
+  session_id?: string | null;
+}
+export interface AdminModerationMessage {
+  role: 'user' | 'assistant' | string;
+  content: string;
+}
+export interface AdminModerationDetail {
+  log: AdminModerationLog;
+  session: unknown;
+  messages: AdminModerationMessage[];
+  user: { nickname: string } | null;
+}
+
+/** 방어 단계 라벨/색 (원본 admin.js labels/colors) */
+export const MOD_STEP_LABEL = ['', '1단계 IC거부', '2단계 OOC안내', '3단계 우회차단'];
+export const MOD_STEP_COLOR = ['', '#5b8fb9', '#f0b34a', '#e05c5c'];

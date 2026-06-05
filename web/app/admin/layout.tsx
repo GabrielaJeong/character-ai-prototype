@@ -70,7 +70,7 @@ const NAV: NavItem[] = [
   {
     label: '모더레이션',
     href: '/admin/moderation',
-    ready: false,
+    ready: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 1L1 4v4c0 4 3 7.4 7 8 4-.6 7-4 7-8V4L8 1z" />

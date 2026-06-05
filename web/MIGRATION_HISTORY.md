@@ -161,6 +161,16 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 19) — 어드민 Step 2-5: 모더레이션
+
+사용자 결정으로 curation(최대 난도)보다 먼저 진행.
+- `app/admin/moderation/page.tsx` — 필터(from/to/캐릭터/단계) + 위반 로그 목록 ↔ 상세(위반정보 kv + 마스킹 입력/응답 pre + 전체 대화 컨텍스트 버블).
+  · 필터는 '조회' 버튼으로만 적용(입력 상태 분리). 최초 1회 자동 조회.
+  · 캐릭터명 해석은 /api/admin/characters(SWR) 재사용. GET /moderation, /moderation/:publicId.
+- admin.module.css: filterBar/inputSm/selectSm/sysPreview/msgRoleLabel/msgBubble(user/assistant) 추가.
+- lib/admin.ts: AdminModerationLog/Detail + MOD_STEP_LABEL/COLOR.
+- 검증: type-check+lint (build 생략, ML-003).
+
 ### 2026-06-05 (Day 18) — 어드민 Step 2-4: 알림 관리
 
 - `app/admin/notifications/page.tsx` — 등록 폼(category notice/system · 대상유저ID · 제목 · 본문) + 목록(SYSTEM·NOTICE만, social 제외).
