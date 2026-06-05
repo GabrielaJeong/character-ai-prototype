@@ -1,0 +1,140 @@
+/*
+ * 어드민 셸 — 원본 public/css/admin.css L1~141 (sidebar / main-content / nav-item / page-header).
+ * 어드민 전용 팔레트 변수를 shell 루트에 스코프(앱 토큰과 충돌 없이 self-contained).
+ */
+.shell {
+  /* 원본 admin.css :root 와 동일 팔레트 */
+  --admin-bg: #0a0e17;
+  --admin-sidebar-bg: #08111e;
+  --admin-surface: #131927;
+  --admin-surface2: #1a2233;
+  --admin-border: #1e2a3a;
+  --admin-accent: #5b8fb9;
+  --admin-accent-dim: #3d6a8a;
+  --admin-text: #e2e8f0;
+  --admin-text-muted: #a8b5c8;
+  --admin-text-dim: #4a5568;
+  --admin-green-text: #5fd98e;
+  --admin-orange-text: #f0b34a;
+  --admin-red-text: #e05c5c;
+  --sidebar-w: 220px;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--admin-sidebar-bg);
+  border-right: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 20px 20px;
+  border-bottom: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+.logoText {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--admin-text);
+}
+.logoBadge {
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--admin-accent-dim);
+  color: var(--admin-accent);
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.nav {
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--admin-text-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+.navItem:hover { background: var(--admin-surface); color: var(--admin-text); }
+.navItemActive { background: var(--admin-surface); color: var(--admin-text); }
+.navItem svg { flex-shrink: 0; opacity: 0.7; }
+.navItemDisabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.navItemDisabled:hover { background: none; color: var(--admin-text-muted); }
+.soon {
+  margin-left: auto;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--admin-text-dim);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 1px 6px;
+}
+.footer {
+  padding: 10px;
+  border-top: 1px solid var(--admin-border);
+}
+.footerLink {
+  font-size: 12px;
+  color: var(--admin-text-dim);
+}
+
+/* ─── Main ─── */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 36px 60px;
+  overflow: auto;
+  height: 100%;
+}
+
+/* ─── Page header (페이지 공통) — 원본 .page-header ─── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+.pageTitle {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--admin-text);
+}
+.pageSub {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  margin-left: auto;
+}
