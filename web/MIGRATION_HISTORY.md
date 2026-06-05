@@ -177,9 +177,9 @@ Step 1(게이트) 위에 기능 페이지 점진 이전 시작. 순서: 셸 → 
 - confirm은 `window.confirm` 대신 uiStore `showDeleteConfirm`(generic) 재사용. SWR mutate로 액션 후 갱신.
 - `lib/admin.ts` 신규: MODEL_LABELS / fmtAdminDate / 응답 타입(AdminUserRow/Detail 등).
 
-**주의**: 어드민 데이터 페이지의 **런타임 시각 검증은 어드민 세션 필요**(비번 시크릿) → build/type/lint만. 사용자 브라우저 확인 권장.
+**런타임 확인**: 2026-06-05 사용자 브라우저에서 /admin/users 정상 렌더 확인(어드민 로그인). 셸·유저관리 동작 OK.
 
-**종료 체크**: ✅ type-check / lint / build (/admin 2.97kB, /admin/users 4.72kB)
+**종료 체크**: ✅ type-check / lint / build (/admin 2.97kB, /admin/users 4.72kB) + 런타임 확인
 
 ### 2026-06-04 (Day 15) — 어드민 Step 1: 서버 측 게이트 (middleware)
 
@@ -202,7 +202,7 @@ adminPageGuard로 서버 차단 중이라 오히려 강함 → 이전 시 동등
 - ⓐ 쿠키 없음 → 307 `/` ✅  ⓑ 가짜 쿠키 → 307 `/` ✅  ⓒ 로그인·비어드민(role=user) → 307 `/` ✅
 - 백엔드 불통 → fail-closed 307 `/` ✅  ·  `/` 등 비대상 라우트 200(matcher 정확) ✅
 - ⓒ는 임시 계정 register→login→테스트→DELETE /me로 정리(chat.db 무변경).
-- ⓓ 어드민 통과(200)는 미실증 — 어드민 비번(시크릿)·DB 권한주입(rule#8) 불가. 로직상 `role==='admin'`만 next(), 나머지 전부 redirect 확인됨. **브라우저에서 어드민 로그인 후 :3001/admin 1회 확인 권장.**
+- ⓓ 어드민 통과(200): **2026-06-05 사용자 브라우저 확인 완료** — 어드민 로그인 후 :3001/admin 및 /admin/users 정상 렌더. 게이트 전 경로 실증 종료.
 
 **미해결/주의**:
 - **prod에서 `API_INTERNAL_URL` 설정 필요**(서버 fetch는 dev rewrites 못 씀). 미설정 시 localhost 폴백.
