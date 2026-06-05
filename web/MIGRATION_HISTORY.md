@@ -161,6 +161,23 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 22) — 어드민 Step 2-8: 큐레이션 (드래그/업로드/히스토리) — 어드민 완성 🎉
+
+어드민 최대·최후 페이지. 사용자 요청대로 **풀 드래그앤드롭**.
+- `app/admin/curation/page.{tsx,module.css}` — 메인홈(creators/genres=개발예정 안내, upcoming) / 탐색(broadcast/tags/collections) 2탭.
+  · **드래그 정렬**: 핸들 전용 draggable(`useReorder`) — 행 전체 draggable이면 input 편집 불편 → UX 개선(원본 대비 의도적 divergence). drop 하이라이트.
+  · **이미지 업로드**: FileReader→base64→POST /upload, 항목 img 갱신(broadcast/collection).
+  · **라이브 미리보기**: 선택(active) 항목을 실제 배너/컬렉션 카드로 렌더. broadcast 제목 `\n` 줄바꿈.
+  · **스냅샷 히스토리**: broadcast/collection 별 GET/POST/DELETE, 복원(로컬 반영 후 저장 안내).
+  · **저장**: 섹션별(broadcast/collection은 히스토리 POST 후) + 전체저장. PUT /curation.
+  · 불변 업데이트(patchArray/deleteAt/addItem/reorderKey), 공용 HistoryTable/UploadRow/SectionHeader.
+- curation.module.css: 원본 admin.css L850~1373 전량 이식(변수 --admin-*).
+- lib/admin.ts: AdminCuration/Curation*/BcSnapshot/ColSnapshot.
+- 검증: type-check+lint clean.
+
+**🎉 어드민 7 페이지 + 셸 + 서버게이트 전부 완료 → 어드민 마이그레이션 종료.**
+**전체 마이그레이션: 유저 화면 + 어드민 모두 이식 완료. 남은 것 = cutover + R5 인프라 백로그.**
+
 ### 2026-06-05 (Day 21) — 어드민 Step 2-7: 캐릭터 평가 (eval)
 
 어드민 최대 분량 페이지(curation 제외). 2단 레이아웃.

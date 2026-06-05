@@ -170,3 +170,21 @@ export function scoreClassKey(s: number): 'green' | 'orange' | 'red' {
 
 /** eval 실행 모델 옵션 (원본 select) */
 export const EVAL_MODELS = Object.keys(MODEL_LABELS);
+
+// ── Curation (data/curation.json) ────────────────────────
+export interface CurationBroadcast { title?: string; subtitle?: string; img?: string }
+export interface CurationCollection { num?: string; title?: string; meta?: string; img?: string }
+export interface CurationUpcoming { name?: string; role?: string; img?: string }
+export interface CurationCreator { handle?: string; count?: string; img?: string }
+export interface CurationGenre { label?: string; title?: string; count?: string; img?: string }
+export interface AdminCuration {
+  creators?: CurationCreator[];
+  genres?: CurationGenre[];
+  upcoming?: CurationUpcoming[];
+  broadcast?: CurationBroadcast[];
+  tags?: string[];
+  collections?: CurationCollection[];
+  [key: string]: unknown; // 그 외 필드 보존
+}
+export interface BcSnapshot { banners: CurationBroadcast[]; savedAt: string }
+export interface ColSnapshot { collections: CurationCollection[]; savedAt: string }
