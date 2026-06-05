@@ -24,7 +24,7 @@
 - [x] 404 `not-found` / 에러 `error.tsx`
 
 ### 미이식 화면
-- [~] **어드민 `/admin`** — Step 1(서버 게이트 middleware) + Step 2 진행 중. 완료: 셸, 유저, 캐릭터, 알림, 모더레이션, **대시보드(`/admin`, chart.js)**. 남음: curation(가장 큼: 드래그/업로드/히스토리)/eval(AI 실행). web 신규 의존성: chart.js + react-chartjs-2. 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
+- [~] **어드민 `/admin`** — Step 1(서버 게이트 middleware) + Step 2 진행 중. 완료: 셸, 대시보드(chart.js), 유저, 캐릭터, 알림, 모더레이션, **eval(`/admin/eval`)**. 남음: **curation 1개**(가장 큼: 드래그/업로드/히스토리, 사용자 보류 중). web 신규 의존성: chart.js + react-chartjs-2. 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
 
 ### 인프라 (web/)

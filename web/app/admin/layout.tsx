@@ -39,7 +39,7 @@ const NAV: NavItem[] = [
   {
     label: '캐릭터 평가',
     href: '/admin/eval',
-    ready: false,
+    ready: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M2 3h12v1.5H2zm0 4h9v1.5H2zm0 4h6v1.5H2z" />

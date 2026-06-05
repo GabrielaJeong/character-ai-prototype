@@ -131,3 +131,42 @@ export interface AdminGraphData {
   moderation: number[];
 }
 export type GraphPeriod = 'day' | 'week' | 'month';
+
+// ── Eval (캐릭터 평가) ───────────────────────────────────
+export interface AdminEvalMatrixRow {
+  character_id: string;
+  model: string;
+  score: number;
+  evaluated_at: number;
+}
+export type AdminEvalDetail = Record<string, number | string>;
+export interface AdminEvalHistoryRow {
+  character_id: string;
+  model: string;
+  score: number;
+  evaluated_at: number;
+  detail: AdminEvalDetail;
+}
+export interface AdminEvalData {
+  matrix: AdminEvalMatrixRow[];
+  history: AdminEvalHistoryRow[];
+}
+export interface AdminEvalRunResult {
+  score: number;
+  detail: AdminEvalDetail;
+  aiResponse: string;
+}
+
+/** 평가 항목 + 가중치 (원본 admin.js) */
+export const EVAL_ITEMS = ['시점', '한국어', '문체', '호칭', '감정', '클리셰', '유려함', '묘사', '존댓말'];
+export const EVAL_WEIGHTS: Record<string, number> = {
+  시점: 15, 한국어: 15, 문체: 15, 호칭: 10, 감정: 10, 클리셰: 10, 유려함: 10, 묘사: 5, 존댓말: 5,
+};
+
+/** 점수 → 색 클래스 키 (원본 scoreClass). 90+ green, 60+ orange, else red */
+export function scoreClassKey(s: number): 'green' | 'orange' | 'red' {
+  return s >= 90 ? 'green' : s >= 60 ? 'orange' : 'red';
+}
+
+/** eval 실행 모델 옵션 (원본 select) */
+export const EVAL_MODELS = Object.keys(MODEL_LABELS);

@@ -161,6 +161,18 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 21) — 어드민 Step 2-7: 캐릭터 평가 (eval)
+
+어드민 최대 분량 페이지(curation 제외). 2단 레이아웃.
+- `app/admin/eval/page.tsx` — 좌(실행폼 + 점수 매트릭스 + 평가 이력) / 우(대화 미리보기).
+  · **RunCard**: 캐릭터·모델 select + 테스트입력 → POST /eval/run(Claude/Gemini 실제 호출, 비용). 결과 카드(점수 + 9항목 + 판정이유) + 우측 미리보기(유저/캐릭터 버블).
+  · **MatrixCard**: 캐릭터×모델 최신점수 grid. 행별 min/max 강조(matrixBest/Worst), 이름/점수 정렬, 페이지네이션(10).
+  · **HistoryCard**: 날짜/캐릭터/모델/점수 정렬 + 행 클릭 아코디언(9 chip + 판정이유). 페이지네이션(10).
+  · GET /eval, POST /eval/run. 캐릭터명은 admin/characters 재사용.
+- admin.module.css: eval* 전역(레이아웃/버블/결과/chip/매트릭스 강조/스피너) + score 색.
+- lib/admin.ts: AdminEval* 타입 + EVAL_ITEMS/WEIGHTS/MODELS + scoreClassKey.
+- 검증: type-check+lint (build 생략). **어드민 7개 nav 중 curation만 남음.**
+
 ### 2026-06-05 (Day 20) — 어드민 Step 2-6: 대시보드 (chart.js)
 
 - **신규 의존성**: `chart.js` + `react-chartjs-2` (사용자 승인, 원본 Chart.js CDN 대응).
