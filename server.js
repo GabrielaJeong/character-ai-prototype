@@ -149,6 +149,8 @@ const STATIC_EXT = /\.(css|js|png|jpg|jpeg|gif|ico|webp|woff2?|ttf|svg|map)$/i;
 app.use((req, res, next) => {
   if (STATIC_EXT.test(req.path)) return next();
   if (req.path.startsWith('/api/')) return next();
+  // 어드민은 앱 화면이 아니므로 PV 집계 제외 (대시보드 PV/UV/DAU는 유저 트래픽만)
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) return next();
   try {
     const userId       = req.session?.userId || null;
     const sessionToken = req.sessionID || null;
