@@ -161,6 +161,14 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 18) — 어드민 Step 2-4: 알림 관리
+
+- `app/admin/notifications/page.tsx` — 등록 폼(category notice/system · 대상유저ID · 제목 · 본문) + 목록(SYSTEM·NOTICE만, social 제외).
+  · POST/DELETE /api/admin/notifications, SWR mutate 갱신. 삭제는 showDeleteConfirm.
+  · 카테고리 뱃지는 hex+알파(`color+'26'`) 인라인(원본 color-mix 대응).
+- admin.module.css: cardTitle/cardPad/formRow/formLabel/catBadge 추가.
+- 검증: type-check+lint(어드민 client 페이지라 build 생략, ML-003).
+
 ### 2026-06-05 (Day 17) — 어드민 Step 2-3: 캐릭터 관리
 
 원본 admin.js 캐릭터 기능 이식. 셸/공유 UI 위에 두 번째 데이터 페이지.

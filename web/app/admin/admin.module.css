@@ -327,3 +327,35 @@
   min-height: 260px;
 }
 .tagDim { font-size: 11px; color: var(--admin-text-dim); margin-right: 4px; }
+
+/* 카드 제목 + 폼 행 */
+.cardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+}
+.cardPad { padding: 20px 24px; }
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+  margin-bottom: 14px;
+}
+.formLabel {
+  font-size: 11px;
+  color: var(--admin-text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+  display: block;
+}
+.catBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}

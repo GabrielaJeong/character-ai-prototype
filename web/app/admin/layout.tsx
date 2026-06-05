@@ -80,7 +80,7 @@ const NAV: NavItem[] = [
   {
     label: '알림 관리',
     href: '/admin/notifications',
-    ready: false,
+    ready: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 1a5 5 0 0 1 5 5v3l1.5 2H1.5L3 9V6a5 5 0 0 1 5-5zm-1.5 11h3a1.5 1.5 0 0 1-3 0z" />
