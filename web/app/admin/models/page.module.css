@@ -3,8 +3,66 @@
   color: var(--admin-text-muted);
   line-height: 1.7;
   margin: 0 0 18px;
-  max-width: 760px;
+  max-width: 820px;
 }
+
+/* 2단: 좌 모델 목록 + 우 에디터 */
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.list {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  padding: 10px;
+}
+.groupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--admin-text-dim);
+  text-transform: uppercase;
+  padding: 10px 8px 4px;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  font-family: var(--font);
+  transition: background 0.12s, color 0.12s;
+}
+.item:hover { background: var(--admin-surface2); color: var(--admin-text); }
+.itemActive { background: var(--admin-surface2); color: var(--admin-text); }
+.itemDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+  background: var(--admin-border);
+}
+.dotDirty { background: var(--admin-orange-text); }
+.dotFile { background: var(--admin-green-text); }
+
+.editor { min-width: 0; }
 .cardHead {
   display: flex;
   align-items: center;
@@ -12,16 +70,8 @@
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-.modelLabel {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--admin-text);
-}
-.modelId {
-  font-size: 11px;
-  color: var(--admin-text-dim);
-  font-family: monospace;
-}
+.modelLabel { font-size: 16px; font-weight: 700; color: var(--admin-text); }
+.modelId { font-size: 11px; color: var(--admin-text-dim); font-family: monospace; }
 .fileTag {
   font-size: 10px;
   font-weight: 600;
@@ -31,13 +81,11 @@
   color: var(--admin-text-dim);
   border: 1px solid var(--admin-border);
 }
-.fileTagOn {
-  color: var(--admin-green-text);
-  border-color: rgba(45, 140, 78, 0.4);
-}
-.dirty {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--admin-orange-text);
-  margin-left: auto;
+.fileTagOn { color: var(--admin-green-text); border-color: rgba(45, 140, 78, 0.4); }
+.dirty { font-size: 11px; font-weight: 600; color: var(--admin-orange-text); margin-left: auto; }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .list { position: static; flex-direction: row; flex-wrap: wrap; }
+  .groupLabel { display: none; }
 }
