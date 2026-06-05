@@ -191,3 +191,12 @@ export interface AdminCuration {
 }
 export interface BcSnapshot { banners: CurationBroadcast[]; savedAt: string }
 export interface ColSnapshot { collections: CurationCollection[]; savedAt: string }
+
+// ── Model-layer prompts (Layer 3) ────────────────────────
+export interface AdminModelPrompt {
+  id: string;
+  label: string;
+  provider: 'claude' | 'gemini' | string;
+  hasFile: boolean;
+  content: string;
+}

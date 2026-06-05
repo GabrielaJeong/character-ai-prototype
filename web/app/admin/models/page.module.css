@@ -1,0 +1,43 @@
+.intro {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  line-height: 1.7;
+  margin: 0 0 18px;
+  max-width: 760px;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.modelLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+.modelId {
+  font-size: 11px;
+  color: var(--admin-text-dim);
+  font-family: monospace;
+}
+.fileTag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--admin-surface2);
+  color: var(--admin-text-dim);
+  border: 1px solid var(--admin-border);
+}
+.fileTagOn {
+  color: var(--admin-green-text);
+  border-color: rgba(45, 140, 78, 0.4);
+}
+.dirty {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--admin-orange-text);
+  margin-left: auto;
+}

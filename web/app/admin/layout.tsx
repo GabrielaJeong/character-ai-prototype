@@ -68,6 +68,17 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    label: '모델 관리',
+    href: '/admin/models',
+    ready: true,
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1l6 3.5v7L8 15l-6-3.5v-7L8 1zm0 2.3L4 5.6v4.8L8 12.7l4-2.3V5.6L8 3.3z" />
+        <circle cx="8" cy="8" r="2" />
+      </svg>
+    ),
+  },
+  {
     label: '모더레이션',
     href: '/admin/moderation',
     ready: true,

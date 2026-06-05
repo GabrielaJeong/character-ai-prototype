@@ -5,6 +5,7 @@ const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
 const { db, stmt, adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter } = require('../db');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
+const { CHAT_MODELS, CHAT_MODEL_IDS } = require('../lib/chatModels');
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const CHARS_DIR     = path.join(__dirname, '..', 'prompts', 'characters');
@@ -534,6 +535,38 @@ router.put('/curation', (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '큐레이션 파일 저장 실패' });
+  }
+});
+
+// ── Model-layer prompts (Layer 3: prompts/models/{id}.md) ──
+const MODELS_DIR = path.join(__dirname, '..', 'prompts', 'models');
+
+// GET /api/admin/models — 챗봇 모델 목록 + 각 모델 보정 프롬프트(.md) 내용
+router.get('/models', (req, res) => {
+  const items = CHAT_MODELS.map(m => {
+    const file = path.join(MODELS_DIR, `${m.id}.md`);
+    let content = '';
+    let hasFile = false;
+    try {
+      if (fs.existsSync(file)) { content = fs.readFileSync(file, 'utf-8'); hasFile = true; }
+    } catch (_) {}
+    return { ...m, hasFile, content };
+  });
+  res.json(items);
+});
+
+// PUT /api/admin/models/:id — 보정 프롬프트 저장. id는 화이트리스트 검증(경로 조작 차단)
+router.put('/models/:id', (req, res) => {
+  const id = req.params.id;
+  if (!CHAT_MODEL_IDS.has(id)) return res.status(400).json({ error: '알 수 없는 모델입니다' });
+  const { content } = req.body;
+  if (typeof content !== 'string') return res.status(400).json({ error: 'content(string) 필수' });
+  try {
+    if (!fs.existsSync(MODELS_DIR)) fs.mkdirSync(MODELS_DIR, { recursive: true });
+    fs.writeFileSync(path.join(MODELS_DIR, `${id}.md`), content, 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '저장 실패: ' + e.message });
   }
 });
 
