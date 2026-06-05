@@ -23,6 +23,7 @@ export const MODELS: ChatModel[] = [
   { id: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash', desc: '빠르고 효율적 · Google', provider: 'gemini' },
   { id: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro',   desc: '최고 성능 · Google',     provider: 'gemini' },
   { id: 'gemini-3.1-pro-preview',    label: 'Gemini 3.1 Pro',   desc: '최신 모델 · Google · 기본값', provider: 'gemini' },
+  { id: 'gemini-3.5-flash',          label: 'Gemini 3.5 Flash', desc: '빠른 최신 · Google',     provider: 'gemini' },
 ];
 
 export const CHAT_DEFAULT_MODEL    = 'gemini-3.1-pro-preview';

@@ -16,6 +16,7 @@ const ALLOWED_MODELS = new Set([
   'gemini-2.5-flash',
   'gemini-2.5-pro',
   'gemini-3.1-pro-preview',
+  'gemini-3.5-flash',
 ]);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
