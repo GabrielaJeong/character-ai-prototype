@@ -161,6 +161,26 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 16) — 어드민 Step 2: 셸 + 유저 관리
+
+Step 1(게이트) 위에 기능 페이지 점진 이전 시작. 순서: 셸 → users → characters → notifications → curation → moderation → dashboard → eval (간단→복잡, 사용자 확정).
+
+**2-1 셸**:
+- `app/admin/layout.tsx` — 사이드바(7 nav) + main. `usePathname` active. 앱 #app(max-width 430px) 프레임을 벗어나도록 shell `position:fixed` 풀뷰포트. 미이전 nav는 dimmed('준비 중').
+- `app/admin/admin.module.css` — 어드민 전용 팔레트를 `.shell`에 스코프(앱 토큰과 분리) + **공유 UI**(dataTable/badge/btn/pagination/sortable/detail) 이식. 각 페이지가 `import shell` 로 재사용.
+- `app/admin/page.tsx` — 대시보드 placeholder를 셸 내부 렌더로.
+
+**2-2 유저 관리** (`/admin/users`):
+- 원본 admin.js loadUsers/renderUsers/openUserDetail/toggleRole/deleteUser 이식.
+- 목록: 정렬(닉네임/가입일/세션/role)·페이지네이션(20)·뱃지(성인인증/role)·액션(상세/role토글/삭제).
+- 상세(패널 스왑): 기본정보 kv + 세션 테이블 + 페르소나 테이블 + role토글/강제탈퇴.
+- confirm은 `window.confirm` 대신 uiStore `showDeleteConfirm`(generic) 재사용. SWR mutate로 액션 후 갱신.
+- `lib/admin.ts` 신규: MODEL_LABELS / fmtAdminDate / 응답 타입(AdminUserRow/Detail 등).
+
+**주의**: 어드민 데이터 페이지의 **런타임 시각 검증은 어드민 세션 필요**(비번 시크릿) → build/type/lint만. 사용자 브라우저 확인 권장.
+
+**종료 체크**: ✅ type-check / lint / build (/admin 2.97kB, /admin/users 4.72kB)
+
 ### 2026-06-04 (Day 15) — 어드민 Step 1: 서버 측 게이트 (middleware)
 
 어드민을 Next로 이전하기로 결정(민감 페이지를 옛 admin.html로 방치 안 함). 단, 유저 화면이 쓰는

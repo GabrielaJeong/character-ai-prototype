@@ -24,7 +24,7 @@
 - [x] 404 `not-found` / 에러 `error.tsx`
 
 ### 미이식 화면
-- [~] **어드민 `/admin`** — Step 1(서버 게이트 `web/middleware.ts` + placeholder) 완료. Step 2(차트/모더레이션/캐릭터·큐레이션 관리, admin.js 1654줄) 미착수. 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
+- [~] **어드민 `/admin`** — Step 1(서버 게이트 middleware) + Step 2 진행 중. 완료: 셸(사이드바/라우팅), 유저 관리(`/admin/users`). 남음: characters/notifications/curation/moderation/dashboard/eval. 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
 
 ### 인프라 (web/)

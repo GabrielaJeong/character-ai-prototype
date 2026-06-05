@@ -49,7 +49,7 @@ const NAV: NavItem[] = [
   {
     label: '유저 관리',
     href: '/admin/users',
-    ready: false,
+    ready: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <circle cx="8" cy="5" r="3" />
