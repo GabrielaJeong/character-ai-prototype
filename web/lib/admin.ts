@@ -57,3 +57,27 @@ export interface AdminUserDetail {
   sessions: AdminUserSession[];
   personas: AdminUserPersona[];
 }
+
+// ── Characters ───────────────────────────────────────────
+export interface AdminCharConfig {
+  id: string;
+  name?: string;
+  fullName?: string;
+  subtitle?: string;
+  rating?: string;
+  safetyToggle?: boolean;
+  defaultSafety?: string;
+  status?: string;
+  badge_override?: string | null;
+  tags?: string[];
+  [key: string]: unknown; // config.json은 임의 필드 허용 (JSON 직접 편집)
+}
+export interface AdminCharRow extends AdminCharConfig {
+  _isPrebuilt?: boolean;
+  sessionCount?: number;
+}
+export interface AdminCharDetail {
+  config: AdminCharConfig;
+  system: string;
+  sessionCount: number;
+}

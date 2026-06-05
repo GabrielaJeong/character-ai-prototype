@@ -60,7 +60,7 @@ const NAV: NavItem[] = [
   {
     label: '캐릭터 관리',
     href: '/admin/characters',
-    ready: false,
+    ready: true,
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M8 1a4 4 0 0 1 4 4c0 2.2-1.8 4-4 4S4 7.2 4 5a4 4 0 0 1 4-4zm0 9c3.5 0 7 1.5 7 4H1c0-2.5 3.5-4 7-4z" />

@@ -161,6 +161,22 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 17) — 어드민 Step 2-3: 캐릭터 관리
+
+원본 admin.js 캐릭터 기능 이식. 셸/공유 UI 위에 두 번째 데이터 페이지.
+
+- `app/admin/characters/page.tsx` — 목록(정렬 name/type/rating/status/sessions·페이지네이션20·뱃지·태그·액션) ↔ 상세(패널 스왑).
+  · 상세 3섹션: **기본 필드 편집**(name/fullName/subtitle/rating·safetyToggle·defaultSafety·status·badge_override select + 세션/ID 읽기전용) / **config.json 직접 편집**(JSON 유효성 검사 후 PATCH) / **system.md 편집**.
+  · 필드 저장은 원본대로 최신 config 재조회 후 필드만 덮어쓰기. config.json 저장 후 재조회 re-seed.
+  · 상태토글=즉시 PATCH(무확인, 원본 동일), 삭제=showDeleteConfirm.
+  · GET /characters, GET/PATCH /characters/:id ({config|system}), PATCH /:id/status, DELETE 연결.
+- admin.module.css: editGrid/editField/editInput/select/textarea/textareaCode/tagDim 추가.
+- lib/admin.ts: AdminCharConfig(임의 필드 허용)/AdminCharRow/AdminCharDetail.
+
+**검증 노트(ML-003 보강)**: 어드민 페이지는 전부 `'use client'`(SSG/Server Component 아님) → **build는 live dev(:3001)와 `.next` 충돌 위험**이라 type-check+lint로 충분하고 dev가 네비게이션 시 컴파일. 이번엔 build까지 돌렸으나 이후 어드민 client 페이지는 build 생략 권장.
+
+**종료 체크**: ✅ type-check / lint / build (/admin/characters 5.12kB)
+
 ### 2026-06-05 (Day 16) — 어드민 Step 2: 셸 + 유저 관리
 
 Step 1(게이트) 위에 기능 페이지 점진 이전 시작. 순서: 셸 → users → characters → notifications → curation → moderation → dashboard → eval (간단→복잡, 사용자 확정).

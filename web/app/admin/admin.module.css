@@ -269,3 +269,61 @@
 .kvLabel { font-size: 11px; color: var(--admin-text-dim); margin-bottom: 3px; }
 .kvValue { font-size: 14px; color: var(--admin-text); font-weight: 500; }
 .actionRow { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+/* ─── 캐릭터 상세 편집 (원본 admin.css edit-* / select / textarea) ─── */
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 20px;
+  margin-bottom: 16px;
+}
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.editField > span {
+  font-size: 11px;
+  color: var(--admin-text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.editInput,
+.select {
+  background: var(--admin-surface2);
+  border: 1px solid var(--admin-border);
+  border-radius: 7px;
+  color: var(--admin-text);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 7px 12px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.editInput:focus,
+.select:focus { border-color: var(--admin-accent); }
+.editInput:disabled { opacity: 0.4; }
+
+.textarea {
+  width: 100%;
+  background: var(--admin-surface2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  color: var(--admin-text);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 10px 14px;
+  resize: vertical;
+  min-height: 80px;
+  outline: none;
+  margin-top: 12px;
+}
+.textarea:focus { border-color: var(--admin-accent); }
+.textareaCode {
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.5;
+  min-height: 260px;
+}
+.tagDim { font-size: 11px; color: var(--admin-text-dim); margin-right: 4px; }
