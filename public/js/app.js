@@ -1086,6 +1086,13 @@ function _routeResetPassword() {
   document.getElementById('reset-pw-done-view').style.display = 'none';
   document.getElementById('reset-pw-global-err').textContent  = '';
   document.getElementById('reset-pw-form').reset();
+  // 입력 type/표시 토글/일치 힌트 초기화 (이전 진입 상태 잔존 방지)
+  ['reset-pw-input','reset-pw-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.type = 'password';
+  });
+  document.querySelectorAll('#reset-pw-form .pw-eye').forEach(b => { b.innerHTML = _EYE_SHOW; });
+  updateResetMatch();
   showScreen('screen-reset-password');
 }
 
@@ -3620,6 +3627,35 @@ async function submitForgotPassword(e) {
     }
   } catch {
     errEl.textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+  }
+}
+
+// 비밀번호 표시/숨김 토글 (자동완성 끼어듦 식별용)
+const _EYE_SHOW = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const _EYE_OFF  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+function toggleResetPw(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? _EYE_OFF : _EYE_SHOW;
+  btn.setAttribute('aria-label', show ? '비밀번호 숨기기' : '비밀번호 표시');
+}
+
+// 실시간 일치 표시
+function updateResetMatch() {
+  const el = document.getElementById('reset-pw-match');
+  if (!el) return;
+  const pw  = document.getElementById('reset-pw-input').value;
+  const pwc = document.getElementById('reset-pw-confirm').value;
+  if (!pwc) { el.textContent = ''; el.className = 'pw-match-hint'; return; }
+  if (pw === pwc) {
+    el.textContent = '✓ 비밀번호가 일치합니다';
+    el.className = 'pw-match-hint pw-match-ok';
+  } else {
+    el.textContent = '✗ 비밀번호가 일치하지 않습니다';
+    el.className = 'pw-match-hint pw-match-no';
   }
 }
 
