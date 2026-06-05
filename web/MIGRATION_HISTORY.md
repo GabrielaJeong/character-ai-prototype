@@ -161,6 +161,16 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (Day 20) — 어드민 Step 2-6: 대시보드 (chart.js)
+
+- **신규 의존성**: `chart.js` + `react-chartjs-2` (사용자 승인, 원본 Chart.js CDN 대응).
+- `app/admin/page.tsx` — placeholder를 실제 대시보드로. stat 카드 8개(가입/세션/캐릭터/위반7일 + PV/UV/DAU/MAU) + 차트 2개.
+- `app/admin/dashboard.tsx` — `ActivityChart`(막대 가입/세션 + 선 PV/UV, 체크박스 토글, 기간탭) / `SafetyChart`(선). 기간(day/week/month)별 SWR. `ChartJS.register`로 컨트롤러/엘리먼트 등록. `'use client'`라 SSR 안전.
+- admin.module.css: statGrid/statCard/chartCard/chartCardHeader/periodTabs/chartWrap 등 + 900px 반응형.
+- placeholder용 page.module.css 제거.
+- GET /stats, /stats/graph 연결.
+- 검증: type-check+lint. **새 의존성이라 dev 재시작 필요**(설치를 dev 기동 후 함).
+
 ### 2026-06-05 (Day 19) — 어드민 Step 2-5: 모더레이션
 
 사용자 결정으로 curation(최대 난도)보다 먼저 진행.

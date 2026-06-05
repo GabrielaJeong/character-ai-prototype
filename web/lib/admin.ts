@@ -110,3 +110,24 @@ export interface AdminModerationDetail {
 /** 방어 단계 라벨/색 (원본 admin.js labels/colors) */
 export const MOD_STEP_LABEL = ['', '1단계 IC거부', '2단계 OOC안내', '3단계 우회차단'];
 export const MOD_STEP_COLOR = ['', '#5b8fb9', '#f0b34a', '#e05c5c'];
+
+// ── Dashboard ────────────────────────────────────────────
+export interface AdminStats {
+  totalUsers: number;
+  todaySessions: number;
+  totalChars: number;
+  modLogs7d: number;
+  todayPV: number;
+  todayUV: number;
+  dau: number;
+  mau: number;
+}
+export interface AdminGraphData {
+  labels: string[];
+  users: number[];
+  sessions: number[];
+  pv: number[];
+  uv: number[];
+  moderation: number[];
+}
+export type GraphPeriod = 'day' | 'week' | 'month';
