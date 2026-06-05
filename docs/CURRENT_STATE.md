@@ -24,7 +24,8 @@
 - [x] 404 `not-found` / 에러 `error.tsx`
 
 ### 미이식 화면
-- [x] **어드민 `/admin`** — **완료**. 서버 게이트(middleware) + 7 페이지(대시보드/유저/캐릭터/모더레이션/알림/eval/큐레이션). 큐레이션은 드래그(핸들전용)/이미지업로드/스냅샷 히스토리/미리보기 전부. web 신규 의존성: chart.js + react-chartjs-2.
+- [x] **어드민 `/admin`** — **완료**. 서버 게이트(middleware) + 8 페이지(대시보드/유저/캐릭터/**모델 관리**/모더레이션/알림/eval/큐레이션). 큐레이션은 드래그/이미지업로드/스냅샷 히스토리/미리보기 전부. 모델 관리는 Layer 3 프롬프트 좌목록+우에디터. web 신규 의존성: chart.js + react-chartjs-2.
+  - PV 집계에서 `/admin` 제외(server.js) — 어드민 조회가 앱 PV 부풀리던 버그 수정. 과거 admin PV 58행 정리 완료.
   - **남은 것 = cutover + R5 인프라 백로그뿐.** 어드민 데이터 페이지 런타임 시각검증은 사용자 브라우저 확인 권장(어드민 세션 필요). 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
 
@@ -41,7 +42,7 @@
 
 ### 유저 기능
 - [x] 4명 프리빌트 캐릭터 대화 (이화, 영일, 지세현, 박재헌)
-- [x] 멀티 모델 (Claude 3종 + Gemini 3종, 기본 Gemini 3.1 Pro)
+- [x] 멀티 모델 (Claude 5종: Sonnet 4.6 / Opus 4.8·4.7·4.6 / Haiku 4.5 + Gemini 4종: 2.5 Flash·Pro / 3.1 Pro / 3.5 Flash, 기본 Gemini 3.1 Pro). 정규 목록: `lib/chatModels.js`. 모델별 Layer 3 보정 프롬프트는 어드민 `/admin/models`에서 편집(`prompts/models/{id}.md`)
 - [x] 소설/채팅 모드, 응답 재생성 + 페이지네이션
 - [x] 캐릭터 빌더 (AI 대화형 + 직접 제작)
 - [x] 유저 페르소나 시스템

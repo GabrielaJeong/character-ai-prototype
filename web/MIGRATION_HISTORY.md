@@ -161,6 +161,18 @@
 - **출처**: Day 3.x fix (2026-05-27)
 - **production-wide 정리**: `docs/LESSONS.md` L-018로 동일 내용 production lesson으로 이전 (마이그레이션 외 React/Next.js SSR 오버레이 작업 전반에 해당)
 
+### 2026-06-05 (어드민 완성 후 추가 작업) — 모델 추가 + 모델 관리 페이지 + PV 버그
+
+마이그레이션 완료 후 후속 기능/수정.
+- **챗봇 모델 추가**: Claude Opus 4.7/4.8, Gemini 3.5 Flash. provider 분기(GEMINI set)가
+  streamReply/builder/memory/admin 여러 곳이라 전부 동기화(누락 시 Anthropic SDK 오라우팅).
+  Gemini ID는 `models.list` API로 확인 후 라이브 호출 검증(`gemini-3.5-flash`). `lib/chatModels.js` 정규 목록 신설.
+- **어드민 모델 관리** `/admin/models` (8번째 nav): 모델별 Layer 3 보정 프롬프트(`prompts/models/{id}.md`)
+  편집. 좌 목록(provider 그룹·상태 점) + 우 단일 에디터. 자유 마크다운(문체/분위기/진전도/깊이).
+  buildSystemPrompt 주입 로직 불변 — 파일 편집만 추가. GET/PUT /api/admin/models(id 화이트리스트).
+- **PV 버그 수정**: PV 추적 미들웨어가 `/admin`을 집계 → 어드민 새로고침이 앱 PV/UV/DAU 부풀림.
+  `/admin*` 제외(server.js). 과거 admin PV 58행(/178) 정리.
+
 ### 2026-06-05 (Day 22) — 어드민 Step 2-8: 큐레이션 (드래그/업로드/히스토리) — 어드민 완성 🎉
 
 어드민 최대·최후 페이지. 사용자 요청대로 **풀 드래그앤드롭**.
