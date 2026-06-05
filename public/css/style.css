@@ -3269,6 +3269,24 @@ body {
 .pw-match-ok { color: var(--accent); }
 .pw-match-no { color: #e05c5c; }
 
+/* 로그인 기억하기 */
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+.login-remember input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .auth-switch {
   font-size: 13px;
   color: var(--text-muted);

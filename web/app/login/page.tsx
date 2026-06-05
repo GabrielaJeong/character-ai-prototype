@@ -119,6 +119,7 @@ function LoginView({
 }) {
   const [identifier, setIdentifier] = useState('');
   const [pw, setPw] = useState('');
+  const [remember, setRemember] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -134,6 +135,7 @@ function LoginView({
       const data = await api.post<{ user: User }>('/api/auth/login', {
         identifier: identifier.trim(),
         password: pw,
+        remember,
       });
       onSuccess(data.user);
     } catch (e) {
@@ -170,6 +172,14 @@ function LoginView({
             autoComplete="current-password"
           />
         </div>
+        <label className="login-remember">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span>로그인 기억하기</span>
+        </label>
         {err && <p className="field-error">{err}</p>}
         <button type="submit" className="btn-primary" disabled={submitting}>
           {submitting ? '...' : '로그인'}

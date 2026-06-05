@@ -3694,6 +3694,7 @@ async function submitLogin(e) {
   e.preventDefault();
   const identifier = document.getElementById('login-identifier').value.trim();
   const pw         = document.getElementById('login-pw').value;
+  const remember   = document.getElementById('login-remember')?.checked || false;
   document.getElementById('login-global-err').textContent = '';
 
   if (!identifier) {
@@ -3704,7 +3705,7 @@ async function submitLogin(e) {
   try {
     const res  = await fetch('/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password: pw }),
+      body: JSON.stringify({ identifier, password: pw, remember }),
     });
     const data = await res.json();
     if (!res.ok) { document.getElementById('login-global-err').textContent = data.error; return; }

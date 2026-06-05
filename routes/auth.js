@@ -40,7 +40,10 @@ const loginSchema = Joi.object({
                 .messages({ 'any.required': '이메일 또는 @아이디를 입력해주세요', 'string.empty': '이메일 또는 @아이디를 입력해주세요' }),
   password: Joi.string().min(1).required()
               .messages({ 'any.required': '비밀번호를 입력해주세요', 'string.empty': '비밀번호를 입력해주세요' }),
+  remember: Joi.boolean().default(false),  // 로그인 기억하기 — 체크 시 장기 세션
 });
+
+const REMEMBER_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30일
 
 // ── GET /api/auth/check-username ─────────────────────────
 router.get('/check-username', (req, res) => {
@@ -106,6 +109,12 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: '아이디/이메일 또는 비밀번호가 올바르지 않습니다' });
 
     req.session.userId = row.id;
+    // 로그인 기억하기: 체크 시 30일 유지, 미체크 시 브라우저 종료까지(세션 쿠키)
+    if (value.remember) {
+      req.session.cookie.maxAge = REMEMBER_MAX_AGE;
+    } else {
+      req.session.cookie.expires = false;
+    }
     const user = stmt.getUserById.get(row.id);
     res.json({ user });
   } catch (err) {
