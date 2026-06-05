@@ -13,7 +13,7 @@ const client = new Anthropic();
 
 const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const ALLOWED_MODELS    = new Set([
-  'claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001',
+  'claude-sonnet-4-6', 'claude-opus-4-8', 'claude-opus-4-7', 'claude-opus-4-6', 'claude-haiku-4-5-20251001',
   'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview',
 ]);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
