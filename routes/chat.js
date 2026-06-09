@@ -6,18 +6,8 @@ const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 const { generateMemory }  = require('../lib/memory');
 const { streamReply }     = require('../lib/streamReply');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
 
-const ALLOWED_MODELS = new Set([
-  'claude-sonnet-4-6',
-  'claude-opus-4-8',
-  'claude-opus-4-7',
-  'claude-opus-4-6',
-  'claude-haiku-4-5-20251001',
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-  'gemini-3.1-pro-preview',
-  'gemini-3.5-flash',
-]);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 

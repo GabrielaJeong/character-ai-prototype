@@ -5,7 +5,7 @@ const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
 const { db, stmt, adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter } = require('../db');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
-const { CHAT_MODELS, CHAT_MODEL_IDS } = require('../lib/chatModels');
+const { CHAT_MODELS, CHAT_MODEL_IDS, GEMINI_MODEL_IDS } = require('../lib/chatModels');
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const CHARS_DIR     = path.join(__dirname, '..', 'prompts', 'characters');
@@ -162,7 +162,7 @@ router.post('/eval/run', async (req, res) => {
 
   let aiResponse = '';
   try {
-    const GEMINI = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview', 'gemini-3.5-flash']);
+    const GEMINI = GEMINI_MODEL_IDS;
     // thinking 모델(gemini-3.1-pro-preview 등)은 토큰을 더 넉넉히 줘야 함
     const THINKING_MODELS = new Set(['gemini-3.1-pro-preview', 'gemini-3.5-flash']);
     if (GEMINI.has(model)) {
