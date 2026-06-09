@@ -17,8 +17,23 @@ const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const AGENT_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'builder', 'agent.md');
 
 // In-memory conversation store keyed by builderSessionId
-// Each entry: [{ role: 'user'|'assistant', content: string }]
+// Each entry: { history: [{ role, content }], ts: lastAccessMs }
+// 비인증 데모라 무한 증가 방지 위해 TTL + 최대치로 정리 (R5-3 메모리 누수 차단)
 const builderSessions = new Map();
+const SESSION_TTL  = 30 * 60 * 1000; // 30분 미사용 시 만료
+const MAX_SESSIONS = 500;            // 동시 보관 상한
+
+function pruneBuilderSessions() {
+  const now = Date.now();
+  for (const [sid, v] of builderSessions) {
+    if (now - v.ts > SESSION_TTL) builderSessions.delete(sid);
+  }
+  if (builderSessions.size > MAX_SESSIONS) {
+    // 오래된(마지막 접근 이른) 순으로 초과분 제거
+    const oldest = [...builderSessions.entries()].sort((a, b) => a[1].ts - b[1].ts);
+    for (let i = 0; i < oldest.length - MAX_SESSIONS; i++) builderSessions.delete(oldest[i][0]);
+  }
+}
 
 // POST /api/builder/chat
 // Body: { builderSessionId?, message, model? }
@@ -34,7 +49,8 @@ router.post('/chat', async (req, res) => {
   const sid   = req.body.builderSessionId ||
     ('b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5));
 
-  const history = builderSessions.get(sid) || [];
+  pruneBuilderSessions();
+  const history = builderSessions.get(sid)?.history || [];
   history.push({ role: 'user', content: message });
 
   try {
@@ -54,7 +70,7 @@ router.post('/chat', async (req, res) => {
     }
 
     history.push({ role: 'assistant', content: reply });
-    builderSessions.set(sid, history);
+    builderSessions.set(sid, { history, ts: Date.now() });
 
     const isReady = reply.includes('[CHARACTER_READY]');
 

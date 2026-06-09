@@ -66,10 +66,20 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 빌더는 비인증 데모 + 매 호출이 AI라 전역(200)보다 빡세게 (R5-3 비용 보호)
+const builderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: '빌더 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/auth/login',          authLimiter);
 app.use('/api/auth/register',       authLimiter);
 app.use('/api/auth/check-username', checkUsernameLimiter);
 app.use('/api/admin',               adminLimiter);
+app.use('/api/builder',             builderLimiter);
 app.use('/api/',                    apiLimiter);
 
 // ── SQLite session store ──────────────────────────────────

@@ -224,7 +224,7 @@ Phase A는 다음 조건 만족 시 종료 선언:
 |---|---|---|---|---|
 | R5-1 | Critical | 아바타·제작 캐릭터 파일이 ephemeral 디렉터리 저장 → Railway 재배포 시 유실 | `public/images`, `prompts/characters` | L-015/L-016 위반. `/data/uploads`·`/data/characters` Volume 또는 외부 스토리지로 분리 |
 | R5-2 | High | 탈퇴 시 파일 데이터(제작 캐릭터 dir, 캐릭터·아바타 이미지) 미정리 → orphan + 개인정보 잔존 | `routes/auth.js` DELETE `/me` | DB는 CASCADE로 정리됨. 파일 정리 로직 추가. admin 삭제도 동일. (프론트 탈퇴 문구는 실제 범위로 수정 완료) |
-| R5-3 | High (부분) | Builder 비용 엔드포인트 보호 부족 | `routes/builder.js`, `builderSessions` Map | 🟡 **입력길이 제한(4000자) 완료**. 전용 limiter + 동시요청 제한 + Map TTL/최대세션은 잔여. (비로그인 데모 흐름은 의도 유지) |
+| ~~R5-3~~ | ~~High~~ | ✅ **해결** — Builder 비용/메모리 보호 | `routes/builder.js`, `server.js` | 입력길이 4000자 제한 + `builderSessions` Map **TTL 30분·최대 500**(메모리 누수 차단) + 전용 `builderLimiter`(15분 30req). 비로그인 데모 흐름은 의도 유지 |
 | ~~R5-4~~ | ~~Medium~~ | ✅ **해결** — 아바타 서버측 크기 검증 | `routes/auth.js` PATCH `/me` | `lib/imageData.parseImageDataUrl`로 decoded 5MB 검증. (이전 확장자 파일 정리는 R5-2 파일정리와 함께) |
 | R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |
 | ~~R5-6~~ | ~~Low~~ | ✅ **해결** — 루트 lint flat config 전환 완료 | `eslint.config.js` | 원인: `eslintrc.json`(dot 누락)이라 미작동 + ESLint v10 flat config 요구. flat config 작성, public/·web/ ignore, jest globals 분리. error 0. 잔여 warning 9개(기존 백엔드 unused var)는 별도 정리 대상 |
@@ -233,8 +233,8 @@ Phase A는 다음 조건 만족 시 종료 선언:
 | ~~R5-9~~ | ~~Medium~~ | ✅ **해결** — PV 집계에 비화면 요청 혼입 | `server.js` PV 미들웨어 | Codex 2차 QA: `/.well-known/*`(devtools) 등이 앱 PV로 집계(120중 68건). GET만 + `/.well-known`·파일형 경로(마지막 세그먼트에 `.`) 제외. 과거 junk 68행 정리(120→52) |
 
 > **2026-06-03 Codex R8** 처리: Creator adult 필터 즉시 수정. 이미지 서버검증·알림 read는 R5-7/R5-8 등록.
-> **2026-06-05 처리(사용자 "백로그 미루지 말자")**: R5-4/R5-7(이미지 서버검증)·R5-8(알림 read)·R5-3 입력길이 cap **완료**. Codex 2차 QA의 PV 비화면 혼입은 R5-9로 **완료**.
-> **남은 컷오버 관문**: R5-1(파일 영속성 Critical), R5-2(탈퇴 파일정리 High), R5-3 잔여(Builder limiter/Map TTL), R5-5(회귀테스트). Builder **비인증 자체는 의도된 데모 정책**(결함 아님).
+> **2026-06-05 처리(사용자 "백로그 미루지 말자")**: R5-3(Builder limiter/Map TTL/입력길이)·R5-4/R5-7(이미지 서버검증)·R5-8(알림 read) **완료**. Codex 2차 QA의 PV 비화면 혼입은 R5-9로 **완료**.
+> **남은 컷오버 관문(2개 + 1)**: **R5-1**(파일 영속성 Critical, *코드 아닌 배포/스토리지 결정*), **R5-2**(탈퇴 파일정리 High — R5-1 스토리지 결정에 종속되어 R5-1과 함께 처리하기로), R5-5(회귀테스트 권장). Builder **비인증 자체는 의도된 데모 정책**(결함 아님).
 
 ---
 
