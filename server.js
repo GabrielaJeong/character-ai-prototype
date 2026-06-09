@@ -144,13 +144,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Page View tracking (HTML 페이지 요청만 로깅) ──────────
+// ── Page View tracking (실제 앱 화면 GET 요청만 로깅) ──────────
+// 대시보드 PV/UV/DAU가 유저 화면 트래픽만 반영하도록, 비화면 요청을 광범위하게 제외.
 const STATIC_EXT = /\.(css|js|png|jpg|jpeg|gif|ico|webp|woff2?|ttf|svg|map)$/i;
 app.use((req, res, next) => {
-  if (STATIC_EXT.test(req.path)) return next();
-  if (req.path.startsWith('/api/')) return next();
-  // 어드민은 앱 화면이 아니므로 PV 집계 제외 (대시보드 PV/UV/DAU는 유저 트래픽만)
-  if (req.path === '/admin' || req.path.startsWith('/admin/')) return next();
+  if (req.method !== 'GET') return next();                    // PV = GET 화면 요청만
+  if (STATIC_EXT.test(req.path)) return next();               // 정적 자원
+  if (req.path.startsWith('/api/')) return next();            // API
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) return next(); // 어드민(화면 아님)
+  if (req.path.startsWith('/.well-known/')) return next();    // 브라우저/툴 자동 요청(devtools 등)
+  // 파일형 경로(마지막 세그먼트에 '.' 포함: *.json·favicon 등)는 화면 아님 → 제외
+  if ((req.path.split('/').pop() || '').includes('.')) return next();
   try {
     const userId       = req.session?.userId || null;
     const sessionToken = req.sessionID || null;

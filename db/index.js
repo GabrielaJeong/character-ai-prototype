@@ -357,8 +357,11 @@ const stmt = {
     INSERT OR IGNORE INTO notification_reads (user_id, notification_id)
     SELECT ?, id FROM notifications WHERE user_id IS NULL OR user_id = ?
   `),
+  // 본인 알림(user_id=me) 또는 전체 공지(user_id IS NULL)만 read 처리 (R5-8)
   markOneRead: db.prepare(`
-    INSERT OR IGNORE INTO notification_reads (user_id, notification_id) VALUES (?, ?)
+    INSERT OR IGNORE INTO notification_reads (user_id, notification_id)
+    SELECT ?, n.id FROM notifications n
+    WHERE n.id = ? AND (n.user_id IS NULL OR n.user_id = ?)
   `),
   createNotification: db.prepare(`
     INSERT INTO notifications (user_id, category, title, body, related_id) VALUES (?, ?, ?, ?, ?)

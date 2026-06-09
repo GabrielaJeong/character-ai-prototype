@@ -26,6 +26,9 @@ const builderSessions = new Map();
 router.post('/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
+  if (typeof message !== 'string' || message.length > 4000) {
+    return res.status(400).json({ error: '메시지가 너무 깁니다 (4000자 이하).' });
+  }
 
   const model = ALLOWED_MODELS.has(req.body.model) ? req.body.model : DEFAULT_MODEL;
   const sid   = req.body.builderSessionId ||

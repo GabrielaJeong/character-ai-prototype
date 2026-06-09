@@ -224,14 +224,17 @@ Phase A는 다음 조건 만족 시 종료 선언:
 |---|---|---|---|---|
 | R5-1 | Critical | 아바타·제작 캐릭터 파일이 ephemeral 디렉터리 저장 → Railway 재배포 시 유실 | `public/images`, `prompts/characters` | L-015/L-016 위반. `/data/uploads`·`/data/characters` Volume 또는 외부 스토리지로 분리 |
 | R5-2 | High | 탈퇴 시 파일 데이터(제작 캐릭터 dir, 캐릭터·아바타 이미지) 미정리 → orphan + 개인정보 잔존 | `routes/auth.js` DELETE `/me` | DB는 CASCADE로 정리됨. 파일 정리 로직 추가. admin 삭제도 동일. (프론트 탈퇴 문구는 실제 범위로 수정 완료) |
-| R5-3 | High | Builder 비용 엔드포인트 보호 부족 | `routes/builder.js`, `builderSessions` Map | 전체 apiLimiter(200req/15분)만. 전용 limiter + 동시요청·입력길이 제한 + Map TTL/최대세션 필요. (비로그인 데모 흐름은 유지) |
-| R5-4 | Medium | 아바타 5MB 제한이 프론트만 | `routes/auth.js` PATCH `/me` | 서버측 decoded byte 검증 + 이전 확장자 파일 정리 |
+| R5-3 | High (부분) | Builder 비용 엔드포인트 보호 부족 | `routes/builder.js`, `builderSessions` Map | 🟡 **입력길이 제한(4000자) 완료**. 전용 limiter + 동시요청 제한 + Map TTL/최대세션은 잔여. (비로그인 데모 흐름은 의도 유지) |
+| ~~R5-4~~ | ~~Medium~~ | ✅ **해결** — 아바타 서버측 크기 검증 | `routes/auth.js` PATCH `/me` | `lib/imageData.parseImageDataUrl`로 decoded 5MB 검증. (이전 확장자 파일 정리는 R5-2 파일정리와 함께) |
 | R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |
 | ~~R5-6~~ | ~~Low~~ | ✅ **해결** — 루트 lint flat config 전환 완료 | `eslint.config.js` | 원인: `eslintrc.json`(dot 누락)이라 미작동 + ESLint v10 flat config 요구. flat config 작성, public/·web/ ignore, jest globals 분리. error 0. 잔여 warning 9개(기존 백엔드 unused var)는 별도 정리 대상 |
-| R5-7 | Medium | 캐릭터 생성 이미지 업로드 서버측 크기 검증 없음 | `routes/characters.js` POST `/create` (imageData) | admin 업로드(routes/admin.js)는 5MB 제한 있어 기준 불일치. 클라(AvatarUpload)는 5MB 체크 추가했으나 우회 가능 → 서버 decoded byte 검증 필요. R5-4와 함께 일괄 처리 |
-| R5-8 | Low | 알림 단건 read 소유권 조건 느슨 | `routes/notifications.js` PATCH `/:id/read`, `db/index.js` markOneRead | 로그인만 확인, 임의 id에 read row INSERT 가능. 내용 노출은 없음(무해). "본인 알림 또는 broadcast만 read" 무결성 조건 추가 권장 |
+| ~~R5-7~~ | ~~Medium~~ | ✅ **해결** — 캐릭터 생성 이미지 서버측 크기 검증 | `routes/characters.js` POST `/create` | `parseImageDataUrl` 공용 헬퍼로 decoded 5MB 검증. 파일 생성 전 검증해 orphan dir 방지 |
+| ~~R5-8~~ | ~~Low~~ | ✅ **해결** — 알림 단건 read 소유권 | `routes/notifications.js`, `db/index.js` markOneRead | INSERT를 `SELECT ... WHERE n.id=? AND (user_id IS NULL OR user_id=me)`로 변경 — 본인/broadcast만 read row 생성 |
+| ~~R5-9~~ | ~~Medium~~ | ✅ **해결** — PV 집계에 비화면 요청 혼입 | `server.js` PV 미들웨어 | Codex 2차 QA: `/.well-known/*`(devtools) 등이 앱 PV로 집계(120중 68건). GET만 + `/.well-known`·파일형 경로(마지막 세그먼트에 `.`) 제외. 과거 junk 68행 정리(120→52) |
 
-> **2026-06-03 Codex R8(Day 11~13 QA)** 처리: Creator adult 필터 누락은 콘텐츠 정책 누수라 **즉시 수정**(routes/creator.js, 백로그 아님). 이미지 서버검증·알림 read는 위 R5-7/R5-8로 등록. Builder 비인증(R5-3)은 의도된 데모 정책이라 반박·유지.
+> **2026-06-03 Codex R8** 처리: Creator adult 필터 즉시 수정. 이미지 서버검증·알림 read는 R5-7/R5-8 등록.
+> **2026-06-05 처리(사용자 "백로그 미루지 말자")**: R5-4/R5-7(이미지 서버검증)·R5-8(알림 read)·R5-3 입력길이 cap **완료**. Codex 2차 QA의 PV 비화면 혼입은 R5-9로 **완료**.
+> **남은 컷오버 관문**: R5-1(파일 영속성 Critical), R5-2(탈퇴 파일정리 High), R5-3 잔여(Builder limiter/Map TTL), R5-5(회귀테스트). Builder **비인증 자체는 의도된 데모 정책**(결함 아님).
 
 ---
 

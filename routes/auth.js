@@ -6,6 +6,7 @@ const path       = require('path');
 const router     = express.Router();
 const { randomUUID } = require('crypto');
 const { stmt }   = require('../db');
+const { parseImageDataUrl } = require('../lib/imageData');
 
 const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
 
@@ -196,13 +197,11 @@ router.patch('/me', async (req, res) => {
   }
 
   if (avatarData && typeof avatarData === 'string') {
-    const match = avatarData.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/);
-    if (match) {
-      const ext      = match[1].replace('jpeg', 'jpg');
-      const filename = `user_${req.session.userId}.${ext}`;
-      fs.writeFileSync(path.join(IMAGES_DIR, filename), Buffer.from(match[2], 'base64'));
-      stmt.updateAvatar.run(`/images/${filename}`, req.session.userId);
-    }
+    const img = parseImageDataUrl(avatarData);
+    if (img.error) return res.status(400).json({ error: img.error });
+    const filename = `user_${req.session.userId}.${img.ext}`;
+    fs.writeFileSync(path.join(IMAGES_DIR, filename), img.buffer);
+    stmt.updateAvatar.run(`/images/${filename}`, req.session.userId);
   }
 
   const user = stmt.getUserById.get(req.session.userId);

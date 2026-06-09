@@ -3,6 +3,7 @@ const router   = express.Router();
 const fs       = require('fs');
 const path     = require('path');
 const { stmt } = require('../db');
+const { parseImageDataUrl } = require('../lib/imageData');
 
 const CHARS_DIR  = path.join(__dirname, '..', 'prompts', 'characters');
 const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
@@ -177,6 +178,14 @@ router.post('/create', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'characterData and systemPrompt required' });
   }
 
+  // 이미지 검증을 파일 생성 전에 — 오버사이즈면 orphan 디렉터리 안 남김 (R5-7)
+  const { imageData } = req.body;
+  let img = null;
+  if (imageData && typeof imageData === 'string') {
+    img = parseImageDataUrl(imageData);
+    if (img.error) return res.status(400).json({ error: img.error });
+  }
+
   const id = 'char_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   const charDir = path.join(CHARS_DIR, id);
 
@@ -186,17 +195,12 @@ router.post('/create', requireAuth, (req, res) => {
     // Write system.md
     fs.writeFileSync(path.join(charDir, 'system.md'), systemPrompt, 'utf-8');
 
-    // Save image if provided (base64 dataURL)
+    // Save image if provided (검증 완료된 버퍼)
     let imagePath = null;
-    const { imageData } = req.body;
-    if (imageData && typeof imageData === 'string') {
-      const match = imageData.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/);
-      if (match) {
-        const ext      = match[1].replace('jpeg', 'jpg');
-        const filename = `${id}.${ext}`;
-        fs.writeFileSync(path.join(IMAGES_DIR, filename), Buffer.from(match[2], 'base64'));
-        imagePath = `/images/${filename}`;
-      }
+    if (img) {
+      const filename = `${id}.${img.ext}`;
+      fs.writeFileSync(path.join(IMAGES_DIR, filename), img.buffer);
+      imagePath = `/images/${filename}`;
     }
 
     // Build config.json from characterData
