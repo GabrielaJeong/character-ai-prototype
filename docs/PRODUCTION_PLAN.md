@@ -202,6 +202,9 @@ PostgreSQL은 아직 안 옮기므로:
 
 ## 9. 체크포인트 기준 (Phase A 종료 조건)
 
+> **배포/cutover 실행 절차**: `docs/CUTOVER_CHECKLIST.md` (아키텍처·env·Volume·SSE 검증·롤백).
+> 배포 설정 코드(next.config 프록시·middleware `BACKEND_ORIGIN`)는 준비 완료. R5-1(파일 영속성)이 배포 하드 전제조건.
+
 Phase A는 다음 조건 만족 시 종료 선언:
 
 - [ ] 모든 화면이 React로 이식 완료 + 동일 기능

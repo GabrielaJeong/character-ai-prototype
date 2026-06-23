@@ -11,10 +11,11 @@ import { NextRequest, NextResponse } from 'next/server';
  *   - 들어온 요청의 세션 쿠키를 백엔드 `/api/auth/me`로 포워드 → role 확인.
  *   - role !== 'admin' (또는 검증 실패) → `/`로 redirect.
  *
- * 백엔드 origin: 서버 측 fetch라 rewrites(클라 전용)를 못 쓴다. `API_INTERNAL_URL`
- *   (없으면 dev 기본 http://localhost:3000)로 직접 호출. **prod 배포 시 이 env 설정 필요.**
+ * 백엔드 origin: 서버 측 fetch라 rewrites(클라 전용)를 못 쓴다. next.config와 동일한
+ *   `BACKEND_ORIGIN`(없으면 dev 기본 http://localhost:3000)로 직접 호출.
+ *   **prod 배포 시 Vercel에 BACKEND_ORIGIN 설정 필요** (rewrites·middleware 공용).
  */
-const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://localhost:3000';
+const API_INTERNAL = process.env.BACKEND_ORIGIN || process.env.API_INTERNAL_URL || 'http://localhost:3000';
 
 export async function middleware(req: NextRequest) {
   const cookie = req.headers.get('cookie') ?? '';

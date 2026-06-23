@@ -1,24 +1,23 @@
 /** @type {import('next').NextConfig} */
+
+// 백엔드(Express) origin. prod(Vercel)에서 BACKEND_ORIGIN env로 Railway URL 지정.
+// 미설정 시 로컬 개발 기본값.
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:3000';
+
 const nextConfig = {
   reactStrictMode: true,
-  // 백엔드 API + 정적 자원은 root 폴더의 Express 서버에서 제공.
-  // Express가 public/ 전체를 static으로 서빙 (server.js:137):
-  //   /api/*       — REST 라우트
-  //   /images/*    — 캐릭터·배너 이미지
-  //   /icons/*     — SVG 아이콘
-  //   /uploads/*   — 유저 업로드
-  // 개발: rewrites로 위 경로들을 http://localhost:3000으로 프록시
-  // 프로덕션: NEXT_PUBLIC_API_URL env (Vercel/AWS에서 설정)
+  // 백엔드 API + 정적 자원(이미지/아이콘/업로드)은 Express 서버가 제공.
+  // rewrites로 같은 도메인(브라우저 입장 same-origin)에서 프록시 → 세션 쿠키가
+  // first-party로 유지되어 크로스도메인 인증 문제가 없음 (docs/CUTOVER_CHECKLIST.md).
+  //   dev:  BACKEND_ORIGIN 미설정 → http://localhost:3000
+  //   prod: Vercel env BACKEND_ORIGIN = https://<railway-backend-domain>
   async rewrites() {
-    if (process.env.NODE_ENV === 'development') {
-      return [
-        { source: '/api/:path*',     destination: 'http://localhost:3000/api/:path*' },
-        { source: '/images/:path*',  destination: 'http://localhost:3000/images/:path*' },
-        { source: '/icons/:path*',   destination: 'http://localhost:3000/icons/:path*' },
-        { source: '/uploads/:path*', destination: 'http://localhost:3000/uploads/:path*' },
-      ];
-    }
-    return [];
+    return [
+      { source: '/api/:path*',     destination: `${BACKEND_ORIGIN}/api/:path*` },
+      { source: '/images/:path*',  destination: `${BACKEND_ORIGIN}/images/:path*` },
+      { source: '/icons/:path*',   destination: `${BACKEND_ORIGIN}/icons/:path*` },
+      { source: '/uploads/:path*', destination: `${BACKEND_ORIGIN}/uploads/:path*` },
+    ];
   },
 };
 
