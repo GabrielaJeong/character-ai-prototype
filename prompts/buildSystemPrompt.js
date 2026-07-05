@@ -1,7 +1,8 @@
 const fs   = require('fs');
 const path = require('path');
+const { CHARS_DIR, MODELS_DIR } = require('../lib/paths');
 
-const PROMPTS_DIR = __dirname;
+const PROMPTS_DIR = __dirname; // repo 고정 자산(guardrails/safety)용. characters·models는 런타임 경로.
 
 function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model = '', memory = '') {
   const guardrails = fs.readFileSync(
@@ -9,14 +10,14 @@ function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model
     'utf-8'
   );
   const charPrompt = fs.readFileSync(
-    path.join(PROMPTS_DIR, 'characters', characterId, 'system.md'),
+    path.join(CHARS_DIR, characterId, 'system.md'),
     'utf-8'
   );
 
   // Model-specific corrections (skip if file doesn't exist)
   let modelCorrections = '';
   if (model) {
-    const modelFile = path.join(PROMPTS_DIR, 'models', `${model}.md`);
+    const modelFile = path.join(MODELS_DIR, `${model}.md`);
     if (fs.existsSync(modelFile)) {
       const raw = fs.readFileSync(modelFile, 'utf-8').trim();
       // Only include if there's actual content beyond the header

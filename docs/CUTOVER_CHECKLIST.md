@@ -23,27 +23,23 @@
 
 ---
 
-## 2. ⛔ 실행 전 반드시 처리 (코드 작업 남음)
+## 2. ✅ R5-1/R5-2 코드 구현 완료 — Railway Volume만 생성하면 됨
 
-### 2-1. R5-1 파일 영속성 (Critical) — **배포의 하드 전제조건**
-Railway는 재배포 시 컨테이너 디스크가 초기화됨. 아래가 **휘발**:
-- `public/images/` — 유저 아바타, 제작 캐릭터 이미지
-- `public/uploads/` — 큐레이션 업로드 이미지
-- `prompts/characters/char_*` — 빌더 제작 캐릭터
-- `db/chat.db` — 이미 `DB_PATH` env로 분리됨 ✅
+### 2-1. R5-1 파일 영속성 — **코드 완료(방식 A: 부팅 시드)**
+런타임-mutable 파일(아바타·제작 캐릭터·큐레이션 업로드·admin 편집물)을 `lib/paths.js`로 중앙화.
+- **`RUNTIME_DATA_DIR` env 지정 시**(Railway Volume, 예 `/data`) 런타임 쓰기가 그 하위로 감:
+  `/data/characters` `/data/models` `/data/images` `/data/uploads` `/data/data`(curation·history) + `DB_PATH=/data/chat.db`
+- **부팅 시 `seedRuntimeData()`** 가 repo 프리빌트/시드를 **seed-if-missing**(force:false)으로 복사 → 프리빌트/신규는 채워지고 **런타임·admin 편집물은 보존**.
+- **미지정(로컬 dev)** 이면 경로가 기존 repo와 동일 → 동작 무변경, 시드 skip.
+- static 서빙: `server.js`가 `/images`·`/uploads`를 `IMAGES_DIR`/`UPLOADS_DIR`에서 먼저 서빙 후 public 폴백.
+- 검증: seed 로직(멱등·보존)·dev 무변경·전 라우트 load 확인.
 
-**복잡성**: `prompts/characters/`·`public/images/`는 **repo에 같이 들어있는 프리빌트(이화 등)** 와 **런타임 생성물**이 섞여 있음. 단순히 폴더를 Volume으로 옮기면 프리빌트가 사라짐.
+→ **남은 것은 Railway에서 Volume 생성 + env 설정뿐**(§4). 코드 작업 없음.
+> 주의: 프리빌트 '업데이트'는 /data에 이미 있으면 전파 안 됨(seed-if-missing). 프리빌트 교체 시 해당 파일 수동 삭제 후 재배포. L-015/L-016: 마운트는 `/data`(코드 폴더 `/app` 금지).
 
-**권장 설계**(미구현):
-- 런타임 쓰기 경로를 env로 분리: `UPLOADS_DIR`·`USER_IMAGES_DIR`·`USER_CHARS_DIR` → Railway Volume(`/data/...`).
-- 프리빌트는 repo 경로 유지. 로더(`loadAllCharacters`, 이미지 서빙)가 **두 경로를 모두** 조회.
-- 또는 부팅 시 프리빌트를 Volume으로 1회 시드.
-- 코드 영향: `IMAGES_DIR`·`UPLOADS_DIR`·`CHARS_DIR` 하드코딩 위치(아래) 전부 env화.
-  - `routes/auth.js` `routes/characters.js` `routes/admin.js` `routes/bookmarks.js` `routes/creator.js` + `server.js` static 서빙.
-- L-015/L-016: Volume 마운트 경로는 **코드 디렉터리와 분리**(`/data`), `/app/...`에 마운트 금지.
-
-### 2-2. R5-2 탈퇴 시 파일 정리 (High) — R5-1과 함께
-`routes/auth.js DELETE /me`가 DB만 지움. R5-1로 파일 위치 확정 후, 해당 유저의 제작 캐릭터 dir·이미지·아바타 삭제 로직 추가. (경로가 Volume이냐 S3냐에 따라 삭제 방식이 달라서 R5-1 종속.)
+### 2-2. R5-2 탈퇴 시 파일 정리 — **코드 완료**
+`lib/paths.deleteUserFiles(userId)`: 아바타(`user_N.*`) + 본인 제작 캐릭터 dir·이미지 삭제(프리빌트/타인 것 보존).
+`routes/auth.js DELETE /me` + `routes/admin.js DELETE /users`에서 호출. 검증: 픽스처로 본인만 삭제·타인/프리빌트 보존 확인.
 
 ---
 
@@ -62,8 +58,9 @@ Railway는 재배포 시 컨테이너 디스크가 초기화됨. 아래가 **휘
 
 ## 4. Railway (백엔드) 설정
 
-- [ ] Volume 생성·마운트(`/data`), R5-1 경로 env 연결 (위 2-1)
+- [ ] **Volume 생성·마운트 `/data`** (코드 폴더 `/app` 금지 — L-016)
 - [ ] env 확인:
+  - **`RUNTIME_DATA_DIR=/data`** ← R5-1 런타임 파일 루트(부팅 시 프리빌트 자동 시드)
   - `DB_PATH=/data/chat.db`
   - `SESSION_SECRET`(필수), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`
   - `NODE_ENV=production` → 세션쿠키 `secure:true` 활성 ([server.js](../server.js) L142)
@@ -109,8 +106,10 @@ Railway는 재배포 시 컨테이너 디스크가 초기화됨. 아래가 **휘
 | next.config prod 프록시(`BACKEND_ORIGIN`) | ✅ 코드 준비 |
 | middleware `BACKEND_ORIGIN` 단일화 | ✅ 코드 준비 |
 | `trust proxy`·세션 secure·DB_PATH | ✅ 기존 적용 |
-| **R5-1 파일 영속성(경로 env화 + Volume + 프리빌트 분리)** | ⛔ **미구현 — 배포 전 필수** |
-| **R5-2 탈퇴 파일정리** | ⛔ R5-1과 함께 |
+| **R5-1 파일 영속성(경로 env화 + 부팅 시드)** | ✅ **코드 완료** — Railway Volume 생성 + `RUNTIME_DATA_DIR=/data`만 남음 |
+| **R5-2 탈퇴 파일정리** | ✅ **코드 완료** (`deleteUserFiles`) |
 | SSE-over-proxy 검증 | ⚠️ 스테이징에서 |
+
+> **배포 전 남은 실행 작업**: ① Railway Volume `/data` 생성 + env(`RUNTIME_DATA_DIR`·`DB_PATH`·`BACKEND_ORIGIN`) ② Vercel 프로젝트(root=`web`, `BACKEND_ORIGIN`) ③ 스테이징 스모크(특히 SSE) ④ 도메인 전환. **코드 준비는 완료.**
 
 > **다음 실제 코드 작업 후보**: R5-1 경로 env화(가장 큰 덩어리). 원하면 이걸 다음으로 진행.

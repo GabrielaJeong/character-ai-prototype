@@ -4,9 +4,7 @@ const fs       = require('fs');
 const path     = require('path');
 const { stmt } = require('../db');
 const { parseImageDataUrl } = require('../lib/imageData');
-
-const CHARS_DIR  = path.join(__dirname, '..', 'prompts', 'characters');
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
+const { CHARS_DIR, IMAGES_DIR } = require('../lib/paths');
 
 // ── Auth helpers (Codex R4 F1) ─────────────────────────────
 function requireAuth(req, res, next) {

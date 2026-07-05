@@ -3,8 +3,7 @@ const router   = express.Router();
 const fs       = require('fs');
 const path     = require('path');
 const { stmt } = require('../db');
-
-const CHARS_DIR = path.join(__dirname, '..', 'prompts', 'characters');
+const { CHARS_DIR } = require('../lib/paths');
 
 // GET /api/creator/:username
 router.get('/:username', (req, res) => {

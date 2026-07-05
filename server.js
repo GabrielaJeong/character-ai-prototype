@@ -6,6 +6,11 @@ const helmet         = require('helmet');
 const rateLimit      = require('express-rate-limit');
 const { randomUUID } = require('crypto');
 const { db, stmt }   = require('./db');
+const { seedRuntimeData, IMAGES_DIR, UPLOADS_DIR } = require('./lib/paths');
+
+// R5-1: RUNTIME_DATA_DIR(=Volume) 지정 시 repo 프리빌트/시드를 런타임 디렉터리로 seed-if-missing.
+// dev(미지정)는 no-op. 파일 서빙·라우트보다 먼저 실행되어야 함.
+seedRuntimeData();
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -144,6 +149,10 @@ app.use(session({
     maxAge:   7 * 24 * 60 * 60 * 1000,
   },
 }));
+// 런타임 생성 이미지·업로드는 IMAGES_DIR/UPLOADS_DIR(Volume 가능)에서 먼저 서빙,
+// 이후 public/(아이콘·css·index.html 등 repo 정적)로 폴백. (R5-1)
+app.use('/images',  express.static(IMAGES_DIR));
+app.use('/uploads', express.static(UPLOADS_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Guest ID 발급 — 비로그인 세션 소유권 추적용 ──────────
@@ -189,7 +198,7 @@ app.use('/api/creator',          require('./routes/creator'));
 
 // ── Public curation read ──────────────────────────────────
 const fs   = require('fs');
-const CURATION_FILE = path.join(__dirname, 'data', 'curation.json');
+const { CURATION_FILE } = require('./lib/paths');
 app.get('/api/version', (_req, res) => {
   try {
     const changelog = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf-8');

@@ -225,8 +225,8 @@ Phase A는 다음 조건 만족 시 종료 선언:
 
 | # | 심각도 | 항목 | 위치 | 메모 |
 |---|---|---|---|---|
-| R5-1 | Critical | 아바타·제작 캐릭터 파일이 ephemeral 디렉터리 저장 → Railway 재배포 시 유실 | `public/images`, `prompts/characters` | L-015/L-016 위반. `/data/uploads`·`/data/characters` Volume 또는 외부 스토리지로 분리 |
-| R5-2 | High | 탈퇴 시 파일 데이터(제작 캐릭터 dir, 캐릭터·아바타 이미지) 미정리 → orphan + 개인정보 잔존 | `routes/auth.js` DELETE `/me` | DB는 CASCADE로 정리됨. 파일 정리 로직 추가. admin 삭제도 동일. (프론트 탈퇴 문구는 실제 범위로 수정 완료) |
+| ~~R5-1~~ | ~~Critical~~ | ✅ **코드 완료** — 파일 영속성(경로 env화 + 부팅 시드) | `lib/paths.js` + 라우트/`server.js` | 런타임 파일을 `RUNTIME_DATA_DIR`(Volume) 하위로. `seedRuntimeData()`가 프리빌트 seed-if-missing. dev는 no-op(경로=repo). **남은 것: Railway Volume 생성 + `RUNTIME_DATA_DIR=/data` env**(배포 실행). 상세: `docs/CUTOVER_CHECKLIST.md` §2·§4 |
+| ~~R5-2~~ | ~~High~~ | ✅ **해결** — 탈퇴/유저삭제 파일 정리 | `lib/paths.deleteUserFiles`, `routes/auth.js`, `routes/admin.js` | 아바타 + 본인 제작 캐릭터 dir·이미지 삭제(프리빌트/타인 보존). DELETE `/me` + admin DELETE `/users`에서 호출 |
 | ~~R5-3~~ | ~~High~~ | ✅ **해결** — Builder 비용/메모리 보호 | `routes/builder.js`, `server.js` | 입력길이 4000자 제한 + `builderSessions` Map **TTL 30분·최대 500**(메모리 누수 차단) + 전용 `builderLimiter`(15분 30req). 비로그인 데모 흐름은 의도 유지 |
 | ~~R5-4~~ | ~~Medium~~ | ✅ **해결** — 아바타 서버측 크기 검증 | `routes/auth.js` PATCH `/me` | `lib/imageData.parseImageDataUrl`로 decoded 5MB 검증. (이전 확장자 파일 정리는 R5-2 파일정리와 함께) |
 | R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |

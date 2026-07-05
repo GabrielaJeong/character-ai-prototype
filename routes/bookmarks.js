@@ -3,8 +3,7 @@ const router  = express.Router();
 const fs      = require('fs');
 const path    = require('path');
 const { stmt } = require('../db');
-
-const CHARS_DIR = path.join(__dirname, '..', 'prompts', 'characters');
+const { CHARS_DIR } = require('../lib/paths');
 
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });

@@ -7,8 +7,7 @@ const router     = express.Router();
 const { randomUUID } = require('crypto');
 const { stmt }   = require('../db');
 const { parseImageDataUrl } = require('../lib/imageData');
-
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
+const { IMAGES_DIR, deleteUserFiles } = require('../lib/paths');
 
 // ── Validation schemas ────────────────────────────────────
 const registerSchema = Joi.object({
@@ -288,6 +287,7 @@ router.delete('/me', async (req, res) => {
   const uid = req.session.userId;
   stmt.deleteUserSessions.run(uid);
   stmt.deleteUser.run(uid);
+  deleteUserFiles(uid); // R5-2: 아바타·제작 캐릭터 파일 정리
 
   req.session.destroy(() => {
     res.clearCookie('folio.sid');
