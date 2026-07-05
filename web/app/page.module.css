@@ -1,0 +1,48 @@
+/*
+ * 원본: public/css/style.css
+ *   .page-wrap        1082~1087
+ *   .page-body        1108~1112  (랜딩 변형: padding 24px 20px)
+ *   .landing-section  1114~1121
+ *   .char-grid        645~649
+ *
+ * 비고: 섹션 헤더(.feed-*)는 <FeedHeader> 컴포넌트로 분리됨 → FeedHeader.module.css
+ *       각 큐레이션 섹션(creators/genres/upcoming)은 자체 .section을 가짐 → 여기서는 RECOMMENDED + 공지만.
+ */
+
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0 0 40px;
+}
+
+.pageBody {
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 32px;
+}
+.section:last-child {
+  margin-bottom: 0;
+}
+
+/* ── 캐릭터 그리드 ───────────────────────────────────────── */
+.charGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── 빈/로딩/에러 상태 메시지 ─────────────────────────────── */
+.stateMsg {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 8px 0;
+  margin: 0;
+}

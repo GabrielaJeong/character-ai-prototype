@@ -1,41 +1,32 @@
 const express    = require('express');
 const router     = express.Router();
 const { randomUUID } = require('crypto');
-const Anthropic  = require('@anthropic-ai/sdk');
-const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 const { generateMemory }  = require('../lib/memory');
+const { streamReply }     = require('../lib/streamReply');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const ALLOWED_MODELS = new Set([
-  'claude-sonnet-4-6',
-  'claude-opus-4-6',
-  'claude-haiku-4-5-20251001',
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
-  'gemini-3.1-pro-preview',
-]);
-const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 
-async function getReply({ model, systemPrompt, history, maxTokens = 1024 }) {
-  if (GEMINI_MODELS.has(model)) {
-    return callGemini({ model, systemInstruction: systemPrompt, history, maxTokens });
-  }
-  const response = await anthropic.messages.create({
-    model,
-    max_tokens: maxTokens,
-    system:     systemPrompt,
-    messages:   history,
-  });
-  return response.content[0].text;
+/**
+ * SSE 이벤트 writer.
+ * 클라이언트는 각 `data: { ... }\n\n` 블록을 JSON으로 파싱.
+ */
+function sseSetup(res) {
+  res.setHeader('Content-Type',  'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection',    'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // nginx proxy buffer 회피
+  res.flushHeaders?.();
+}
+function sseWrite(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-// POST /api/chat
+// POST /api/chat — SSE streaming
 router.post('/', async (req, res) => {
   const { sessionId, message, persona, model: rawModel, characterId: rawCharId, safety: rawSafety } = req.body;
 
@@ -73,10 +64,9 @@ router.post('/', async (req, res) => {
 
   const charId = session.character_id || DEFAULT_CHARACTER;
 
-  // Save user message
+  // Save user message before streaming
   stmt.addMessage.run(sessionId, 'user', message);
 
-  // Load full history for context
   const history = stmt.getMessages.all(sessionId).map(m => ({
     role: m.role,
     content: m.content,
@@ -86,51 +76,98 @@ router.post('/', async (req, res) => {
   const safety   = session.safety || 'on';
   const userId   = session.user_id;
 
-  // Long-term memory: 로그인 유저의 새 세션에서만 로드 + 백그라운드 재생성
   let memory = '';
   if (userId) {
     const memRow = stmt.getMemory.get(userId, charId);
     memory = memRow?.summary || '';
     if (isNew) {
-      // 백그라운드에서 이전 세션 요약 갱신 (레이턴시 없음)
       generateMemory(userId, charId, sessionId, model).catch(() => {});
     }
   }
 
   const systemPrompt = buildSystemPrompt(charId, persona_data, noteRow?.note || '', safety, model, memory);
 
-  try {
-    const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });
-    stmt.addMessage.run(sessionId, 'assistant', reply);
+  // ── SSE streaming ────────────────────────────────────
+  sseSetup(res);
 
-    // ── Safety violation auto-logging ─────────────────────
-    if (safety === 'on') {
-      const OOC_NOTICE_KO  = '현재 전연령 모드에서는 성인 콘텐츠를 제공할 수 없습니다';
-      const OOC_BYPASS_KO  = 'OOC 지시로는 등급 설정을 변경할 수 없습니다';
-      let triggerStep = null;
-      if (reply.includes(OOC_BYPASS_KO))        triggerStep = 3; // OOC bypass attempt
-      else if (reply.includes(OOC_NOTICE_KO))   triggerStep = 2; // IC deflection + OOC notice
-      else if (/\(현재 전연령|캐릭터 프로필에서 등급/.test(reply)) triggerStep = 1;
-
-      if (triggerStep) {
-        const masked  = message.replace(/[^\s가-힣a-zA-Z0-9]/g, '*').slice(0, 200);
-        const summary = reply.slice(0, 300);
-        const userId  = session.user_id || null;
-        stmt.insertModerationLog.run(
-          randomUUID(), sessionId, userId, charId, model, 'triggered', triggerStep, masked, summary
-        );
-      }
+  // 클라이언트 연결이 진짜 끊겼을 때만 abort.
+  // 주의: req.on('close')는 Node HTTP에서 request body 다 읽으면 발화되므로 사용 불가.
+  // res.on('close')는 res.end() 호출 전 연결 종료 시에만 발화 → 정확히 우리가 원하는 시점.
+  let aborted = false;
+  // Codex R3 F4: provider SDK까지 abort 전달 — client 중단 시 모델 호출도 취소
+  const providerCtrl = new AbortController();
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      aborted = true;
+      providerCtrl.abort();
     }
+  });
 
-    res.json({ reply, sessionId, model, characterId: charId });
+  // Codex R3 F3: stream 시작 전에 session 정보 송신 — 프론트가 URL 즉시 갱신해
+  // 첫 메시지 스트리밍이 실패해도 새로고침 시 세션 손실 없음.
+  sseWrite(res, { type: 'session', sessionId: session.id, model });
+
+  // Codex R2 F1: 라우트 레벨 accumulator. streamReply 내부 acc는 중간 throw 시 lost되어
+  // 빈 string만 반환되므로 partial 저장이 의미 없었음. onDelta에서 직접 누적해야 안전.
+  let accumulated = '';
+  try {
+    await streamReply({
+      model,
+      systemPrompt,
+      history,
+      maxTokens: 8192,
+      signal: providerCtrl.signal,
+      onDelta: (text) => {
+        accumulated += text;
+        if (aborted) return;
+        sseWrite(res, { type: 'delta', text });
+      },
+    });
   } catch (err) {
-    console.error('Chat API error:', err.message);
-    res.status(500).json({ error: 'Failed to get response' });
+    console.error('Chat stream error:', err.message);
+    if (!aborted) {
+      sseWrite(res, { type: 'error', error: 'AI 응답에 실패했습니다.' });
+    }
+    if (accumulated) stmt.addMessage.run(sessionId, 'assistant', accumulated);
+    if (!aborted) res.end();
+    return;
+  }
+
+  // Save complete assistant message
+  if (accumulated) {
+    stmt.addMessage.run(sessionId, 'assistant', accumulated);
+  }
+
+  // ── Safety violation auto-logging (전연령 모드) ───────
+  if (safety === 'on' && accumulated) {
+    const OOC_NOTICE_KO = '현재 전연령 모드에서는 성인 콘텐츠를 제공할 수 없습니다';
+    const OOC_BYPASS_KO = 'OOC 지시로는 등급 설정을 변경할 수 없습니다';
+    let triggerStep = null;
+    if (accumulated.includes(OOC_BYPASS_KO))      triggerStep = 3;
+    else if (accumulated.includes(OOC_NOTICE_KO)) triggerStep = 2;
+    else if (/\(현재 전연령|캐릭터 프로필에서 등급/.test(accumulated)) triggerStep = 1;
+
+    if (triggerStep) {
+      const masked  = message.replace(/[^\s가-힣a-zA-Z0-9]/g, '*').slice(0, 200);
+      const summary = accumulated.slice(0, 300);
+      stmt.insertModerationLog.run(
+        randomUUID(), sessionId, session.user_id || null, charId, model, 'triggered', triggerStep, masked, summary
+      );
+    }
+  }
+
+  if (!aborted) {
+    sseWrite(res, { type: 'done', sessionId, model, characterId: charId });
+    res.end();
   }
 });
 
 // DELETE /api/chat/:sessionId
+// Codex R3 F1: session ID 알기만 하면 누구나 삭제 가능했던 보안 취약점.
+// verifyOwnership으로 user/guest 격리 강제.
 router.delete('/:sessionId', (req, res) => {
+  const session = verifyOwnership(req.params.sessionId, req, res);
+  if (!session) return;
   stmt.deleteSession.run(req.params.sessionId);
   res.json({ ok: true });
 });

@@ -1,0 +1,123 @@
+/*
+ * 원본: public/css/style.css .btn-model / .model-picker / .model-option* (L1526~1644)
+ */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #5b8fb9;
+  border-radius: 20px;
+  padding: 4px 10px 4px 12px;
+  color: #5b8fb9;
+  font-size: 11px;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+  text-transform: uppercase;
+  box-shadow: 0 0 8px rgba(91, 143, 185, 0.2);
+  touch-action: manipulation;
+  min-height: 28px;
+}
+.trigger:hover {
+  border-color: #6ffff7;
+  color: #6ffff7;
+  box-shadow: 0 0 14px rgba(91, 143, 185, 0.4);
+}
+.trigger:active { opacity: 0.7; }
+
+.caret {
+  font-size: 10px;
+  opacity: 0.8;
+  line-height: 1;
+}
+
+.picker {
+  position: fixed;
+  background: #0f1623;
+  border: 1px solid #5b8fb9;
+  border-radius: var(--radius-card);
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  box-shadow: 0 -8px 40px rgba(91, 143, 185, 0.18), 0 -2px 16px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  animation: fadeUp 0.12s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid rgba(91, 143, 185, 0.15);
+  gap: 12px;
+  touch-action: manipulation;
+}
+.option:hover { background: rgba(91, 143, 185, 0.07); }
+.optionActive {
+  background: rgba(91, 143, 185, 0.12);
+}
+
+.optionLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.optionName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8f0f8;
+  letter-spacing: 0.02em;
+}
+.optionDesc {
+  font-size: 11px;
+  color: #8aa0b8;
+}
+.optionCheck {
+  font-size: 14px;
+  color: #5b8fb9;
+  flex-shrink: 0;
+  opacity: 0;
+  text-shadow: 0 0 8px rgba(91, 143, 185, 0.8);
+}
+.optionActive .optionCheck { opacity: 1; }
+.optionActive .optionName  { color: #5b8fb9; }
+
+.divider {
+  height: 1px;
+  background: rgba(91, 143, 185, 0.15);
+  margin: 4px 0;
+}
+
+.providerBadge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 6px;
+  line-height: 1.6;
+}
+.provider_claude {
+  background: rgba(91, 143, 185, 0.15);
+  color: #5b8fb9;
+  border: 1px solid rgba(91, 143, 185, 0.25);
+}
+.provider_gemini {
+  background: rgba(66, 133, 244, 0.12);
+  color: #7baaf7;
+  border: 1px solid rgba(66, 133, 244, 0.25);
+}

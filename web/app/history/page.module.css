@@ -1,0 +1,208 @@
+/*
+ * 원본: public/css/style.css .session-card / .session-avatar / .history-action-bar 등 (L1722~1914)
+ *       + .tab-header / .tab-title / .tab-body (L158~189)
+ */
+
+.tabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 20px 0;
+  flex-shrink: 0;
+}
+.tabTitle {
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.actionBar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px 0;
+  flex-shrink: 0;
+}
+.actionBtn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+  font-family: var(--font);
+  touch-action: manipulation;
+  min-height: 28px;
+}
+.actionBtn:hover:not(:disabled) { color: var(--text); }
+.actionBtn:active { opacity: 0.7; }
+.actionBtn:disabled {
+  color: var(--text-dim);
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.actionBtnDelete { color: #e05c5c; }
+.actionBtnDelete:hover:not(:disabled) { color: #f07070; }
+
+.body {
+  padding: 20px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Session card ──────────────────────────────────────── */
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+.card:hover { border-color: var(--accent-dim); }
+.card:active { opacity: 0.85; }
+.cardSelected {
+  border-color: var(--accent-dim);
+  background: rgba(91, 143, 185, 0.06);
+}
+
+.pennant {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  width: 16px;
+  height: 36px;
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+  z-index: 1;
+  pointer-events: none;
+}
+.pennantAllAges { background: var(--accent); }
+.pennantAdult { background: #e05c5c; }
+
+.checkbox {
+  flex-shrink: 0;
+  width: 0;
+  height: 18px;
+  margin-right: 0;
+  border-radius: 4px;
+  border: 1.5px solid transparent;
+  background: var(--surface);
+  cursor: pointer;
+  transition: width 0.2s ease, margin-right 0.2s ease, border-color 0.15s, background 0.15s;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+.cardSelectMode .checkbox {
+  width: 18px;
+  margin-right: 12px;
+  border-color: var(--text-muted);
+  border-width: 2px;
+}
+.cardSelectMode .checkboxChecked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.cardSelectMode .checkboxChecked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  color: #fff;
+  line-height: 1;
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-right: 12px;
+  align-self: center;
+}
+.cardSelectMode .avatarWrap { margin-right: 10px; }
+
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.avatarImg {
+  background-size: cover;
+  background-position: top center;
+  font-size: 0;
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.charName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.date {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.preview {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+}
+.personaTag {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+  display: block;
+}
+
+/* ── 빈/로딩/에러 ─────────────────────────────────────── */
+.stateMsg {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 8px 0;
+  margin: 0;
+  text-align: center;
+}

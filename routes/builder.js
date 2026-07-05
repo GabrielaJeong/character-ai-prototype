@@ -4,21 +4,36 @@ const fs        = require('fs');
 const path      = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { callGemini } = require('../lib/gemini');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS, GEMINI_MODEL_IDS: GEMINI_MODELS } = require('../lib/chatModels');
 
 const client = new Anthropic();
 
-const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
-const ALLOWED_MODELS    = new Set([
-  'claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001',
-  'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview',
-]);
+// Codex R4 F2 → 롤백: 포트폴리오/데모 흐름이 비로그인 빌더 시연을 의도함.
+// 비용 차단은 server.js의 apiLimiter(15분 200req) + 추후 per-IP rate limit으로 처리 예정.
+// 저장 단계(POST /api/characters/create)는 여전히 requireAuth라 orphan은 생성 안 됨.
+
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 
 const AGENT_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'builder', 'agent.md');
 
 // In-memory conversation store keyed by builderSessionId
-// Each entry: [{ role: 'user'|'assistant', content: string }]
+// Each entry: { history: [{ role, content }], ts: lastAccessMs }
+// 비인증 데모라 무한 증가 방지 위해 TTL + 최대치로 정리 (R5-3 메모리 누수 차단)
 const builderSessions = new Map();
+const SESSION_TTL  = 30 * 60 * 1000; // 30분 미사용 시 만료
+const MAX_SESSIONS = 500;            // 동시 보관 상한
+
+function pruneBuilderSessions() {
+  const now = Date.now();
+  for (const [sid, v] of builderSessions) {
+    if (now - v.ts > SESSION_TTL) builderSessions.delete(sid);
+  }
+  if (builderSessions.size > MAX_SESSIONS) {
+    // 오래된(마지막 접근 이른) 순으로 초과분 제거
+    const oldest = [...builderSessions.entries()].sort((a, b) => a[1].ts - b[1].ts);
+    for (let i = 0; i < oldest.length - MAX_SESSIONS; i++) builderSessions.delete(oldest[i][0]);
+  }
+}
 
 // POST /api/builder/chat
 // Body: { builderSessionId?, message, model? }
@@ -26,12 +41,16 @@ const builderSessions = new Map();
 router.post('/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
+  if (typeof message !== 'string' || message.length > 4000) {
+    return res.status(400).json({ error: '메시지가 너무 깁니다 (4000자 이하).' });
+  }
 
   const model = ALLOWED_MODELS.has(req.body.model) ? req.body.model : DEFAULT_MODEL;
   const sid   = req.body.builderSessionId ||
     ('b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5));
 
-  const history = builderSessions.get(sid) || [];
+  pruneBuilderSessions();
+  const history = builderSessions.get(sid)?.history || [];
   history.push({ role: 'user', content: message });
 
   try {
@@ -51,7 +70,7 @@ router.post('/chat', async (req, res) => {
     }
 
     history.push({ role: 'assistant', content: reply });
-    builderSessions.set(sid, history);
+    builderSessions.set(sid, { history, ts: Date.now() });
 
     const isReady = reply.includes('[CHARACTER_READY]');
 

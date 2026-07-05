@@ -76,6 +76,12 @@ web_modules/
 
 # Next.js build output
 .next
+# Next.js (web/) 추가 ignore
+web/.next/
+web/out/
+web/build/
+web/dist/
+.vercel
 out
 
 # Nuxt.js build / generate output

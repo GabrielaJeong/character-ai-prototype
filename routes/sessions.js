@@ -3,6 +3,9 @@ const router  = express.Router();
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 
+// Codex R4 F4 → 롤백: 세션 detail에 character 임베드 대신, /api/characters/:id에
+// session-ownership/adult gate를 추가하는 더 가벼운 방식으로 (API shape 보존).
+
 // GET /api/sessions — list sessions (filtered by auth state)
 router.get('/', (req, res) => {
   const uid  = req.session?.userId || null;
@@ -40,9 +43,10 @@ router.get('/:id', (req, res) => {
 });
 
 // GET  /api/sessions/:id/safety
+// Codex R4 F3: 같은 리소스 정책 — verifyOwnership 적용 (PUT은 이미 있음)
 router.get('/:id/safety', (req, res) => {
-  const session = stmt.getSession.get(req.params.id);
-  if (!session) return res.status(404).json({ error: 'Session not found' });
+  const session = verifyOwnership(req.params.id, req, res);
+  if (!session) return;
   res.json({ safety: session.safety || 'on' });
 });
 

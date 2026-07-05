@@ -1,0 +1,10 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ratingHint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}

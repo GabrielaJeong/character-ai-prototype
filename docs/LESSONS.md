@@ -499,6 +499,123 @@
 
 ---
 
+## L-018: SSR 오버레이(Splash) FOUC — 6번의 잘못된 시도 끝에 진짜 원인은 fadeIn 0.3s 애니메이션
+
+**날짜**: 2026-05-27
+**위험도**: 중간 (UX 저하 — 사용자가 "마이그레이션 전엔 이러지 않았다" 호소)
+**컨텍스트**: React 마이그레이션 Day 3.x. SPA → Next.js App Router 이식. Splash 컴포넌트가 home 화면을 가려야 하는데 사용자가 "home이 먼저 보이고 splash가 그 다음에 로딩되는 것처럼 보임" 호소.
+
+**발생 맥락 (디버깅 여정)**:
+
+표면 증상만 보고 6번 잘못된 방향으로 시도. 매 시도마다 새로운 React/Next.js 함정에 빠짐:
+
+1. **1차 — `'use client'` + `useEffect`에서 visible 토글**: hydration 후에야 마운트 → 첫 페인트에 home 노출.
+2. **2차 — `useState(true)`로 SSR HTML에 마크업 포함 + CSS Module**: dev 모드에서 CSS Module 로드 지연 시 `position:fixed`가 적용 전 → 인라인 흐름으로 렌더되어 home이 비침.
+3. **3차 — inline `<script>` + `<html>` 클래스 + CSS hide rule**: React 트리 밖에서 `<html>` 클래스 조작 → hydration이 reconcile 시도하다 `removeChild`에서 null parent 만나 `TypeError`.
+4. **4차 — Server Component + 인접 `<script>`로 vanilla JS dismiss**: SSR HTML에 splash 박고 인접 script가 즉시 element.remove() → React가 자기 트리의 splash와 실제 DOM 불일치 발견 → `Hydration failed because the initial UI does not match what was rendered on the server` 폭주.
+5. **5차 — Client Component + state로만 dismiss + 800ms timer**: splash는 잘 가리는데 사라진 직후 SWR이 데이터 받아오느라 home placeholder "불러오는 중..." → 캐릭터 grid로 바뀌는 깜빡임. 사용자가 "0.1~0.3초 안에 후루룩 화면 보임" 호소.
+6. **사용자 핵심 지적 → appReady gating**: 원본 SPA app.js L159~186의 `_tryDismissSplash`는 `_dataReady && _timerReady` 둘 다 true일 때만 dismiss. Zustand `useUIStore.appReady` 추가, 홈 페이지가 isLoading=false면 setAppReady(true). Splash는 (timerReady && appReady)일 때만 fadeOut. 깜빡임은 잡혔으나 사용자가 "여전히 home이 먼저 보이는 것처럼 보임" 호소 — appReady gating은 정답이었지만 진짜 원인은 따로 있었음.
+7. **진짜 원인 발견**: `Splash.module.css`의 `.splash`에 `animation: fadeIn 0.3s ease` 들어있었음 (키프레임 `from { opacity: 0 } to { opacity: 1 }`). 첫 0.3초 동안 splash가 반투명 → home이 비쳐 보임. 원본 `#splash`엔 fadeIn 없음 (로고·카피만 fadeIn). 마이그레이션 때 잘못 추가한 룰.
+
+**재발 이유**:
+- 사용자가 본 현상("home이 먼저 보이고 splash가 나중 로딩")의 표면 해석에 매달려 React/hydration/SSR 함정만 파다가, **CSS opacity 애니메이션이 원흉**이라는 단순한 가능성을 안 봄
+- "원본 1:1 이식" 라고 했지만 미세한 추가 룰(`animation: fadeIn`)이 시각 인지에 결정적 영향
+- 디버그 시 코드 자체("내 CSS에 뭘 더 넣었는가")보다 환경 가설("Next.js dev의 CSS 로드 타이밍? hydration race?")부터 의심
+- 6번 시도하는 동안 ML-009를 계속 갱신하면서도 CSS Module 안을 다시 안 읽어봄
+
+**해결**:
+- `web/components/Splash.module.css`에서 `.splash`의 `animation: fadeIn` + `@keyframes fadeIn` 제거 (commit `73ac3e1`)
+- 원본 `#splash` 첫 페인트부터 완전 불투명 동작 복원
+
+**강화 규칙**:
+1. 🚩 **Red Flag — SSR 오버레이/모달 작성 중**: 컨테이너 element에 `opacity` / `visibility` 키프레임 애니메이션 넣지 말 것. 자식 element(로고·카피)에만 페이드인 허용. 컨테이너는 첫 페인트부터 완전 불투명이어야 함.
+2. **CSS 1:1 이식이라고 선언했으면 원본에 없는 룰 추가 금지** — "마이그레이션이 깔끔해 보이라고" `animation: fadeIn` 같은 작은 추가가 시각 동작을 바꾼다. 추가 룰이 정말 필요하면 PR/커밋 메시지에 명시.
+3. **시각 버그 디버깅 우선순위**:
+   - (1) 자기 코드의 최근 변경 diff 먼저 — 환경/프레임워크 가설은 그 다음
+   - (2) DevTools Computed Style에서 의심 element의 실제 opacity/transform/visibility 확인
+   - (3) `animation`, `transition`, keyframe 룰부터 의심 (특히 `opacity 0 → 1`)
+4. **React/Next.js SSR 오버레이 패턴 (확정)**:
+   - Client Component + `useState(true)` (SSR/client 초기 동기화로 hydration mismatch 회피)
+   - critical positioning은 inline `style={{}}` (CSS Module 로드 타이밍 무관)
+   - 컨테이너에 opacity 페이드인 금지 (FOUC 유발)
+   - dismiss는 setState로만 (DOM 직접 조작 절대 금지 — `element.remove()`, inline script 등은 hydration 충돌)
+   - 원본 SPA의 `_dataReady && _timerReady` 패턴 = `useUIStore.appReady` + setTimeout 조합
+5. **inline script로 `<html>` 같은 React 관리 요소 조작 절대 금지** — 한 번도 안전한 적이 없음.
+
+**참고**:
+- 6차 시도 전체 기록: `web/MIGRATION_HISTORY.md` ML-009 (시도-실패 + 최종 해법 + 원칙)
+- 관련 ML: ML-001 (`@import` Next.js dev 충돌), ML-009 (이 이슈의 마이그레이션 측 기록)
+
+---
+
+## L-019: React StrictMode에서 "한 번만 실행" 가드는 useState 아닌 useRef
+
+**날짜**: 2026-05-27
+**위험도**: 중간 (dev에서 무한 루프 / 일회성 부수효과 중복)
+
+**발생 맥락**:
+- 채팅 진입 시 `useChatPrepStore.consume()`으로 prep을 소비하는데, StrictMode(dev)가 useEffect를 두 번 호출
+- `useState` 가드(`if (hasConsumed) return`)는 effect closure가 stale → 두 번 다 통과 → 두 번째 consume이 null 반환 → /persona로 redirect 무한 루프
+
+**재발 이유**:
+- React 18 StrictMode의 effect 이중 호출 + closure 캡처 타이밍 미고려
+- state 업데이트는 같은 effect 사이클 안에서 closure에 반영 안 됨
+
+**해결**: `useRef` 가드 (`consumedRef.current`). ref는 closure 영향 없이 실행 시점에 최신값 평가.
+
+**강화 규칙**:
+1. "한 번만 실행되어야 하는 부수효과" (store consume, init API 호출, analytics fire 등)는 항상 `useRef` 가드
+2. useState 가드는 StrictMode에서 한 번 더 통과 가능 → 사용 금지
+3. 출처: `web/MIGRATION_HISTORY.md` ML-011
+
+---
+
+## L-020: Express SSE에서 클라이언트 abort 감지는 `res.on('close')` (req.on 아님)
+
+**날짜**: 2026-05-28
+**위험도**: 높음 (스트리밍 전면 미동작)
+
+**발생 맥락**:
+- `POST /api/chat` SSE 엔드포인트가 응답 헤더만 보내고 데이터 0 byte. 백엔드 로그는 모델 응답 정상 수신
+- abort 가드를 `req.on('close', () => aborted = true)`로 작성 → Node HTTP에서 `req.on('close')`는 **request body를 다 읽은 직후에도 발화**. POST body가 작아 즉시 발화 → 모델 응답 도착 전에 `aborted=true` → 모든 write skip
+
+**재발 이유**:
+- `req`(요청 스트림)의 close와 `res`(응답/연결) close 의미 혼동
+
+**해결**: `res.on('close', () => { if (!res.writableEnded) aborted = true; })`. 응답 종료 전 연결 끊김만 잡음.
+
+**강화 규칙**:
+1. 🚩 Red Flag: SSE / long-polling 엔드포인트에서 클라이언트 abort 감지 작성 중
+   → `res.on('close')` 또는 `req.on('aborted')` 사용. `req.on('close')`는 의미 다름 → 금지
+2. `res.writableEnded` 체크로 정상 종료 후 fire 무시
+3. 출처: `web/MIGRATION_HISTORY.md` ML-012
+
+---
+
+## L-021: 외부 코드리뷰(Codex 등)의 finding은 severity·영향범위로 분리, 묶음 적용 금지
+
+**날짜**: 2026-05-28
+**위험도**: 중간 (의도된 UX/API 정책 훼손)
+
+**발생 맥락**:
+- Codex 리뷰 5건 중 critical 보안(F1)에 묻혀 F2(builder requireAuth)·F4(API shape 변경)를 동시 반영
+- 결과적으로 데모/포트폴리오 흐름(비로그인 빌더 체험)이 깨지고 `/api/characters/:id` 응답 형태·사용처가 함께 바뀜 → 롤백 발생
+
+**재발 이유**:
+- critical을 빨리 막아야 한다는 압박 → 같은 리뷰의 다른 finding도 같은 우선순위로 일괄 처리
+- 각 finding의 의도된 UX·API 정책 충돌을 검토하지 않음 (반박·수정 정책 미적용)
+
+**해결**: finding을 severity·영향범위로 분리. 보안 critical만 즉시. UX/API 정책 변경 동반은 반박 → 대안 의논 → 사용자 확정 → 적용.
+
+**강화 규칙** (외부 리뷰 반영 전 체크리스트):
+1. 데모/체험 모드를 막는가? → rate-limit 등 대안 검토
+2. API 응답 shape를 바꾸는가? → 게이트만 추가하는 가벼운 대안 우선
+3. 기존 게스트 흐름을 깨는가? → guest_id 기반 처리 확인
+4. 기존 백엔드·배포 인프라 이슈는 마이그레이션/기능 작업과 분리 → 별도 백로그
+5. 출처: `web/MIGRATION_HISTORY.md` ML-013
+
+---
+
 ## 사용 가이드
 
 ### 새 패턴 추가 시

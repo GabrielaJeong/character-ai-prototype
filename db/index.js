@@ -217,6 +217,12 @@ const stmt = {
   deleteSession:        db.prepare('DELETE FROM sessions WHERE id = ?'),
   updateSessionModel:   db.prepare('UPDATE sessions SET model = ? WHERE id = ?'),
   updateSessionSafety:  db.prepare('UPDATE sessions SET safety = ? WHERE id = ?'),
+  // user 또는 guest가 특정 character와 대화한 세션 존재 여부 (adult char gate에 사용)
+  hasSessionForChar:    db.prepare(`
+    SELECT 1 FROM sessions
+    WHERE character_id = ? AND ((user_id IS NOT NULL AND user_id = ?) OR (guest_id IS NOT NULL AND guest_id = ?))
+    LIMIT 1
+  `),
 
   listSessionsByUser: db.prepare(`
     SELECT s.id, s.persona, s.model, s.character_id, s.safety, s.created_at,
@@ -351,8 +357,11 @@ const stmt = {
     INSERT OR IGNORE INTO notification_reads (user_id, notification_id)
     SELECT ?, id FROM notifications WHERE user_id IS NULL OR user_id = ?
   `),
+  // 본인 알림(user_id=me) 또는 전체 공지(user_id IS NULL)만 read 처리 (R5-8)
   markOneRead: db.prepare(`
-    INSERT OR IGNORE INTO notification_reads (user_id, notification_id) VALUES (?, ?)
+    INSERT OR IGNORE INTO notification_reads (user_id, notification_id)
+    SELECT ?, n.id FROM notifications n
+    WHERE n.id = ? AND (n.user_id IS NULL OR n.user_id = ?)
   `),
   createNotification: db.prepare(`
     INSERT INTO notifications (user_id, category, title, body, related_id) VALUES (?, ?, ?, ?, ?)

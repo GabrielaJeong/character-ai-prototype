@@ -3,14 +3,24 @@ const router   = express.Router();
 const fs       = require('fs');
 const path     = require('path');
 const { stmt } = require('../db');
-
-const CHARS_DIR = path.join(__dirname, '..', 'prompts', 'characters');
+const { CHARS_DIR } = require('../lib/paths');
 
 // GET /api/creator/:username
 router.get('/:username', (req, res) => {
   const username = req.params.username.replace(/^@/, '').toLowerCase();
   const user = stmt.getUserByUsername.get(username);
   if (!user) return res.status(404).json({ error: '크리에이터를 찾을 수 없습니다' });
+
+  const isOwner = req.session?.userId === user.id;
+
+  // 성인 콘텐츠 접근 여부 (characters.js GET / 와 동일 기준).
+  // 비성인/비로그인 유저에게는 adult_only 작품을 숨긴다. owner 예외 없음 —
+  // mypage '내 캐릭터'(useCharacters, 서버 필터됨)와 일관 유지 (self-eval 불일치 수정).
+  let adultEnabled = false;
+  if (req.session?.userId) {
+    const viewer = stmt.getUserById.get(req.session.userId);
+    adultEnabled = !!(viewer?.adult_content_enabled);
+  }
 
   // Collect user's characters from file system
   const chars = [];
@@ -29,6 +39,8 @@ router.get('/:username', (req, res) => {
       try {
         const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
         if (cfg.owner_user_id !== user.id) continue;
+        // 성인 캐릭터는 성인 토글 ON일 때만 노출 (선재 누수 차단)
+        if (cfg.rating === 'adult_only' && !adultEnabled) continue;
         chars.push({
           id,
           name:        cfg.name || '',
@@ -54,8 +66,6 @@ router.get('/:username', (req, res) => {
     if (!a.pinned && b.pinned) return 1;
     return (b.stats.sessions + b.stats.bookmarks) - (a.stats.sessions + a.stats.bookmarks);
   });
-
-  const isOwner = req.session?.userId === user.id;
 
   res.json({
     user: {

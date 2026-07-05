@@ -1,0 +1,38 @@
+/* 원본: public/css/style.css L158~190 (tab-header / tab-title / tab-body) */
+
+.tabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 20px 0;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 4px;
+  align-items: flex-start;
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.tabTitle {
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.tabBody {
+  padding: 20px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}

@@ -1,7 +1,40 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-05-05 (v0.30)
+> 최종 업데이트: 2026-06-04 (React 마이그레이션 Phase A — 어드민 제외 전 화면 이식 완료)
+
+---
+
+## 🔄 React (Next.js) 마이그레이션 — Phase A (진행 중)
+
+> Vanilla SPA(`public/`) → Next.js 14 App Router + TS(`web/`). 상세: `web/MIGRATION_HISTORY.md`.
+> `dev` 브랜치에서 진행. cutover 전까지 `public/` SPA가 프로덕션. **SSE 전환으로 일부 API는 web 전용** (D-019).
+
+### 이식 완료 화면 (web/app/)
+- [x] 홈 `/` (큐레이션: 추천/공지/TOP.creators/GENRE/UPCOMING/footer)
+- [x] 캐릭터 인트로 `/character/[id]` (hero/safety segment/탭/세계관)
+- [x] 페르소나 4종 `/persona`, `/persona/new`, `/persona/select`, `/persona/select/[id]`
+- [x] 채팅 `/character/[id]/chat` (SSE 스트리밍/재생성/노트·프로필 모달/기존 세션 로드)
+- [x] 히스토리 `/history`, 마이페이지 `/mypage` (정보수정/성인인증/아바타/탈퇴/탭)
+- [x] 인증 `/login`(로그인·가입·비번찾기), `/reset-password`
+- [x] 탐색 `/explore` — 큐레이션 뷰(검색+태그+grid) + 랭킹 뷰 + BROADCAST/TAG.CLOUD/EDITOR.PICKS (Day 10.1~10.3)
+- [x] 알림 `/notification` (Day 11), 크리에이터 `/creator/@[handle]` (Day 12)
+- [x] 빌더 `/builder` `/builder/chat` `/builder/manual` `/builder/preview` (Day 13)
+- [x] 페르소나 상세/편집 `/persona/[id]` (Day 14, 전체 필드 영구 편집)
+- [x] 404 `not-found` / 에러 `error.tsx`
+
+### 미이식 화면
+- [x] **어드민 `/admin`** — **완료**. 서버 게이트(middleware) + 8 페이지(대시보드/유저/캐릭터/**모델 관리**/모더레이션/알림/eval/큐레이션). 큐레이션은 드래그/이미지업로드/스냅샷 히스토리/미리보기 전부. 모델 관리는 Layer 3 프롬프트 좌목록+우에디터. web 신규 의존성: chart.js + react-chartjs-2.
+  - PV 집계에서 `/admin` 제외(server.js) — 어드민 조회가 앱 PV 부풀리던 버그 수정. 과거 admin PV 58행 정리 완료.
+  - **남은 것 = cutover + R5 인프라 백로그뿐.** 어드민 데이터 페이지 런타임 시각검증은 사용자 브라우저 확인 권장(어드민 세션 필요). 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
+- [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
+
+### 인프라 (web/)
+- SSE 스트리밍(`lib/streamReply.js`), zustand 스토어, SWR 훅
+- 공통 훅: `useRequireAuth`, `useAdultContent`, `useDragScroll`, `lib/search.ts`
+- 검증 하네스: type-check(항상)/lint(UI)/build(새 라우트)/jest(백엔드). build 후 `.next` 그대로 둠(IDE 타입), dev는 `predev` 훅이 정리 (ML-003)
+- **서버 측 auth 첫 도입**: `web/middleware.ts` — `/admin*` 진입 시 세션 쿠키를 백엔드 `/api/auth/me`로 포워드해 role 검증. 서버 fetch origin은 `API_INTERNAL_URL`(없으면 dev `localhost:3000`) → **prod 배포 시 env 설정 필요**
+- 백로그(cutover 전): `docs/PRODUCTION_PLAN.md` 9.5 (파일 영속화·Builder limiter·아바타 서버검증·회귀테스트)
 
 ---
 
@@ -9,7 +42,7 @@
 
 ### 유저 기능
 - [x] 4명 프리빌트 캐릭터 대화 (이화, 영일, 지세현, 박재헌)
-- [x] 멀티 모델 (Claude 3종 + Gemini 3종, 기본 Gemini 3.1 Pro)
+- [x] 멀티 모델 (Claude 5종: Sonnet 4.6 / Opus 4.8·4.7·4.6 / Haiku 4.5 + Gemini 4종: 2.5 Flash·Pro / 3.1 Pro / 3.5 Flash, 기본 Gemini 3.1 Pro). 정규 목록: `lib/chatModels.js`. 모델별 Layer 3 보정 프롬프트는 어드민 `/admin/models`에서 편집(`prompts/models/{id}.md`)
 - [x] 소설/채팅 모드, 응답 재생성 + 페이지네이션
 - [x] 캐릭터 빌더 (AI 대화형 + 직접 제작)
 - [x] 유저 페르소나 시스템

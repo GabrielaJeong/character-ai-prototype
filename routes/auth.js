@@ -6,8 +6,8 @@ const path       = require('path');
 const router     = express.Router();
 const { randomUUID } = require('crypto');
 const { stmt }   = require('../db');
-
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
+const { parseImageDataUrl } = require('../lib/imageData');
+const { IMAGES_DIR, deleteUserFiles } = require('../lib/paths');
 
 // ── Validation schemas ────────────────────────────────────
 const registerSchema = Joi.object({
@@ -40,7 +40,10 @@ const loginSchema = Joi.object({
                 .messages({ 'any.required': '이메일 또는 @아이디를 입력해주세요', 'string.empty': '이메일 또는 @아이디를 입력해주세요' }),
   password: Joi.string().min(1).required()
               .messages({ 'any.required': '비밀번호를 입력해주세요', 'string.empty': '비밀번호를 입력해주세요' }),
+  remember: Joi.boolean().default(false),  // 로그인 기억하기 — 체크 시 장기 세션
 });
+
+const REMEMBER_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30일
 
 // ── GET /api/auth/check-username ─────────────────────────
 router.get('/check-username', (req, res) => {
@@ -106,6 +109,12 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: '아이디/이메일 또는 비밀번호가 올바르지 않습니다' });
 
     req.session.userId = row.id;
+    // 로그인 기억하기: 체크 시 30일 유지, 미체크 시 브라우저 종료까지(세션 쿠키)
+    if (value.remember) {
+      req.session.cookie.maxAge = REMEMBER_MAX_AGE;
+    } else {
+      req.session.cookie.expires = false;
+    }
     const user = stmt.getUserById.get(row.id);
     res.json({ user });
   } catch (err) {
@@ -187,13 +196,11 @@ router.patch('/me', async (req, res) => {
   }
 
   if (avatarData && typeof avatarData === 'string') {
-    const match = avatarData.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/);
-    if (match) {
-      const ext      = match[1].replace('jpeg', 'jpg');
-      const filename = `user_${req.session.userId}.${ext}`;
-      fs.writeFileSync(path.join(IMAGES_DIR, filename), Buffer.from(match[2], 'base64'));
-      stmt.updateAvatar.run(`/images/${filename}`, req.session.userId);
-    }
+    const img = parseImageDataUrl(avatarData);
+    if (img.error) return res.status(400).json({ error: img.error });
+    const filename = `user_${req.session.userId}.${img.ext}`;
+    fs.writeFileSync(path.join(IMAGES_DIR, filename), img.buffer);
+    stmt.updateAvatar.run(`/images/${filename}`, req.session.userId);
   }
 
   const user = stmt.getUserById.get(req.session.userId);
@@ -224,14 +231,18 @@ router.patch('/adult-content', (req, res) => {
 });
 
 // ── POST /api/auth/forgot-password ───────────────────────
-// 데모 버전: 실제 이메일 발송 없이 토큰을 응답에 포함
+// dev 환경에서만 응답에 토큰 포함 (이메일 발송 미구현이라 dev 편의용).
+// 프로덕션에서는 절대 노출 금지 — 노출 시 이메일만 알면 비번 변경 가능 (계정 탈취).
+// Codex R2 F3: DEMO_MODE 게이트 제거 — 프로덕션에서 DEMO_MODE=true 시에도 노출 안 됨.
+const FORGOT_PW_EXPOSE_TOKEN = process.env.NODE_ENV !== 'production';
+
 router.post('/forgot-password', (req, res) => {
   const { email } = req.body;
   const { error } = Joi.string().email({ tlds: { allow: false } }).validate(email);
   if (error) return res.status(400).json({ error: '이메일 형식이 올바르지 않습니다' });
 
   const user = stmt.getUserByEmail.get(email);
-  // 이메일이 존재하지 않아도 동일한 응답 (보안 고려)
+  // 이메일 존재 여부 누설 방지 — 동일 응답 (보안 고려)
   if (!user) {
     return res.json({ ok: true, _demo_token: null });
   }
@@ -242,7 +253,8 @@ router.post('/forgot-password', (req, res) => {
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 30; // 30분 유효
   stmt.createResetToken.run(user.id, token, expiresAt);
 
-  res.json({ ok: true, _demo_token: token });
+  // 프로덕션은 null, dev/DEMO만 token 노출
+  res.json({ ok: true, _demo_token: FORGOT_PW_EXPOSE_TOKEN ? token : null });
 });
 
 // ── POST /api/auth/reset-password ────────────────────────
@@ -275,6 +287,7 @@ router.delete('/me', async (req, res) => {
   const uid = req.session.userId;
   stmt.deleteUserSessions.run(uid);
   stmt.deleteUser.run(uid);
+  deleteUserFiles(uid); // R5-2: 아바타·제작 캐릭터 파일 정리
 
   req.session.destroy(() => {
     res.clearCookie('folio.sid');

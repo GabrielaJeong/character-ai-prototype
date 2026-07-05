@@ -6,6 +6,11 @@ const helmet         = require('helmet');
 const rateLimit      = require('express-rate-limit');
 const { randomUUID } = require('crypto');
 const { db, stmt }   = require('./db');
+const { seedRuntimeData, IMAGES_DIR, UPLOADS_DIR } = require('./lib/paths');
+
+// R5-1: RUNTIME_DATA_DIR(=Volume) 지정 시 repo 프리빌트/시드를 런타임 디렉터리로 seed-if-missing.
+// dev(미지정)는 no-op. 파일 서빙·라우트보다 먼저 실행되어야 함.
+seedRuntimeData();
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -66,10 +71,20 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// 빌더는 비인증 데모 + 매 호출이 AI라 전역(200)보다 빡세게 (R5-3 비용 보호)
+const builderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: '빌더 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use('/api/auth/login',          authLimiter);
 app.use('/api/auth/register',       authLimiter);
 app.use('/api/auth/check-username', checkUsernameLimiter);
 app.use('/api/admin',               adminLimiter);
+app.use('/api/builder',             builderLimiter);
 app.use('/api/',                    apiLimiter);
 
 // ── SQLite session store ──────────────────────────────────
@@ -134,6 +149,10 @@ app.use(session({
     maxAge:   7 * 24 * 60 * 60 * 1000,
   },
 }));
+// 런타임 생성 이미지·업로드는 IMAGES_DIR/UPLOADS_DIR(Volume 가능)에서 먼저 서빙,
+// 이후 public/(아이콘·css·index.html 등 repo 정적)로 폴백. (R5-1)
+app.use('/images',  express.static(IMAGES_DIR));
+app.use('/uploads', express.static(UPLOADS_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Guest ID 발급 — 비로그인 세션 소유권 추적용 ──────────
@@ -144,11 +163,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Page View tracking (HTML 페이지 요청만 로깅) ──────────
+// ── Page View tracking (실제 앱 화면 GET 요청만 로깅) ──────────
+// 대시보드 PV/UV/DAU가 유저 화면 트래픽만 반영하도록, 비화면 요청을 광범위하게 제외.
 const STATIC_EXT = /\.(css|js|png|jpg|jpeg|gif|ico|webp|woff2?|ttf|svg|map)$/i;
 app.use((req, res, next) => {
-  if (STATIC_EXT.test(req.path)) return next();
-  if (req.path.startsWith('/api/')) return next();
+  if (req.method !== 'GET') return next();                    // PV = GET 화면 요청만
+  if (STATIC_EXT.test(req.path)) return next();               // 정적 자원
+  if (req.path.startsWith('/api/')) return next();            // API
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) return next(); // 어드민(화면 아님)
+  if (req.path.startsWith('/.well-known/')) return next();    // 브라우저/툴 자동 요청(devtools 등)
+  // 파일형 경로(마지막 세그먼트에 '.' 포함: *.json·favicon 등)는 화면 아님 → 제외
+  if ((req.path.split('/').pop() || '').includes('.')) return next();
   try {
     const userId       = req.session?.userId || null;
     const sessionToken = req.sessionID || null;
@@ -173,7 +198,7 @@ app.use('/api/creator',          require('./routes/creator'));
 
 // ── Public curation read ──────────────────────────────────
 const fs   = require('fs');
-const CURATION_FILE = path.join(__dirname, 'data', 'curation.json');
+const { CURATION_FILE } = require('./lib/paths');
 app.get('/api/version', (_req, res) => {
   try {
     const changelog = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf-8');

@@ -3,9 +3,38 @@ const router   = express.Router();
 const fs       = require('fs');
 const path     = require('path');
 const { stmt } = require('../db');
+const { parseImageDataUrl } = require('../lib/imageData');
+const { CHARS_DIR, IMAGES_DIR } = require('../lib/paths');
 
-const CHARS_DIR  = path.join(__dirname, '..', 'prompts', 'characters');
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
+// ── Auth helpers (Codex R4 F1) ─────────────────────────────
+function requireAuth(req, res, next) {
+  if (!req.session?.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
+  next();
+}
+
+function loadCharConfig(id) {
+  const p = path.join(CHARS_DIR, id, 'config.json');
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; }
+}
+
+/** 캐릭터 owner 또는 admin만 통과. 프리빌트(owner_user_id 없음)는 admin만. */
+function requireOwnerOrAdmin(req, res, next) {
+  const uid = req.session?.userId;
+  if (!uid) return res.status(401).json({ error: '로그인이 필요합니다' });
+  const config = loadCharConfig(req.params.id);
+  if (!config) return res.status(404).json({ error: 'Not found' });
+  if (config.owner_user_id && config.owner_user_id === uid) {
+    req._charConfig = config;
+    return next();
+  }
+  const user = stmt.getUserById.get(uid);
+  if (user?.role === 'admin') {
+    req._charConfig = config;
+    return next();
+  }
+  return res.status(403).json({ error: '권한이 없습니다' });
+}
 
 // GET /api/characters — list all characters from config.json files
 // Filters adult_only characters unless user has adult_content_enabled
@@ -101,25 +130,58 @@ router.get('/', (req, res) => {
 });
 
 // GET /api/characters/:id — single character config
+// Codex R4 F4 (가벼운 대안): adult_only 캐릭터는 어드민 또는
+//   (1) 본인의 adult_content_enabled === 1 인 사용자
+//   (2) 해당 캐릭터로 만든 기존 세션 소유자 (user_id 또는 guest_id 매칭)
+// 에게만 노출. 나머지(all/toggleable)는 누구나 조회 가능 (필터 없음).
 router.get('/:id', (req, res) => {
-  const configPath = path.join(CHARS_DIR, req.params.id, 'config.json');
+  const charId = req.params.id;
+  const configPath = path.join(CHARS_DIR, charId, 'config.json');
   if (!fs.existsSync(configPath)) {
     return res.status(404).json({ error: 'Character not found' });
   }
+  let config;
   try {
-    res.json(JSON.parse(fs.readFileSync(configPath, 'utf-8')));
+    config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
   } catch (err) {
-    res.status(500).json({ error: 'Failed to read character config' });
+    return res.status(500).json({ error: 'Failed to read character config' });
   }
+
+  if (config.rating === 'adult_only') {
+    const uid = req.session?.userId || null;
+    const guestId = req.session?.guestId || null;
+    let allowed = false;
+    if (uid) {
+      const user = stmt.getUserById.get(uid);
+      if (user?.role === 'admin') allowed = true;
+      else if (user?.adult_content_enabled) allowed = true;
+    }
+    // 본인이 기존에 대화한 세션이 있으면 통과 (history에서 그 세션 진입 가능하도록)
+    if (!allowed && (uid || guestId)) {
+      if (stmt.hasSessionForChar.get(charId, uid, guestId)) allowed = true;
+    }
+    if (!allowed) return res.status(403).json({ error: '권한이 없습니다' });
+  }
+
+  res.json(config);
 });
 
 // POST /api/characters/create
 // Body: { characterData, systemPrompt }
 // Returns: { success, id, config }
-router.post('/create', (req, res) => {
+// Codex R4 F1: 로그인 필수 — 비로그인 생성 시 owner_user_id null이라 orphan + 비용/스팸 위험
+router.post('/create', requireAuth, (req, res) => {
   const { characterData, systemPrompt } = req.body;
   if (!characterData || !systemPrompt) {
     return res.status(400).json({ error: 'characterData and systemPrompt required' });
+  }
+
+  // 이미지 검증을 파일 생성 전에 — 오버사이즈면 orphan 디렉터리 안 남김 (R5-7)
+  const { imageData } = req.body;
+  let img = null;
+  if (imageData && typeof imageData === 'string') {
+    img = parseImageDataUrl(imageData);
+    if (img.error) return res.status(400).json({ error: img.error });
   }
 
   const id = 'char_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -131,17 +193,12 @@ router.post('/create', (req, res) => {
     // Write system.md
     fs.writeFileSync(path.join(charDir, 'system.md'), systemPrompt, 'utf-8');
 
-    // Save image if provided (base64 dataURL)
+    // Save image if provided (검증 완료된 버퍼)
     let imagePath = null;
-    const { imageData } = req.body;
-    if (imageData && typeof imageData === 'string') {
-      const match = imageData.match(/^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/);
-      if (match) {
-        const ext      = match[1].replace('jpeg', 'jpg');
-        const filename = `${id}.${ext}`;
-        fs.writeFileSync(path.join(IMAGES_DIR, filename), Buffer.from(match[2], 'base64'));
-        imagePath = `/images/${filename}`;
-      }
+    if (img) {
+      const filename = `${id}.${img.ext}`;
+      fs.writeFileSync(path.join(IMAGES_DIR, filename), img.buffer);
+      imagePath = `/images/${filename}`;
     }
 
     // Build config.json from characterData
@@ -187,14 +244,16 @@ router.post('/create', (req, res) => {
 });
 
 // GET /api/characters/:id/system — return system.md for editing
-router.get('/:id/system', (req, res) => {
+// Codex R4 F1: prompt engineering IP 보호 + 프리빌트는 admin만, 유저 제작은 owner+admin만
+router.get('/:id/system', requireOwnerOrAdmin, (req, res) => {
   const sysPath = path.join(CHARS_DIR, req.params.id, 'system.md');
   if (!fs.existsSync(sysPath)) return res.status(404).json({ error: 'Not found' });
   res.json({ systemPrompt: fs.readFileSync(sysPath, 'utf-8') });
 });
 
 // DELETE /api/characters/:id
-router.delete('/:id', (req, res) => {
+// Codex R4 F1: owner 또는 admin만. 프리빌트는 admin만 삭제 가능.
+router.delete('/:id', requireOwnerOrAdmin, (req, res) => {
   const id      = req.params.id;
   const charDir = path.join(CHARS_DIR, id);
   if (!fs.existsSync(charDir)) return res.status(404).json({ error: 'Not found' });

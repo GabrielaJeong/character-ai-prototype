@@ -5,10 +5,11 @@ const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
 const { db, stmt, adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter } = require('../db');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
+const { CHAT_MODELS, CHAT_MODEL_IDS, GEMINI_MODEL_IDS } = require('../lib/chatModels');
+
+const { CHARS_DIR, MODELS_DIR, UPLOADS_DIR, CURATION_FILE, BCAST_HIST_FILE, COL_HIST_FILE, deleteUserFiles } = require('../lib/paths');
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const CHARS_DIR     = path.join(__dirname, '..', 'prompts', 'characters');
-const CURATION_FILE = path.join(__dirname, '..', 'data', 'curation.json');
 
 // ── Admin guard ───────────────────────────────────────────
 function requireAdmin(req, res, next) {
@@ -161,9 +162,9 @@ router.post('/eval/run', async (req, res) => {
 
   let aiResponse = '';
   try {
-    const GEMINI = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
+    const GEMINI = GEMINI_MODEL_IDS;
     // thinking 모델(gemini-3.1-pro-preview 등)은 토큰을 더 넉넉히 줘야 함
-    const THINKING_MODELS = new Set(['gemini-3.1-pro-preview']);
+    const THINKING_MODELS = new Set(['gemini-3.1-pro-preview', 'gemini-3.5-flash']);
     if (GEMINI.has(model)) {
       const { callGemini } = require('../lib/gemini');
       const maxTokens = THINKING_MODELS.has(model) ? 8192 : 2048;
@@ -285,6 +286,7 @@ router.delete('/users/:publicId', (req, res) => {
   if (user.id === req.session.userId) return res.status(400).json({ error: '자기 자신은 삭제 불가' });
   stmt.deleteUserSessions.run(user.id);
   stmt.adminDeleteUser.run(req.params.publicId);
+  deleteUserFiles(user.id); // R5-2: 아바타·제작 캐릭터 파일 정리
   res.json({ ok: true });
 });
 
@@ -413,8 +415,6 @@ router.get('/moderation/:publicId', (req, res) => {
 });
 
 // ── Image Upload ──────────────────────────────────────────
-const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads');
-
 router.post('/upload', (req, res) => {
   try {
     const { data, ext } = req.body;
@@ -434,8 +434,6 @@ router.post('/upload', (req, res) => {
 });
 
 // ── Broadcast History ─────────────────────────────────────
-const BCAST_HIST_FILE = path.join(__dirname, '..', 'data', 'broadcast-history.json');
-
 function _loadBcastHist() {
   try { return JSON.parse(fs.readFileSync(BCAST_HIST_FILE, 'utf-8')); }
   catch { return []; }
@@ -476,8 +474,6 @@ router.delete('/broadcast-history/:idx', (req, res) => {
 });
 
 // ── Collection History ────────────────────────────────────
-const COL_HIST_FILE = path.join(__dirname, '..', 'data', 'collection-history.json');
-
 function _loadColHist() {
   try { return JSON.parse(fs.readFileSync(COL_HIST_FILE, 'utf-8')); }
   catch { return []; }
@@ -534,6 +530,36 @@ router.put('/curation', (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '큐레이션 파일 저장 실패' });
+  }
+});
+
+// ── Model-layer prompts (Layer 3: prompts/models/{id}.md) ──
+// GET /api/admin/models — 챗봇 모델 목록 + 각 모델 보정 프롬프트(.md) 내용
+router.get('/models', (req, res) => {
+  const items = CHAT_MODELS.map(m => {
+    const file = path.join(MODELS_DIR, `${m.id}.md`);
+    let content = '';
+    let hasFile = false;
+    try {
+      if (fs.existsSync(file)) { content = fs.readFileSync(file, 'utf-8'); hasFile = true; }
+    } catch (_) {}
+    return { ...m, hasFile, content };
+  });
+  res.json(items);
+});
+
+// PUT /api/admin/models/:id — 보정 프롬프트 저장. id는 화이트리스트 검증(경로 조작 차단)
+router.put('/models/:id', (req, res) => {
+  const id = req.params.id;
+  if (!CHAT_MODEL_IDS.has(id)) return res.status(400).json({ error: '알 수 없는 모델입니다' });
+  const { content } = req.body;
+  if (typeof content !== 'string') return res.status(400).json({ error: 'content(string) 필수' });
+  try {
+    if (!fs.existsSync(MODELS_DIR)) fs.mkdirSync(MODELS_DIR, { recursive: true });
+    fs.writeFileSync(path.join(MODELS_DIR, `${id}.md`), content, 'utf-8');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: '저장 실패: ' + e.message });
   }
 });
 

@@ -1,0 +1,53 @@
+/*
+ * 원본: public/css/style.css .notice-carousel-wrap / .notice-carousel / .notice-slide / .notice-pagination
+ *       (라인 973~1003)
+ */
+
+.wrap {
+  position: relative;
+  overflow: hidden;
+  margin-left: -20px;
+  margin-right: -20px;
+}
+
+.track {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+.track::-webkit-scrollbar { display: none; }
+
+.slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  height: 140px;
+  background: #000;
+}
+
+.slideLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.slideImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pagination {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}

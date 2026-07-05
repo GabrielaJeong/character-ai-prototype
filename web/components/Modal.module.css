@@ -1,0 +1,119 @@
+/*
+ * 공통 bottom-sheet 모달 스타일.
+ *
+ * 사용처 (재사용 변형):
+ *   - <DeleteConfirmModal>      — 세션·페르소나·캐릭터·계정 탈퇴 등
+ *   - <LogoutModal>             — 로그아웃 확인
+ *   - <AuthGate>                — 비로그인 인증 게이트 (데모 버튼 추가)
+ *   - <AdultVerifyModal>        — 첫 성인 인증 (체크박스 추가)
+ *   - <MypageModal>             — 정보 수정 (다른 콘텐츠)
+ *
+ * 원본: public/css/style.css 1917~1976 (delete-modal-overlay 패턴)
+ * z-index: 300 (BottomNav 200, Toast 9998 사이)
+ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.15s ease;
+}
+.panel {
+  width: 100%;
+  max-width: 430px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideUp 0.2s ease;
+}
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.btnGhost {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btnGhost:hover { border-color: var(--text-dim); color: var(--text); }
+
+.btnPrimary {
+  flex: 2;
+  padding: 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
+}
+.btnPrimary:hover { background: #4a7ea8; }
+
+.btnDelete {
+  flex: 1;
+  background: #e05c5c;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btnDelete:hover { background: #c94f4f; }
+
+/* 데모 버튼 — AuthGate에서만 사용 */
+.demoBtn {
+  width: 100%;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 8px 0 0;
+  text-align: center;
+  transition: color 0.15s;
+}
+.demoBtn:hover { color: var(--text-muted); }

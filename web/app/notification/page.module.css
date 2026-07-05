@@ -1,0 +1,310 @@
+/* 원본: public/css/style.css L3307~3622 (notif-*) */
+
+.pageWrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── 헤더 ──────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 18px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  touch-action: manipulation;
+}
+.backBtn:active { opacity: 0.7; }
+.headerCenter {
+  flex: 1;
+  min-width: 0;
+}
+.eyebrow {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  font-family: var(--font);
+  margin-bottom: 3px;
+}
+.inboxTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.newCount {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+.markAllBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font);
+  padding: 5px 11px;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  touch-action: manipulation;
+}
+.markAllBtn:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+  background: var(--surface);
+}
+.markAllBtn:active { opacity: 0.7; }
+
+/* ── 필터 탭 ───────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 14px 18px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  position: relative;
+  padding: 4px 11px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+/* 터치 타겟 44px 확보 (시각 크기 유지, 보이지 않는 영역만 확장) */
+.tab::before {
+  content: '';
+  position: absolute;
+  inset: -8px 0;
+}
+.tabActive {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+}
+.tabSub {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.tabActive .tabSub { color: color-mix(in srgb, var(--accent) 60%, transparent); }
+
+/* ── 피드 스크롤 영역 ──────────────────────────────── */
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+.loading {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 24px 18px;
+}
+
+/* ── 날짜 그룹 헤더 ────────────────────────────────── */
+.group {}
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 18px 4px;
+}
+.groupLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-family: var(--font);
+}
+.groupDate {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font);
+  letter-spacing: 0.02em;
+}
+
+/* ── 알림 행 ───────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 18px;
+  border-bottom: 0.5px solid var(--border);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+}
+.row:last-child { border-bottom: none; }
+.rowRecent {
+  border-left-color: #6ce5d5;
+  background: color-mix(in srgb, #6ce5d5 4%, transparent);
+}
+.rowRead {
+  border-left-color: transparent;
+  background: transparent;
+}
+.row:active { background: var(--surface); }
+
+/* 아이콘 박스 */
+.rowIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 0.5px solid var(--border);
+}
+.iconSocial {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.iconSystem {
+  background: var(--surface);
+  color: var(--text-dim);
+}
+
+/* 콘텐츠 */
+.rowContent { min-width: 0; }
+.rowTop {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+.rowTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+.catBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: var(--font);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.catSocial {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.catSys {
+  color: #94a3b8;
+  background: color-mix(in srgb, #94a3b8 12%, transparent);
+}
+.catNotice {
+  color: #f87171;
+  background: color-mix(in srgb, #f87171 12%, transparent);
+}
+
+/* NOTICE 아코디언 래퍼 */
+.noticeBodyWrap {
+  /* 13.5px * 1.55 line-height * 5줄 ≈ 105px */
+  max-height: 105px;
+  overflow: hidden;
+  transition: max-height 0.28s ease;
+}
+.noticeExpanded {
+  max-height: 800px;
+}
+.noticeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f87171;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+  touch-action: manipulation;
+}
+.noticeToggle:hover { opacity: 0.75; }
+
+.rowBody {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  padding: 5px 0 4px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+.rowTime {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--font);
+  letter-spacing: 0.01em;
+  margin-top: 2px;
+}
+
+/* ── 빈 상태 ───────────────────────────────────────── */
+.emptyState {
+  padding: 52px 20px;
+  text-align: center;
+}
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  font-family: var(--font);
+  margin-bottom: 6px;
+}
+.emptyDesc {
+  font-size: 14px;
+  color: var(--text-dim);
+}

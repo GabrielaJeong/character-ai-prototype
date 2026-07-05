@@ -112,17 +112,23 @@ PostgreSQL은 아직 안 옮기므로:
 - `apps/web/lib/api.mock.ts` — `?mock=true` 또는 env로 분기
 - 백엔드 다운/마이그레이션 중에도 프론트 개발 지속 가능
 
-### 마이그레이션 진행 방식
+### 마이그레이션 진행 방식 (확정)
 
 **전면 재작성** 선택 (D-014 권장):
 - 점진적 마이그레이션은 두 코드베이스 동시 유지 부담
 - 1인 개발이라 컨텍스트 스위칭 비용이 더 큼
 - 기존 vanilla 코드는 **참조용**으로 git에 보존
 
+**확정된 결정**:
+- **코드베이스 위치**: 같은 리포 + `web/` 폴더 (분리 안 함, 1인 컨텍스트 스위칭 최소화)
+- **Cutover**: 전부 React로 옮기고 한 번에 (부분 cutover 안 함)
+- **호스팅 (Phase A)**: **Vercel** (Next.js 최적, 보유 중)
+- **호스팅 (Phase C)**: AWS Amplify 또는 S3+CloudFront (백엔드 AWS 이전 시)
+
 **기존 코드 운명**:
-- 새 React 앱이 안정화될 때까지 `main` 브랜치 유지
-- 새 React 앱은 별도 폴더(`apps/web/`) 또는 별도 리포에서 시작
-- Cutover 시점에 도메인 전환
+- 새 React 앱이 안정화될 때까지 root 코드는 유지 (백엔드용 + 참조용)
+- 새 React 앱은 `web/` 폴더에서 독립 진행
+- Cutover 시점에 도메인 전환 (root는 백엔드 API 전용으로 전환)
 
 ---
 
@@ -196,6 +202,9 @@ PostgreSQL은 아직 안 옮기므로:
 
 ## 9. 체크포인트 기준 (Phase A 종료 조건)
 
+> **배포/cutover 실행 절차**: `docs/CUTOVER_CHECKLIST.md` (아키텍처·env·Volume·SSE 검증·롤백).
+> 배포 설정 코드(next.config 프록시·middleware `BACKEND_ORIGIN`)는 준비 완료. R5-1(파일 영속성)이 배포 하드 전제조건.
+
 Phase A는 다음 조건 만족 시 종료 선언:
 
 - [ ] 모든 화면이 React로 이식 완료 + 동일 기능
@@ -205,6 +214,30 @@ Phase A는 다음 조건 만족 시 종료 선언:
 - [ ] CI 통과 (테스트 추가 포함)
 - [ ] 프로덕션 도메인 cutover 완료 후 1주 안정 운영
 - [ ] LESSONS·DECISIONS에 React 마이그레이션 학습 기록
+
+---
+
+## 9.5 보안·인프라 백로그 (Codex R5, 2026-05-28)
+
+> React 프론트 마이그레이션 **스코프 밖**의 기존 백엔드/배포 인프라 이슈.
+> 원본 SPA 시절부터 존재했거나 배포 환경 작업이라, 마이그레이션 흐름과 분리하여 별도 처리 (ML-013).
+> cutover 전 또는 프로덕션 안정화 단계에서 일괄 처리.
+
+| # | 심각도 | 항목 | 위치 | 메모 |
+|---|---|---|---|---|
+| ~~R5-1~~ | ~~Critical~~ | ✅ **코드 완료** — 파일 영속성(경로 env화 + 부팅 시드) | `lib/paths.js` + 라우트/`server.js` | 런타임 파일을 `RUNTIME_DATA_DIR`(Volume) 하위로. `seedRuntimeData()`가 프리빌트 seed-if-missing. dev는 no-op(경로=repo). **남은 것: Railway Volume 생성 + `RUNTIME_DATA_DIR=/data` env**(배포 실행). 상세: `docs/CUTOVER_CHECKLIST.md` §2·§4 |
+| ~~R5-2~~ | ~~High~~ | ✅ **해결** — 탈퇴/유저삭제 파일 정리 | `lib/paths.deleteUserFiles`, `routes/auth.js`, `routes/admin.js` | 아바타 + 본인 제작 캐릭터 dir·이미지 삭제(프리빌트/타인 보존). DELETE `/me` + admin DELETE `/users`에서 호출 |
+| ~~R5-3~~ | ~~High~~ | ✅ **해결** — Builder 비용/메모리 보호 | `routes/builder.js`, `server.js` | 입력길이 4000자 제한 + `builderSessions` Map **TTL 30분·최대 500**(메모리 누수 차단) + 전용 `builderLimiter`(15분 30req). 비로그인 데모 흐름은 의도 유지 |
+| ~~R5-4~~ | ~~Medium~~ | ✅ **해결** — 아바타 서버측 크기 검증 | `routes/auth.js` PATCH `/me` | `lib/imageData.parseImageDataUrl`로 decoded 5MB 검증. (이전 확장자 파일 정리는 R5-2 파일정리와 함께) |
+| R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |
+| ~~R5-6~~ | ~~Low~~ | ✅ **해결** — 루트 lint flat config 전환 완료 | `eslint.config.js` | 원인: `eslintrc.json`(dot 누락)이라 미작동 + ESLint v10 flat config 요구. flat config 작성, public/·web/ ignore, jest globals 분리. error 0. 잔여 warning 9개(기존 백엔드 unused var)는 별도 정리 대상 |
+| ~~R5-7~~ | ~~Medium~~ | ✅ **해결** — 캐릭터 생성 이미지 서버측 크기 검증 | `routes/characters.js` POST `/create` | `parseImageDataUrl` 공용 헬퍼로 decoded 5MB 검증. 파일 생성 전 검증해 orphan dir 방지 |
+| ~~R5-8~~ | ~~Low~~ | ✅ **해결** — 알림 단건 read 소유권 | `routes/notifications.js`, `db/index.js` markOneRead | INSERT를 `SELECT ... WHERE n.id=? AND (user_id IS NULL OR user_id=me)`로 변경 — 본인/broadcast만 read row 생성 |
+| ~~R5-9~~ | ~~Medium~~ | ✅ **해결** — PV 집계에 비화면 요청 혼입 | `server.js` PV 미들웨어 | Codex 2차 QA: `/.well-known/*`(devtools) 등이 앱 PV로 집계(120중 68건). GET만 + `/.well-known`·파일형 경로(마지막 세그먼트에 `.`) 제외. 과거 junk 68행 정리(120→52) |
+
+> **2026-06-03 Codex R8** 처리: Creator adult 필터 즉시 수정. 이미지 서버검증·알림 read는 R5-7/R5-8 등록.
+> **2026-06-05 처리(사용자 "백로그 미루지 말자")**: R5-3(Builder limiter/Map TTL/입력길이)·R5-4/R5-7(이미지 서버검증)·R5-8(알림 read) **완료**. Codex 2차 QA의 PV 비화면 혼입은 R5-9로 **완료**.
+> **남은 컷오버 관문(2개 + 1)**: **R5-1**(파일 영속성 Critical, *코드 아닌 배포/스토리지 결정*), **R5-2**(탈퇴 파일정리 High — R5-1 스토리지 결정에 종속되어 R5-1과 함께 처리하기로), R5-5(회귀테스트 권장). Builder **비인증 자체는 의도된 데모 정책**(결함 아님).
 
 ---
 

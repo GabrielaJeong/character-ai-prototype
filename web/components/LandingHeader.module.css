@@ -1,0 +1,141 @@
+/*
+ * 원본: public/css/style.css
+ *   .landing-header             148~154
+ *   .landing-header-left/right  281~291
+ *   .landing-logo               309~317
+ *   .logo-o-wrap / .logo-dots   319~343
+ *   .adult-segment / .adult-seg-btn    4527~4553
+ *   .btn-icon / .notif-bell-btn / .notif-badge   293~307, 3286~3304
+ * 디자인 시스템: DESIGN_SYSTEM.md 섹션 3 (헤더 + 토글) / 섹션 9 (알림 배지)
+ */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 20px 0;
+  flex-shrink: 0;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── 로고: Foli + o(점 2개) ──────────────────────────────── */
+.logo {
+  display: block;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  line-height: 1;
+  color: #E2E8F0;
+  font-family: var(--font);
+}
+
+.oWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.dots {
+  position: absolute;
+  top: -10px;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot1 { background: #5B8FB9; }
+.dot2 { background: #8BA8DC; }
+
+/* ── ALL / 18+ 세그먼트 ───────────────────────────────────── */
+.segment {
+  display: flex;
+  gap: 6px;
+}
+
+.segBtn {
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1;
+  min-height: 28px; /* 모바일 인터랙션 — 부모 영역으로 보강 */
+  touch-action: manipulation;
+}
+.segBtn:active { opacity: 0.7; }
+
+.segBtn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+/* 18+ 활성화 시 빨간 톤 (원본 .adult-seg-btn:last-child.active) */
+.segBtn:last-child.active {
+  background: #c94f4f;
+  border-color: #c94f4f;
+  color: #fff;
+}
+
+/* ── 알림 벨 ──────────────────────────────────────────────── */
+.bellBtn {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+.bellBtn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.bellBtn:active { opacity: 0.7; }
+
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: #e05c5c;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  pointer-events: none;
+}

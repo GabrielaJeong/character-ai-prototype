@@ -1,8 +1,11 @@
 // ─── Constants ────────────────────────────────────────────
 const MODELS_LABEL = {
+  'claude-opus-4-8':           'Claude Opus 4.8',
+  'claude-opus-4-7':           'Claude Opus 4.7',
   'claude-opus-4-6':           'Claude Opus 4.6',
   'claude-sonnet-4-6':         'Claude Sonnet 4.6',
   'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+  'gemini-3.5-flash':          'Gemini 3.5 Flash',
   'gemini-3.1-pro-preview':    'Gemini 3.1 Pro',
   'gemini-2.5-pro':            'Gemini 2.5 Pro',
   'gemini-2.5-flash':          'Gemini 2.5 Flash',

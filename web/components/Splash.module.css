@@ -1,0 +1,66 @@
+/* 원본: public/css/style.css 22~65 + 309~343 (logo dots).
+   원본 #splash는 fadeIn 없음 — 첫 페인트부터 완전 불투명.
+   이전 버전이 .splash에 fadeIn 0.3s를 추가했었음 → opacity 0→1 동안 home 콘텐츠가 비쳐서
+   "splash가 home 뒤에 로딩되는 것처럼" 보이는 버그 발생. 제거. (ML-009 후속 수정) */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: #0A0E17;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.out { animation: fadeOut 0.4s ease forwards; }
+
+@keyframes fadeOut { to { opacity: 0; } }
+
+.logo {
+  font-size: 42px;
+  font-weight: 800;
+  color: #E2E8F0;
+  font-family: var(--font);
+  letter-spacing: -0.02em;
+  animation: logoIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes logoIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+
+.copy {
+  font-size: 13px;
+  color: #4A5568;
+  font-family: var(--font);
+  letter-spacing: 0.04em;
+  opacity: 0;
+  animation: copyIn 0.5s ease 0.3s forwards;
+}
+@keyframes copyIn { to { opacity: 1; } }
+
+/* Folio 로고의 "o" 안에 점 두 개 (원본 .logo-o-wrap / .logo-dots / .logo-dot) */
+.oWrap {
+  position: relative;
+  display: inline-block;
+}
+.dots {
+  position: absolute;
+  top: -10px;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot1 { background: #5B8FB9; }
+.dot2 { background: #8BA8DC; }

@@ -1,0 +1,36 @@
+/* 원본: public/css/style.css L4415~4440 (pd-actions / pd-default-label / pd-delete-link) */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  width: 100%;
+}
+.defaultLabel {
+  font-size: 13px;
+  color: var(--accent);
+  text-align: center;
+  padding: 10px 0;
+  margin: 0;
+}
+.deleteLink {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-family: var(--font);
+  color: #e05555;
+  cursor: pointer;
+  padding: 4px 0;
+  opacity: 0.8;
+  transition: opacity 0.15s;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+.deleteLink:hover { opacity: 1; }

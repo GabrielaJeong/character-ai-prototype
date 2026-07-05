@@ -1,0 +1,76 @@
+/*
+ * 원본: public/css/style.css .genre-row / .genre-card / .genre-card-overlay /
+ *                              .genre-card-label / .genre-card-title / .genre-card-count
+ *       (라인 472~528)
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 32px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+.row::-webkit-scrollbar { display: none; }
+
+.card {
+  flex-shrink: 0;
+  width: 130px;
+  height: 170px;
+  border-radius: var(--radius-card, 14px);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation; /* pan-x 컨테이너 내 클릭 충돌 방지 */
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
+}
+.card:active { opacity: 0.85; }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.82) 40%, rgba(0,0,0,0.2) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px 11px;
+  gap: 2px;
+  text-align: left;
+}
+
+.label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-family: var(--font);
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.count {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 2px;
+}

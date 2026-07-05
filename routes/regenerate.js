@@ -1,30 +1,31 @@
-const Anthropic = require('@anthropic-ai/sdk');
-const { callGemini } = require('../lib/gemini');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
+const { streamReply } = require('../lib/streamReply');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
 
-const anthropic         = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const GEMINI_MODELS     = new Set(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.1-pro-preview']);
 const DEFAULT_MODEL     = 'claude-sonnet-4-6';
 const DEFAULT_CHARACTER = 'ihwa';
 
-async function getReply({ model, systemPrompt, history, maxTokens = 8192 }) {
-  if (GEMINI_MODELS.has(model)) {
-    return callGemini({ model, systemInstruction: systemPrompt, history, maxTokens });
-  }
-  const response = await anthropic.messages.create({
-    model,
-    max_tokens: maxTokens,
-    system:     systemPrompt,
-    messages:   history,
-  });
-  return response.content[0].text;
+function sseSetup(res) {
+  res.setHeader('Content-Type',  'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection',    'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+}
+function sseWrite(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-// POST /api/chat/regenerate
+// POST /api/chat/regenerate — SSE streaming
+// Body: { sessionId, model? }
+//
+// Codex R2 F2: 기존 assistant를 미리 삭제하지 않고, 새 응답이 도착해야 교체.
+// 스트림 전체 실패 → 기존 assistant 그대로 유지 (DB 일관성)
+// 스트림 partial (1글자라도 옴) → 기존 삭제 + partial 저장 (frontend도 partial 표시)
 module.exports = async (req, res) => {
-  const { sessionId } = req.body;
+  const { sessionId, model: rawModel } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
 
   const session = verifyOwnership(sessionId, req, res);
@@ -35,9 +36,16 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'No assistant message to regenerate' });
   }
 
-  stmt.deleteLastAssistantMessage.run(sessionId);
+  let model = session.model || DEFAULT_MODEL;
+  if (rawModel && ALLOWED_MODELS.has(rawModel) && rawModel !== model) {
+    stmt.updateSessionModel.run(rawModel, sessionId);
+    model = rawModel;
+  }
 
-  const history = stmt.getMessages.all(sessionId).map(m => ({
+  // 기존 assistant 삭제는 stream 완료 후로 미룸. 대신 prompt 컨텍스트에서 제외:
+  // getMessages는 오래된 순. 마지막은 우리가 교체하려는 assistant이므로 slice(0, -1).
+  const allMessages = stmt.getMessages.all(sessionId);
+  const history = allMessages.slice(0, -1).map(m => ({
     role:    m.role,
     content: m.content,
   }));
@@ -45,15 +53,55 @@ module.exports = async (req, res) => {
   const noteRow      = stmt.getNote.get(sessionId);
   const charId       = session.character_id || DEFAULT_CHARACTER;
   const safety       = session.safety || 'on';
-  const model        = session.model || DEFAULT_MODEL;
   const systemPrompt = buildSystemPrompt(charId, JSON.parse(session.persona), noteRow?.note || '', safety, model);
 
+  sseSetup(res);
+
+  let aborted = false;
+  // Codex R3 F4: provider SDK까지 abort 전달
+  const providerCtrl = new AbortController();
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      aborted = true;
+      providerCtrl.abort();
+    }
+  });
+
+  // Codex R2 F1: route-level accumulator
+  let accumulated = '';
+  let streamError = null;
   try {
-    const reply = await getReply({ model, systemPrompt, history, maxTokens: 8192 });
-    stmt.addMessage.run(sessionId, 'assistant', reply);
-    res.json({ reply });
+    await streamReply({
+      model,
+      systemPrompt,
+      history,
+      maxTokens: 8192,
+      signal: providerCtrl.signal,
+      onDelta: (text) => {
+        accumulated += text;
+        if (aborted) return;
+        sseWrite(res, { type: 'delta', text });
+      },
+    });
   } catch (err) {
-    console.error('Regenerate error:', err.message);
-    res.status(500).json({ error: 'Failed to regenerate' });
+    console.error('Regenerate stream error:', err.message);
+    streamError = err.message;
+  }
+
+  // Codex R2 F2: 새 응답이 있으면 (성공/partial 무관) 기존 교체. 없으면 기존 유지.
+  if (accumulated) {
+    stmt.deleteLastAssistantMessage.run(sessionId);
+    stmt.addMessage.run(sessionId, 'assistant', accumulated);
+  }
+
+  if (streamError) {
+    if (!aborted) sseWrite(res, { type: 'error', error: '재생성에 실패했습니다.' });
+    if (!aborted) res.end();
+    return;
+  }
+
+  if (!aborted) {
+    sseWrite(res, { type: 'done', model });
+    res.end();
   }
 };

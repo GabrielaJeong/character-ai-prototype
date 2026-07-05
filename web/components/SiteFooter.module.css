@@ -1,0 +1,90 @@
+/*
+ * 원본: public/css/style.css .site-footer*  (라인 4939~5016)
+ */
+
+.footer {
+  margin-top: 48px;
+  padding: 32px 0 40px;
+  border-top: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.logo {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font);
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.build {
+  font-size: 11px;
+  font-family: var(--font);
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+}
+
+.tagline {
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--text-muted);
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.colTitle {
+  display: block;
+  font-size: 10px;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.col { display: block; }
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.links a {
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.links a:hover {
+  color: var(--text);
+}
+
+.legal {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.legal p {
+  margin: 0;
+  font-size: 11px;
+  font-family: var(--font);
+  color: #4a4a5a;
+  line-height: 1.6;
+}

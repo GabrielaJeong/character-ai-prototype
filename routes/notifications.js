@@ -35,7 +35,8 @@ router.patch('/read-all', (req, res) => {
 // PATCH /api/notifications/:id/read
 router.patch('/:id/read', (req, res) => {
   if (!req.session?.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
-  stmt.markOneRead.run(req.session.userId, Number(req.params.id));
+  const uid = req.session.userId;
+  stmt.markOneRead.run(uid, Number(req.params.id), uid);
   res.json({ ok: true });
 });
 

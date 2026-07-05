@@ -1,0 +1,56 @@
+/*
+ * 원본: public/css/style.css .wb-accordion / .wb-toggle / .wb-title / .wb-caret / .wb-body / .wb-content
+ *       (L1205~1263)
+ */
+
+.accordion {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.toggle:active { opacity: 0.7; }
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.caret {
+  font-size: 16px;
+  color: var(--text-dim);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+.toggle[aria-expanded="true"] .caret {
+  transform: rotate(90deg);
+}
+
+.body {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.content {
+  padding: 16px 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
