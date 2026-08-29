@@ -163,15 +163,16 @@ router.post('/eval/run', async (req, res) => {
   let aiResponse = '';
   try {
     const GEMINI = GEMINI_MODEL_IDS;
-    // thinking 모델(gemini-3.1-pro-preview 등)은 토큰을 더 넉넉히 줘야 함
-    const THINKING_MODELS = new Set(['gemini-3.1-pro-preview', 'gemini-3.5-flash']);
+    // thinking 모델(Gemini 3.x 전 계열)은 추론 토큰까지 소모하므로 넉넉히 줘야 함
+    const isThinking = (id) => id.startsWith('gemini-3');
     if (GEMINI.has(model)) {
       const { callGemini } = require('../lib/gemini');
-      const maxTokens = THINKING_MODELS.has(model) ? 8192 : 2048;
+      const maxTokens = isThinking(model) ? 8192 : 2048;
       aiResponse = await callGemini({ model, systemInstruction: systemPrompt, history: [{ role: 'user', content: testInput }], maxTokens });
     } else {
-      const resp = await anthropic.messages.create({ model, max_tokens: 2048, system: systemPrompt, messages: [{ role: 'user', content: testInput }] });
-      aiResponse = resp.content[0].text;
+      // Claude 5 세대는 adaptive thinking이 기본 ON이라 content[0]이 thinking 블록일 수 있음 → text 블록을 찾아서 사용
+      const resp = await anthropic.messages.create({ model, max_tokens: 4096, system: systemPrompt, messages: [{ role: 'user', content: testInput }] });
+      aiResponse = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
     }
   } catch (err) {
     console.error('[eval] 모델 응답 실패:', err.message, err.status, JSON.stringify(err.errorDetails ?? ''));

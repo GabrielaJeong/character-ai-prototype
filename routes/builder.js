@@ -12,7 +12,7 @@ const client = new Anthropic();
 // 비용 차단은 server.js의 apiLimiter(15분 200req) + 추후 per-IP rate limit으로 처리 예정.
 // 저장 단계(POST /api/characters/create)는 여전히 requireAuth라 orphan은 생성 안 됨.
 
-const DEFAULT_MODEL     = 'claude-sonnet-4-6';
+const DEFAULT_MODEL     = 'claude-sonnet-5';
 
 const AGENT_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'builder', 'agent.md');
 
@@ -92,7 +92,7 @@ router.post('/generate', async (req, res) => {
     const prompt = buildGeneratePrompt(characterData);
 
     const response = await client.messages.create({
-      model:      'claude-sonnet-4-6',
+      model:      'claude-sonnet-5',
       max_tokens: 4096,
       messages:   [{ role: 'user', content: prompt }],
     });

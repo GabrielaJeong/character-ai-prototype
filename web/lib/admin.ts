@@ -5,11 +5,16 @@
 
 /** 모델 id → 풀 라벨 (원본 admin.js MODELS_LABEL). 채팅용 lib/models.ts보다 표기가 김. */
 export const MODEL_LABELS: Record<string, string> = {
+  // 과거 세션 통계에 남은 은퇴 모델(sonnet-4-6 등)도 라벨이 필요하므로 항목은 지우지 않는다.
+  'claude-opus-5': 'Claude Opus 5',
+  'claude-sonnet-5': 'Claude Sonnet 5',
   'claude-opus-4-8': 'Claude Opus 4.8',
   'claude-opus-4-7': 'Claude Opus 4.7',
   'claude-opus-4-6': 'Claude Opus 4.6',
   'claude-sonnet-4-6': 'Claude Sonnet 4.6',
   'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+  'gemini-3.7-flash': 'Gemini 3.7 Flash',
+  'gemini-3.6-flash': 'Gemini 3.6 Flash',
   'gemini-3.5-flash': 'Gemini 3.5 Flash',
   'gemini-3.1-pro-preview': 'Gemini 3.1 Pro',
   'gemini-2.5-pro': 'Gemini 2.5 Pro',
