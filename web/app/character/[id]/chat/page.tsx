@@ -358,13 +358,22 @@ function ChatInner({ params }: { params: { id: string } }) {
       { role: 'user', sender: userName, versions: [text], vIdx: 0 },
     ]);
 
-    const isFirstMessage = messages.length === 0;
-    const body: Record<string, unknown> = { sessionId, message: text, model };
-    if (isFirstMessage) {
-      body.persona = persona;
-      body.characterId = char.id;
-      body.safety = safety;
-    }
+    const isFirstMessage = messages.length === 0; // URL 갱신(onSession) 판단용
+
+    // persona·characterId·safety는 항상 동봉한다. 백엔드(routes/chat.js)는 세션이
+    // 이미 있으면 이 필드들을 읽지 않으므로 기존 대화에는 영향이 없고, 세션이 없을 때만
+    // 세션 생성에 쓰인다.
+    // 첫 메시지에만 보내면 백엔드에 세션이 없는 순간(재배포로 DB 교체, 세션 만료 등)
+    // "persona is required for new sessions" 400 에 막혀 복구 경로가 없어진다 —
+    // 프론트는 persona를 state에 들고 있으면서도 못 보내는 상태가 된다.
+    const body: Record<string, unknown> = {
+      sessionId,
+      message: text,
+      model,
+      persona,
+      characterId: char.id,
+      safety,
+    };
 
     // 첫 displayed (1자라도) 도착 시 assistant 메시지 append. 이후엔 마지막 메시지 갱신.
     let assistantPlaced = false;
