@@ -21,15 +21,17 @@ export const MODELS: ChatModel[] = [
   { id: 'claude-opus-4-7',           label: 'Opus 4.7',         desc: '고성능',                     provider: 'claude' },
   { id: 'claude-opus-4-6',           label: 'Opus 4.6',         desc: '고성능',                     provider: 'claude' },
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',        desc: '빠른 응답',                  provider: 'claude' },
-  { id: 'gemini-3.7-flash',          label: 'Gemini 3.7 Flash', desc: '최신 · 빠름 · Google',       provider: 'gemini' },
+  { id: 'gemini-3.7-flash',          label: 'Gemini 3.7 Flash', desc: '가장 빠름 · Google · 기본값', provider: 'gemini' },
   { id: 'gemini-3.6-flash',          label: 'Gemini 3.6 Flash', desc: '빠르고 저렴 · Google',       provider: 'gemini' },
-  { id: 'gemini-3.1-pro-preview',    label: 'Gemini 3.1 Pro',   desc: '최고 성능 · Google · 기본값', provider: 'gemini' },
+  { id: 'gemini-3.1-pro-preview',    label: 'Gemini 3.1 Pro',   desc: '최고 성능 · Google · 느림',   provider: 'gemini' },
   { id: 'gemini-3.5-flash',          label: 'Gemini 3.5 Flash', desc: '빠름 · Google',              provider: 'gemini' },
   { id: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro',   desc: '구세대 · Google',            provider: 'gemini' },
   { id: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash', desc: '구세대 · Google',            provider: 'gemini' },
 ];
 
-export const CHAT_DEFAULT_MODEL    = 'gemini-3.1-pro-preview';
+// 채팅 기본값 — 첫 토큰 지연(TTFT)이 체감 품질을 지배해서 Flash 계열을 쓴다.
+// 실측(이화 프롬프트 + 1000~2000자 요구): 3.7 Flash 4.6s vs 3.1 Pro 33.8s.
+export const CHAT_DEFAULT_MODEL    = 'gemini-3.7-flash';
 export const BUILDER_DEFAULT_MODEL = 'claude-sonnet-5';
 
 export function findModel(id: string): ChatModel | undefined {

@@ -126,7 +126,11 @@ character-ai-prototype/
 
 ### 기본 모델
 
-**Gemini 3.1 Pro** (v0.17~). Opus 대비 Output 52% 절감, 유지율 95%.
+**Gemini 3.7 Flash**. 채팅 기본값은 첫 토큰 지연(TTFT)이 체감 품질을 지배해서 Flash 계열을 쓴다 — 실측(이화 프롬프트 + 1000~2000자 요구) 3.7 Flash 4.6s vs 3.1 Pro 33.8s.
+
+이전 기본값은 **Gemini 3.1 Pro** (v0.17~). Opus 대비 Output 52% 절감, 유지율 95%였으나 TTFT가 30초를 넘어 교체.
+
+> `GEMINI_THINKING_BUDGET`은 3.1 Pro의 TTFT를 줄이지 못한다(0/1024 실측 범위가 겹침). 짧은 프롬프트에서만 유효했던 것으로 보임.
 
 ### 크리에이터 시스템
 

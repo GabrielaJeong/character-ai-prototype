@@ -6,15 +6,15 @@ const MODELS = [
   { id: 'claude-opus-4-7',           label: 'Opus 4.7',         desc: '고성능',                      provider: 'claude'  },
   { id: 'claude-opus-4-6',           label: 'Opus 4.6',         desc: '고성능',                      provider: 'claude'  },
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',        desc: '빠른 응답',                   provider: 'claude'  },
-  { id: 'gemini-3.7-flash',          label: 'Gemini 3.7 Flash', desc: '최신 · 빠름 · Google',        provider: 'gemini'  },
+  { id: 'gemini-3.7-flash',          label: 'Gemini 3.7 Flash', desc: '가장 빠름 · Google · 기본값',  provider: 'gemini'  },
   { id: 'gemini-3.6-flash',          label: 'Gemini 3.6 Flash', desc: '빠르고 저렴 · Google',        provider: 'gemini'  },
-  { id: 'gemini-3.1-pro-preview',    label: 'Gemini 3.1 Pro',   desc: '최고 성능 · Google · 기본값',  provider: 'gemini'  },
+  { id: 'gemini-3.1-pro-preview',    label: 'Gemini 3.1 Pro',   desc: '최고 성능 · Google · 느림',    provider: 'gemini'  },
   { id: 'gemini-3.5-flash',          label: 'Gemini 3.5 Flash', desc: '빠름 · Google',               provider: 'gemini'  },
   { id: 'gemini-2.5-pro',            label: 'Gemini 2.5 Pro',   desc: '구세대 · Google',             provider: 'gemini'  },
   { id: 'gemini-2.5-flash',          label: 'Gemini 2.5 Flash', desc: '구세대 · Google',             provider: 'gemini'  },
 ];
 
-const CHAT_DEFAULT_MODEL    = 'gemini-3.1-pro-preview'; // 새 채팅 기본 모델
+const CHAT_DEFAULT_MODEL    = 'gemini-3.7-flash';       // 새 채팅 기본 모델 (TTFT 4.6s vs 3.1 Pro 33.8s)
 const BUILDER_DEFAULT_MODEL = 'claude-sonnet-5';        // 빌더 기본 모델
 
 // ─── State ───────────────────────────────────────────────
