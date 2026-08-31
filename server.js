@@ -150,7 +150,9 @@ app.use(session({
   },
 }));
 // 런타임 생성 이미지·업로드는 IMAGES_DIR/UPLOADS_DIR(Volume 가능)에서 먼저 서빙,
-// 이후 public/(아이콘·css·index.html 등 repo 정적)로 폴백. (R5-1)
+// 이후 public/(아이콘·favicon·프리빌트 이미지)로 폴백. (R5-1)
+// cutover 후 public/ 에 남는 것은 정적 자원뿐 — Next가 /images·/icons·/uploads 를
+// 이 서버로 프록시하므로(next.config.mjs rewrites) 계속 필요하다.
 app.use('/images',  express.static(IMAGES_DIR));
 app.use('/uploads', express.static(UPLOADS_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -213,24 +215,24 @@ app.get('/api/curation', (_req, res) => {
   } catch { res.status(500).json({ error: '큐레이션 로드 실패' }); }
 });
 
-// ── Admin pages (서버사이드 role 검증) ───────────────────
-function adminPageGuard(req, res, next) {
-  const userId = req.session?.userId;
-  if (!userId) return res.redirect('/');
-  const user = stmt.getUserById.get(userId);
-  if (!user || user.role !== 'admin') return res.redirect('/');
-  next();
-}
-app.get('/admin', adminPageGuard, (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-app.get('/admin/{*splat}', adminPageGuard, (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
+// ── Cutover: 이 서버는 API + 정적 자원(images/icons/uploads)만 담당 ──
+//
+// 화면은 전부 Next(web/)가 Vercel에서 서빙한다. 어드민 페이지도 web/app/admin/*
+// 이고, 서버사이드 role 검증은 web/middleware.ts 가 /api/auth/me 로 대신한다
+// (구 adminPageGuard 대응). 레거시 SPA(public/index.html·admin.html·js·css)는
+// D-019 완료와 함께 제거됐다.
+//
+// 남은 HTML 요청은 프론트로 넘긴다. FRONTEND_ORIGIN 미설정 시 리다이렉트 대신
+// 404를 준다 — 잘못된 도메인으로 보내는 것보다 안 보내는 쪽이 안전하다.
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || null;
 
-// ── SPA fallback ──────────────────────────────────────────
-app.get('/{*splat}', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/{*splat}', (req, res) => {
+  if (!FRONTEND_ORIGIN) {
+    return res.status(404).json({
+      error: '이 서버는 API 전용입니다. 화면은 프론트엔드 도메인을 이용해주세요.',
+    });
+  }
+  res.redirect(302, FRONTEND_ORIGIN + req.originalUrl);
 });
 
 // ── Global error handler ──────────────────────────────────

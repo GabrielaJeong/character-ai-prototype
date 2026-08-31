@@ -89,14 +89,21 @@ character-ai-prototype/
 │   ├── broadcast-history.json
 │   └── collection-history.json
 │
-├── public/                          # 프론트엔드 SPA
-│   ├── index.html                   # 모든 screen 포함
-│   ├── admin.html
-│   ├── css/ (style.css / admin.css)
-│   ├── js/ (app.js / admin.js)
+├── public/                          # 정적 자원만 (레거시 SPA는 cutover로 제거, D-019)
+│   ├── favicon.ico
 │   ├── icons/                       # SVG 아이콘
 │   ├── images/                      # 캐릭터·배너
 │   └── uploads/                     # 유저 업로드
+│                                    #   → Next가 /icons·/images·/uploads를 이 서버로 프록시
+│
+├── web/                             # 프론트엔드 (Next.js 14 App Router + TS)
+│   ├── app/                         # 라우트 (page.tsx 27개, admin/* 포함)
+│   ├── components/                  # 공용 컴포넌트 23개
+│   ├── lib/                         # api·hooks·models·validators
+│   ├── store/                       # zustand (auth/builder/chatPrep/ui)
+│   ├── __tests__/                   # Vitest — middleware·store·SSE
+│   ├── middleware.ts                # 어드민 게이트 (구 adminPageGuard 대체)
+│   └── next.config.mjs              # rewrites(백엔드 프록시) + CSP frame-ancestors
 │
 └── scripts/
     └── update-changelog.js
