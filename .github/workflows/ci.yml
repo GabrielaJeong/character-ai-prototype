@@ -2,11 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 jobs:
+  # 백엔드 (루트 Express)
   test:
     runs-on: ubuntu-latest
 
@@ -38,3 +39,37 @@ jobs:
           SESSION_SECRET: test-secret-for-ci
           ANTHROPIC_API_KEY: dummy
           GEMINI_API_KEY: dummy
+
+  # 프론트 (web/ Next.js) — 이식 후에도 CI가 백엔드만 돌고 있어 추가.
+  # tsc·build 는 hard gate. lint 는 현재 clean 이라 같이 hard gate로 둔다.
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

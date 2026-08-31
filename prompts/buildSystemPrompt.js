@@ -20,8 +20,13 @@ function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model
     const modelFile = path.join(MODELS_DIR, `${model}.md`);
     if (fs.existsSync(modelFile)) {
       const raw = fs.readFileSync(modelFile, 'utf-8').trim();
-      // Only include if there's actual content beyond the header
-      if (raw && raw !== '## MODEL-SPECIFIC CORRECTIONS') {
+      // 헤더만 남은 껍데기 파일은 주입하지 않는다.
+      // 어드민 모델 편집기(PUT /api/admin/models/:id)로 템플릿만 저장하면 내용 없는
+      // '### Known tendencies' 가 그대로 시스템 프롬프트에 들어가 토큰만 먹는다.
+      // (기존 검사는 '## MODEL-SPECIFIC CORRECTIONS' 완전일치라, 제목에 모델명이 붙는
+      //  순간 그냥 통과했다 — claude-opus-4-6.md 가 헤더 77자를 주입하던 원인)
+      const body = raw.replace(/^\s*#{1,6}\s.*$/gm, '').trim();
+      if (body) {
         modelCorrections = `\n\n---\n\n${raw}`;
       }
     }

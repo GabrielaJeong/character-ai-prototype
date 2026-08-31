@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
 
@@ -25,6 +26,7 @@ export function useRequireAuth(
   intendedPath: string,
   opts: { title: string; desc: string },
 ) {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const ready = useAuthStore((s) => s.ready);
   const showAuthGate = useUIStore((s) => s.showAuthGate);
@@ -37,8 +39,12 @@ export function useRequireAuth(
         desc: opts.desc,
         intendedPath,
       });
+      // 보호 라우트를 빈 화면으로 남기지 않는다 — 게이트를 홈 위에 띄우고,
+      // 닫기를 눌러도 빈 화면이 아니라 홈에 남도록 홈으로 replace (L-011).
+      // intendedPath는 게이트에 이미 전달됨 → "로그인하기" 시 원래 목적지로 복귀.
+      router.replace('/');
     }
-  }, [ready, user, intendedPath, showAuthGate, opts.title, opts.desc]);
+  }, [ready, user, intendedPath, showAuthGate, router, opts.title, opts.desc]);
 
   return { user, ready };
 }

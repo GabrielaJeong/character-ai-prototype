@@ -8,7 +8,7 @@ const { generateMemory }  = require('../lib/memory');
 const { streamReply }     = require('../lib/streamReply');
 const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
 
-const DEFAULT_MODEL     = 'claude-sonnet-4-6';
+const DEFAULT_MODEL     = 'claude-sonnet-5';
 const DEFAULT_CHARACTER = 'ihwa';
 
 /**

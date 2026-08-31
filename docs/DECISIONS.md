@@ -489,11 +489,17 @@
 
 ## D-019: React (Next.js) 마이그레이션 핵심 설계 결정
 
-**날짜**: 2026-05-27 ~ (진행 중)
-**버전**: Phase A (dev)
-**상태**: 적용 중
+**날짜**: 2026-05-27 ~ 2026-08-30
+**버전**: Phase A
+**상태**: **적용 완료** (cutover 완료)
 
 > Vanilla SPA(`public/`) → Next.js 14 App Router + TypeScript(`web/`) 이식 중 내린 결정 묶음.
+
+**cutover 완료 (2026-08-30)**
+- 레거시 SPA 제거 — `public/index.html`·`admin.html`·`js/`·`css/`. `public/`에는 정적 자원(`favicon.ico`·`icons/`·`images/`·`uploads/`)만 남는다. Next가 `/images`·`/icons`·`/uploads`를 이 서버로 프록시하므로 계속 필요하다
+- Express는 API + 정적 자원 전용. 남은 HTML 요청은 `FRONTEND_ORIGIN`으로 302 (path 보존). 미설정 시 리다이렉트 대신 404 JSON — 잘못된 도메인으로 보내는 것보다 안 보내는 쪽이 안전
+- 구 `adminPageGuard`(서버사이드 role 검증)는 `web/middleware.ts`가 대체. Edge에서 `/api/auth/me`로 role 확인 후 비어드민 차단
+- CSP `frame-ancestors`를 `next.config.mjs headers()`로 이관 — helmet 헤더는 이제 HTML에 안 붙는다 (D-016 유지)
 > 상세 작업 일지는 `web/MIGRATION_HISTORY.md` (ML-001~ML-014).
 
 **결정 1 — 상태 전달은 URL query 우선, store는 1-hop만**
