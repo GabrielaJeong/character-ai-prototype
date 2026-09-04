@@ -1,0 +1,42 @@
+/* 원본: public/css/style.css #demo-banner (~3733) — 값 그대로 이식 */
+.banner {
+  position: fixed;
+  bottom: 72px; /* BottomNav 위 */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(91, 143, 185, 0.15);
+  border: 1px solid rgba(91, 143, 185, 0.35);
+  border-radius: 20px;
+  padding: 7px 14px 7px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--accent);
+  font-family: var(--font);
+  z-index: 210;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.endBtn {
+  background: none;
+  border: 1px solid rgba(91, 143, 185, 0.4);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: 11px;
+  font-family: var(--font);
+  padding: 3px 10px;
+  cursor: pointer;
+  touch-action: manipulation; /* L-012 */
+  transition: background 0.15s;
+}
+
+.endBtn:hover {
+  background: rgba(91, 143, 185, 0.15);
+}
+
+.endBtn:active {
+  background: rgba(91, 143, 185, 0.28);
+}

@@ -7,6 +7,7 @@ import { AuthGate } from '@/components/AuthGate';
 import { LogoutModal } from '@/components/LogoutModal';
 import { AdultVerifyModal } from '@/components/AdultVerifyModal';
 import { BottomNav } from '@/components/BottomNav';
+import { DemoBanner } from '@/components/DemoBanner';
 import './globals.css';
 import './styles/forms.css';
 
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="screen-host">{children}</main>
           <BottomNav />
         </div>
+        <DemoBanner />
         <AuthGate />
         <LogoutModal />
         <DeleteConfirmModal />

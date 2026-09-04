@@ -9,6 +9,7 @@ import { CreatorRow } from '@/components/CreatorRow';
 import { GenreRow } from '@/components/GenreRow';
 import { UpcomingGrid } from '@/components/UpcomingGrid';
 import { SiteFooter } from '@/components/SiteFooter';
+import { DemoCta } from '@/components/DemoCta';
 import { useCharacters, useCuration } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
 import styles from './page.module.css';
@@ -48,6 +49,9 @@ export default function HomePage() {
       <LandingHeader />
 
       <div className={styles.pageBody}>
+        {/* 체험 진입점 — DEMO_MODE 활성 && 비로그인일 때만 렌더 */}
+        <DemoCta />
+
         {/* ── RECOMMENDED ─────────────────────────────────── */}
         <section className={styles.section}>
           <FeedHeader

@@ -14,6 +14,18 @@ import type { PersonaData } from '@/lib/types';
 
 const PERSONA = { name: '도현', age: 32 } as unknown as PersonaData;
 
+/**
+ * lib/api 의 request()는 content-type 에 application/json 이 있어야 파싱한다.
+ * Response 기본값은 text/plain 이라, 명시하지 않으면 본문이 문자열로 넘어와
+ * 테스트가 조용히 잘못된 경로를 검증하게 된다.
+ */
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 describe('chatPrep store — 1-hop 전달 (persona setup → chat)', () => {
   beforeEach(() => useChatPrepStore.setState({ prep: null }));
 
@@ -103,6 +115,35 @@ describe('ui store', () => {
   });
 });
 
+describe('auth store — 체험 모드', () => {
+  beforeEach(() => useAuthStore.setState({ user: null, ready: false, demoAvailable: false }));
+
+  it('demo-available 가 true면 demoAvailable 을 켠다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ available: true })),
+    );
+    await useAuthStore.getState().checkDemoMode();
+    expect(useAuthStore.getState().demoAvailable).toBe(true);
+  });
+
+  it('demo-available 호출이 실패하면 노출하지 않는다 — fail closed', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
+    await useAuthStore.getState().checkDemoMode();
+    expect(useAuthStore.getState().demoAvailable).toBe(false);
+  });
+
+  it('demoLogin 성공 시 user 를 채운다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ user: { id: 9, nickname: '체험 유저', isDemo: true } })),
+    );
+    const user = await useAuthStore.getState().demoLogin();
+    expect(user?.isDemo).toBe(true);
+    expect(useAuthStore.getState().user?.isDemo).toBe(true);
+  });
+});
+
 describe('auth store — initAuth race (L-011)', () => {
   beforeEach(() => useAuthStore.setState({ user: null, ready: false }));
 
@@ -110,7 +151,7 @@ describe('auth store — initAuth race (L-011)', () => {
     // initAuth 진행 중 다른 경로(demoLogin 등)가 먼저 user를 채운 상황을 재현
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ user: null }), { status: 200 })),
+      vi.fn().mockResolvedValue(jsonResponse({ user: null })),
     );
     useAuthStore.setState({ user: { id: 1, username: 'gabby' } as never });
 
