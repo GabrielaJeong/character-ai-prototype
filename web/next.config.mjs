@@ -2,7 +2,30 @@
 
 // 백엔드(Express) origin. prod(Vercel)에서 BACKEND_ORIGIN env로 Railway URL 지정.
 // 미설정 시 로컬 개발 기본값.
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || 'http://localhost:3000';
+//
+// 스킴이 빠지면(`folio-charc.up.railway.app`) rewrite destination 이 절대 URL도
+// 상대 경로도 아니게 되어 빌드가 통째로 죽는다 — "Error: Invalid rewrites found".
+// CI에는 이 env가 없어(기본값으로 빌드) 절대 못 잡히고 배포에서만 터지므로,
+// 여기서 정규화하고 그래도 이상하면 원인을 말해주는 에러로 바꾼다.
+export function resolveBackendOrigin() {
+  const raw = (process.env.BACKEND_ORIGIN || '').trim();
+  if (!raw) return 'http://localhost:3000';
+
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  const normalized = withScheme.replace(/\/+$/, ''); // 끝 슬래시 제거 → `//api/...` 방지
+
+  try {
+    new URL(normalized);
+  } catch {
+    throw new Error(
+      `BACKEND_ORIGIN 값이 URL로 해석되지 않습니다: ${JSON.stringify(raw)}\n` +
+        '  → 예시: https://folio-charc.up.railway.app (끝 슬래시 없이)',
+    );
+  }
+  return normalized;
+}
+
+const BACKEND_ORIGIN = resolveBackendOrigin();
 
 const nextConfig = {
   reactStrictMode: true,

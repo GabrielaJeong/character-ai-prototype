@@ -1,0 +1,60 @@
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(91, 143, 185, 0.3);
+  border-radius: 14px;
+  background: rgba(91, 143, 185, 0.08);
+  font-family: var(--font);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.desc {
+  font-size: 11.5px;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.btn {
+  flex-shrink: 0;
+  min-height: 44px; /* L-012 터치 타깃 */
+  padding: 0 14px;
+  border: 1px solid rgba(91, 143, 185, 0.45);
+  border-radius: 12px;
+  background: rgba(91, 143, 185, 0.16);
+  color: var(--accent);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s;
+}
+
+.btn:hover {
+  background: rgba(91, 143, 185, 0.26);
+}
+
+.btn:active {
+  background: rgba(91, 143, 185, 0.36);
+}
+
+.btn[aria-busy='true'] {
+  opacity: 0.6;
+}
