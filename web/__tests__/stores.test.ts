@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mutate } from 'swr';
 import { useChatPrepStore } from '@/store/chatPrep';
 import { useBuilderStore } from '@/store/builder';
 import { useUIStore } from '@/store/ui';
@@ -11,6 +12,9 @@ import type { PersonaData } from '@/lib/types';
  * 글로벌이 암묵적으로 공유되던 걸 명시적 store로 옮긴 게 마이그레이션 핵심 위험
  * 포인트였으므로(D-014), 최소한 수명주기 계약은 고정해둔다.
  */
+
+// 신분 변경 시 SWR 재검증이 도는지 확인하기 위해 전역 mutate 를 감시한다.
+vi.mock('swr', () => ({ default: vi.fn(), mutate: vi.fn() }));
 
 const PERSONA = { name: '도현', age: 32 } as unknown as PersonaData;
 
@@ -141,6 +145,26 @@ describe('auth store — 체험 모드', () => {
     const user = await useAuthStore.getState().demoLogin();
     expect(user?.isDemo).toBe(true);
     expect(useAuthStore.getState().user?.isDemo).toBe(true);
+  });
+
+  it('체험 로그인 후 SWR 캐시를 재검증한다', async () => {
+    // 재검증하지 않으면 비로그인 때 받아온 캐릭터 목록이 그대로 남아,
+    // 18+ 는 켜졌는데 성인 캐릭터가 안 보이는 상태가 된다.
+    vi.mocked(mutate).mockClear();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse({ user: { id: 9, isDemo: true } })),
+    );
+    await useAuthStore.getState().demoLogin();
+    expect(mutate).toHaveBeenCalled();
+  });
+
+  it('로그아웃도 재검증한다 — 이전 신분의 데이터가 남지 않도록', async () => {
+    vi.mocked(mutate).mockClear();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
+    await useAuthStore.getState().logout();
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(mutate).toHaveBeenCalled();
   });
 });
 
