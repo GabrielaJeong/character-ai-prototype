@@ -1,5 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * 프론트 테스트 설정.
@@ -11,7 +14,7 @@ import path from 'node:path';
 export default defineConfig({
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'), // tsconfig paths "@/*": ["./*"] 와 일치
+      '@': rootDir, // tsconfig paths "@/*": ["./*"] 와 일치
     },
   },
   test: {
