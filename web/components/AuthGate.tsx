@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useIsEmbedded, topLevelUrl } from '@/lib/useIsEmbedded';
 import styles from './Modal.module.css';
 
 /**
@@ -30,6 +31,7 @@ export function AuthGate() {
   const showToast     = useUIStore((s) => s.showToast);
   const demoAvailable = useAuthStore((s) => s.demoAvailable);
   const demoLogin     = useAuthStore((s) => s.demoLogin);
+  const embedded      = useIsEmbedded();
 
   if (!gate) return null;
 
@@ -58,15 +60,40 @@ export function AuthGate() {
     >
       <div className={styles.panel}>
         <p className={styles.title}>{gate.title}</p>
-        <p className={styles.desc}>{gate.desc}</p>
-        <div className={styles.actions}>
-          <button className={styles.btnGhost} onClick={close}>닫기</button>
-          <button className={styles.btnPrimary} onClick={goToLogin}>로그인하기</button>
-        </div>
-        {demoAvailable && (
-          <button className={styles.demoBtn} onClick={handleDemo}>
-            로그인 없이 체험하기 →
-          </button>
+        {embedded ? (
+          <>
+            {/* iframe 안에서는 세션 쿠키가 차단되어 로그인 자체가 성립하지 않는다.
+                시도하게 두면 성공한 것처럼 보이다 이후 요청이 전부 401 이 되므로,
+                여기서는 로그인·체험 버튼을 아예 내리고 새 탭으로만 유도한다. */}
+            <p className={styles.desc}>
+              이 기능은 새 탭에서 이용할 수 있어요. 지금 화면은 미리보기예요.
+            </p>
+            <div className={styles.actions}>
+              <button className={styles.btnGhost} onClick={close}>닫기</button>
+              <a
+                className={styles.btnPrimary}
+                href={topLevelUrl(gate.intendedPath || '/')}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={close}
+              >
+                새 탭에서 열기 →
+              </a>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className={styles.desc}>{gate.desc}</p>
+            <div className={styles.actions}>
+              <button className={styles.btnGhost} onClick={close}>닫기</button>
+              <button className={styles.btnPrimary} onClick={goToLogin}>로그인하기</button>
+            </div>
+            {demoAvailable && (
+              <button className={styles.demoBtn} onClick={handleDemo}>
+                로그인 없이 체험하기 →
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

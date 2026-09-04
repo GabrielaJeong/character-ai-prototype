@@ -58,3 +58,12 @@
 .btn[aria-busy='true'] {
   opacity: 0.6;
 }
+
+/* .btn 을 <a> 로 쓸 때 (임베드 상태의 "새 탭에서 열기") */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}

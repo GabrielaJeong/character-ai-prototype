@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useUIStore } from '@/store/ui';
+import { useIsEmbedded, topLevelUrl } from '@/lib/useIsEmbedded';
 import styles from './DemoCta.module.css';
 
 /**
@@ -21,9 +22,31 @@ export function DemoCta() {
   const demoAvailable = useAuthStore((s) => s.demoAvailable);
   const demoLogin = useAuthStore((s) => s.demoLogin);
   const showToast = useUIStore((s) => s.showToast);
+  const embedded = useIsEmbedded();
   const [busy, setBusy] = useState(false);
 
   if (!ready || user || !demoAvailable) return null;
+
+  // iframe 안에서는 세션 쿠키가 차단되어 체험 로그인이 성립하지 않는다.
+  // 성공한 것처럼 보이다 이후 요청이 401 이 되므로, 시도시키지 않고 새 탭으로 보낸다.
+  if (embedded) {
+    return (
+      <div className={styles.cta}>
+        <div className={styles.copy}>
+          <span className={styles.title}>지금 화면은 미리보기예요</span>
+          <span className={styles.desc}>새 탭에서 열면 가입 없이 채팅까지 체험할 수 있어요</span>
+        </div>
+        <a
+          className={styles.btn}
+          href={topLevelUrl('/')}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          새 탭에서 열기 →
+        </a>
+      </div>
+    );
+  }
 
   const start = async () => {
     if (busy) return;

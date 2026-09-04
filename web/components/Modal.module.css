@@ -117,3 +117,12 @@
   transition: color 0.15s;
 }
 .demoBtn:hover { color: var(--text-muted); }
+
+/* .btnPrimary 를 <a> 로 쓸 때 (임베드 상태의 "새 탭에서 열기") — button 과 동일한 박스로 */
+a.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
