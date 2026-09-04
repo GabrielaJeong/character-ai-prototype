@@ -122,8 +122,23 @@ export default function CharacterIntroPage({ params }: { params: { id: string } 
 
   const onMore = () => showToast('준비 중입니다.');
   // 페르소나 setup → /persona가 redirect 결정. safety는 query로 전달돼 chat 진입까지 유지.
-  const onStartChat = () =>
-    router.push(`/persona?char=${encodeURIComponent(char.id)}&safety=${safety}`);
+  //
+  // 비로그인은 여기서 막는다. 그냥 push 하면 /persona 의 useRequireAuth 가 게이트를
+  // 띄우면서 홈으로 replace 해버려서, 캐릭터를 고른 맥락이 사라진 채 홈에 떨어진다.
+  // 여기서 막으면 게이트가 이 캐릭터 위에 뜨고 intendedPath 로 돌아온다 —
+  // DEMO_MODE 일 때 게이트 안의 "로그인 없이 체험하기"가 노출되는 지점도 여기다.
+  const chatPath = `/persona?char=${encodeURIComponent(char.id)}&safety=${safety}`;
+  const onStartChat = () => {
+    if (!user) {
+      showAuthGate({
+        title: '대화 시작',
+        desc: '대화를 시작하려면 로그인이 필요합니다.',
+        intendedPath: chatPath,
+      });
+      return;
+    }
+    router.push(chatPath);
+  };
 
   // ── 파생값 ────────────────────────────────────────────────
   const roleLabel = [char.role, char.about?.world]
