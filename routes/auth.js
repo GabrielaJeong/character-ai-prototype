@@ -316,17 +316,16 @@ router.post('/demo-login', (req, res) => {
   }
 
   req.session.userId = user.id;
-  res.json({
-    user: {
-      id:         user.public_id,
-      email:      user.email,
-      nickname:   user.nickname,
-      username:   user.username,
-      avatar:     user.avatar || null,
-      role:       user.role,
-      isDemo:     true,
-    },
-  });
+  // POST /login·GET /me 와 동일한 shape 으로 응답한다.
+  // 과거에는 손으로 고른 부분집합을 돌려주면서 id 자리에 public_id(UUID)를 넣었다.
+  // 세 엔드포인트가 프론트의 같은 store 슬롯(useAuthStore.user)을 채우므로,
+  // shape이 어긋나면 체험 로그인 직후에만 user.id 가 UUID가 되고
+  // default_persona_id·public_id·adult_* 가 undefined 인 반쪽 유저가 된다.
+  //
+  // getUserById 로 다시 조회하는 이유: 위 getUserByEmail 은 로그인 비교용이라
+  // password_hash 를 포함한다. 그 row 를 그대로 뿌리면 bcrypt 해시가 클라이언트로
+  // 나간다 (POST /login 이 같은 이유로 재조회한다).
+  res.json({ user: { ...stmt.getUserById.get(user.id), isDemo: true } });
 });
 
 // ── POST /api/auth/_bootstrap-admin ────────────────────────
