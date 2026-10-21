@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: '동기화 대상 (docs,log,chars / 비우면 전부)'
+        description: '동기화 대상 (docs,log,chars,curation / 비우면 docs,log)'
         required: false
         default: ''
       force:
@@ -52,10 +52,14 @@ jobs:
           node-version: '20'
 
       # 동기화 스크립트는 Node 내장 모듈과 전역 fetch만 쓴다 — npm install 불필요.
+      #
+      # 기본 대상은 docs,log 로 고정한다. 플래그를 비우면 캐릭터 DB·큐레이션까지
+      # 동기화되는데, 둘 다 현재 Notion에서 쓰지 않기로 한 것이라 CI가 임의로
+      # 만들지 않게 한다. 필요하면 workflow_dispatch 의 only 입력으로 켠다.
       - name: Sync
         run: |
           node scripts/sync-notion.js \
-            ${{ inputs.only && format('--only={0}', inputs.only) || '' }} \
+            --only=${{ inputs.only || 'docs,log' }} \
             ${{ inputs.force && '--force' || '' }}
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}

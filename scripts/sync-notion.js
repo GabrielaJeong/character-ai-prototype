@@ -99,7 +99,10 @@ const skipped = [];
 
 // ── 유틸 ──────────────────────────────────────────────────
 
-const hash12 = (s) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 12);
+// 줄바꿈을 정규화한 뒤 해시한다. Windows 체크아웃은 CRLF, CI(리눅스)는 LF라
+// 원본 바이트로 해시하면 같은 내용인데도 값이 달라져 매 실행이 전체 교체가 된다.
+const hash12 = (s) =>
+  crypto.createHash('sha256').update(String(s).replace(/\r\n/g, '\n')).digest('hex').slice(0, 12);
 const trunc = (s, n) =>
   String(s ?? '').length > n ? String(s).slice(0, n - 1) + '…' : String(s ?? '');
 const readFile = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf-8');

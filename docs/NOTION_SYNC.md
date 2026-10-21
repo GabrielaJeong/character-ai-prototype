@@ -68,6 +68,12 @@ repo → Settings → Secrets and variables → Actions → **New repository sec
 | `schedule` | 매일 03:00 KST — 소스 변경 없이도 커밋 로그 DB를 따라잡기 위함 |
 | `workflow_dispatch` | 수동 실행. `only`·`force` 입력 지원 |
 
+CI 기본 대상은 **`docs,log`** 로 고정돼 있다. 캐릭터 DB·큐레이션은 현재 Notion에서
+쓰지 않기로 해서 CI가 임의로 만들지 않게 했다. 필요하면 수동 실행의 `only` 입력으로 켠다.
+
+> 내용 해시는 **줄바꿈을 정규화한 뒤** 계산한다. Windows 체크아웃은 CRLF, CI는 LF라
+> 원본 바이트로 해시하면 같은 내용인데도 값이 달라져 매 실행이 전체 교체가 된다.
+
 `concurrency: notion-sync` 로 묶여 있다. 두 실행이 겹쳐 같은 페이지를 중복 생성하는 것을 막기 위함이다.
 
 > `actions/checkout` 에 **`fetch-depth: 0`** 이 필요하다. 기본값(얕은 체크아웃)에서는
