@@ -1,14 +1,15 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-06-04 (React 마이그레이션 Phase A — 어드민 제외 전 화면 이식 완료)
+> 최종 업데이트: 2026-10-21 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
 
 ---
 
-## 🔄 React (Next.js) 마이그레이션 — Phase A (진행 중)
+## ✅ React (Next.js) 마이그레이션 — Phase A (완료)
 
 > Vanilla SPA(`public/`) → Next.js 14 App Router + TS(`web/`). 상세: `web/MIGRATION_HISTORY.md`.
-> `dev` 브랜치에서 진행. cutover 전까지 `public/` SPA가 프로덕션. **SSE 전환으로 일부 API는 web 전용** (D-019).
+> **2026-08-30 cutover 완료** (D-019). 레거시 SPA 제거 — `public/index.html`·`admin.html` 없음.
+> 현재 Express는 **API + 정적 자원 전용**, 화면은 전부 `web/`.
 
 ### 이식 완료 화면 (web/app/)
 - [x] 홈 `/` (큐레이션: 추천/공지/TOP.creators/GENRE/UPCOMING/footer)
@@ -26,7 +27,8 @@
 ### 미이식 화면
 - [x] **어드민 `/admin`** — **완료**. 서버 게이트(middleware) + 8 페이지(대시보드/유저/캐릭터/**모델 관리**/모더레이션/알림/eval/큐레이션). 큐레이션은 드래그/이미지업로드/스냅샷 히스토리/미리보기 전부. 모델 관리는 Layer 3 프롬프트 좌목록+우에디터. web 신규 의존성: chart.js + react-chartjs-2.
   - PV 집계에서 `/admin` 제외(server.js) — 어드민 조회가 앱 PV 부풀리던 버그 수정. 과거 admin PV 58행 정리 완료.
-  - **남은 것 = cutover + R5 인프라 백로그뿐.** 어드민 데이터 페이지 런타임 시각검증은 사용자 브라우저 확인 권장(어드민 세션 필요). 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
+  - **cutover 완료.** `public/admin.html`(Express adminPageGuard)은 제거됐고 `/admin`이 유일한 어드민이다.
+  - 남은 것 = R5 백로그 중 **R5-5(회귀 테스트) 부분 완료**분뿐. `docs/PRODUCTION_PLAN.md` 9.5 참조.
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
 
 ### 인프라 (web/)
@@ -42,7 +44,7 @@
 
 ### 유저 기능
 - [x] 4명 프리빌트 캐릭터 대화 (이화, 영일, 지세현, 박재헌)
-- [x] 멀티 모델 (Claude 5종: Sonnet 4.6 / Opus 4.8·4.7·4.6 / Haiku 4.5 + Gemini 4종: 2.5 Flash·Pro / 3.1 Pro / 3.5 Flash, 기본 Gemini 3.1 Pro). 정규 목록: `lib/chatModels.js`. 모델별 Layer 3 보정 프롬프트는 어드민 `/admin/models`에서 편집(`prompts/models/{id}.md`)
+- [x] 멀티 모델 12종 — Claude 6종(Opus 5 / Sonnet 5 / Opus 4.8·4.7·4.6 / Haiku 4.5) + Gemini 6종(3.7 Flash / 3.6 Flash / 3.5 Flash / 3.1 Pro / 2.5 Pro·Flash). **기본 `gemini-3.7-flash`**(TTFT 최적화, v0.33). 정규 목록: `lib/chatModels.js`. 모델별 Layer 3 보정 프롬프트는 어드민 `/admin/models`에서 편집(`prompts/models/{id}.md`)
 - [x] 소설/채팅 모드, 응답 재생성 + 페이지네이션
 - [x] 캐릭터 빌더 (AI 대화형 + 직접 제작)
 - [x] 유저 페르소나 시스템
@@ -87,14 +89,15 @@
 - [x] CHANGELOG.md 자동 생성 훅 (`[release]` 태그 커밋 시)
 - [x] CLAUDE.md (클로드 코드 진입점, Red Flags 11종)
 - [x] docs/CONVENTIONS.md (코딩 규칙 + 모바일 3종 체크리스트)
-- [x] docs/DECISIONS.md (설계 결정 16건 — D-001~D-016)
-- [x] docs/LESSONS.md (실수 패턴 12건 — L-001~L-012)
+- [x] docs/DECISIONS.md (설계 결정 20건 — D-001~D-020)
+- [x] docs/LESSONS.md (실수 패턴 22건 — L-001~L-022)
 - [x] docs/SECURITY.md (보안 정책 + 어드민 보호)
 - [x] docs/DESIGN_SYSTEM.md (토큰·컴포넌트·인터랙션)
 - [x] docs/SESSION_CHECKLIST.md
 - [x] ESLint + Prettier + .editorconfig
-- [x] Jest + supertest (49개 테스트 통과, `forceExit: true`)
-- [x] GitHub Actions CI
+- [x] Jest + supertest — 백엔드 **60개** 통과 (`forceExit: true`)
+- [x] Vitest — web **36개** 통과 (어드민 게이트·store·SSE 파서)
+- [x] GitHub Actions — CI(백엔드 + web job) + **Sync to Notion**(repo 문서 → Notion 미러)
 - [x] **Git 브랜치 전략** (작업 = `dev`, 릴리즈 = `main` merge)
 
 ---
@@ -121,10 +124,6 @@
 ### 하네스 확장
 - [ ] Sentry 에러 로깅 (프로덕션 단계)
 - [ ] 테스트 커버리지 50% 달성
-- [ ] React 마이그레이션 준비 작업 (D-014 참조)
-  - 전역 상태 단일 객체화
-  - app.js 화면 단위 분리
-  - onclick 인라인 → 함수 분리
 
 ---
 
@@ -149,13 +148,21 @@
 - L-015: Railway 컨테이너 ephemeral 파일시스템 — 매 배포 데이터 손실
 - L-016: Volume 마운트 경로가 코드 디렉토리와 충돌 → 모듈 로드 실패
 - L-017: `railway run`은 로컬 실행 — 컨테이너 / Volume 접근 불가
+- L-018: SSR 오버레이(Splash) FOUC — 진짜 원인은 fadeIn 0.3s 애니메이션
+- L-019: React StrictMode의 "한 번만 실행" 가드는 useState 아닌 useRef
+- L-020: Express SSE 클라이언트 abort 감지는 `res.on('close')` (req.on 아님)
+- L-021: 외부 코드리뷰 finding은 severity·영향범위로 분리, 묶음 적용 금지
+- L-022: 포트폴리오 iframe 안에서는 세션 쿠키가 아예 전송되지 않음
 
 ---
 
 ## 배포 상태
 
-- Railway 자동 배포 중 (GitHub `main` push 시)
-- 커스텀 도메인 적용 (`folio-charc.up.railway.app`)
-- GitHub Actions CI 통과 (49개 테스트, jest forceExit으로 워커 종료 보장)
+- **구성**: 백엔드 Express(Railway) = API + 정적 자원 / 프론트 Next.js(`web/`) = 전 화면
+  - `BACKEND_ORIGIN` — web(next.config·middleware)의 프록시 대상
+  - `FRONTEND_ORIGIN` — Express가 남은 HTML 요청을 넘길 프론트 도메인 (미설정 시 404 JSON)
+  - `RUNTIME_DATA_DIR` / `DB_PATH` — Railway Volume 경로 (R5-1·D-017)
+- Railway 자동 배포 (GitHub `main` push 시), 커스텀 도메인 `folio-charc.up.railway.app`
+- GitHub Actions — CI(백엔드 60 + web 36) / Sync to Notion
 - 환경변수: `DEMO_MODE=true` 설정 시 데모 체험 활성화
-- 포트폴리오 사이트 (`gabby-pm-portfolio.vercel.app`) iframe 임베딩 가능
+- 포트폴리오 사이트 (`gabby-pm-portfolio.vercel.app`) iframe 임베딩 가능 (D-016·L-022)
