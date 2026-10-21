@@ -1,7 +1,8 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-10-21 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
+> 최종 업데이트: 2026-10-22 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
+> **재가동 점검 진행 중** — 아래 '재가동 점검' 절 참조. 미푸시 브랜치 3개 있음.
 
 ---
 
@@ -37,6 +38,53 @@
 - 검증 하네스: type-check(항상)/lint(UI)/build(새 라우트)/jest(백엔드). build 후 `.next` 그대로 둠(IDE 타입), dev는 `predev` 훅이 정리 (ML-003)
 - **서버 측 auth 첫 도입**: `web/middleware.ts` — `/admin*` 진입 시 세션 쿠키를 백엔드 `/api/auth/me`로 포워드해 role 검증. 서버 fetch origin은 `API_INTERNAL_URL`(없으면 dev `localhost:3000`) → **prod 배포 시 env 설정 필요**
 - 백로그(cutover 전): `docs/PRODUCTION_PLAN.md` 9.5 (파일 영속화·Builder limiter·아바타 서버검증·회귀테스트)
+
+---
+
+## 🔧 재가동 점검 (2026-10-21 ~ 진행 중)
+
+> v0.33(2026-09-05) 이후 7주 공백 뒤 재가동. 조사 결과 전문은 세션 로그 기준이며,
+> 아래는 **다음 세션이 이어받기 위한 상태 요약**이다.
+
+### 미푸시 브랜치 — 전부 로컬 커밋만, push 안 함
+
+| 브랜치 | 커밋 | 내용 | 상태 |
+|---|---|---|---|
+| `chore/dep-audit-2026-10` | `daddf0d` | `npm audit fix` (root+web, `--force` 미사용) | ✅ 검증 완료 |
+| `chore/node-24` | `7f00ade` | Node 24 통일 — `engines`·`.nvmrc`·CI 3곳 | ✅ 검증 완료 |
+| `chore/layer3-model-alignment` | `a0651e8` | 서빙 모델 일치 — `gemini-3.8-flash` 명시 + 구 ID 별칭 | ✅ 검증 완료 |
+
+세 브랜치 모두 `dev` 기준으로 분기했고 서로 독립이다. 각각 백엔드 jest 60 · eslint 0 error ·
+web tsc · vitest 36 통과 확인.
+
+> **푸시 금지 이유**: Railway 가 `main` 자동 배포, Vercel 도 `main` 프로덕션(+모든 브랜치 프리뷰 배포).
+> 그리고 2026-10-21 Railway 플랫폼 장애로 **전 리전 빌드 중단** 상태였다.
+
+### 완료된 작업
+
+- **의존성**: root critical 1·high 8 → **0**. `proxy-addr` critical(IP 스푸핑 — limiter 5종이 전부 IP 기반) 해소. web 9 → 5
+- **Node 버전**: 로컬 24.14.1 / CI 20 / Railway 미지정 → 전부 24 로 고정. `better-sqlite3@12.8.0` 이 Node 24 공식 지원(`engines`) + 클린 설치 prebuilt 확인
+- **모델 정합성**: 자동 라우팅 발견(`3.7-flash`→`3.8-flash`, `3.5-flash`→`3.6-flash`) → 피커 중복 제거, 기본값 `gemini-3.8-flash` 명시, `LEGACY_MODEL_ALIASES` 추가 (L-023)
+- **문서**: `CUTOVER_CHECKLIST` 실측 항목 10개 근거와 함께 체크 (L-024), `PRODUCTION_PLAN` 7.3 신설
+
+### 남은 작업
+
+| # | 작업 | 블로커 |
+|---|---|---|
+| 1 | **R5-1 확인** — `railway login` → `railway variables \| grep RUNTIME_DATA_DIR` + `railway volume list` | Railway CLI 인증 만료 + 플랫폼 장애. **DB 는 `DB_PATH` 로 이미 영속화**(체크리스트 §9), 위험은 업로드 파일에 한정 |
+| 2 | 세 브랜치 머지 → `dev` → `main` 배포 | Railway 빌드 중단 해제 대기. 순서: R5-1 확인 → `chore/dep-audit` 배포 |
+| 3 | **Next 14 → 15 → 16** | 미착수. 영향 집계: async `params` 4개 파일(전부 `'use client'` → `use()`), `cookies/headers/searchParams`/Route Handler **0건**. 16 추가: `middleware.ts`→`proxy.ts`, `next lint` 제거, ESLint flat config |
+| 4 | `ihwa.png` 25MB → 다른 캐릭터 수준(1.5~2MB) | 미착수 |
+| 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
+| 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
+
+### 알려진 미해결 사항
+
+- `prompts/models/gemini-3.7-flash.md` — 별칭이 Layer 3 조회 전에 걸려 **더 이상 로드되지 않는 고아**. `gemini-3.8-flash.md` 의 출처라 남겨뒀다
+- `sessions.model` 컬럼 DEFAULT 가 `'claude-sonnet-4-6'` — v0.33 에서 제거된 모델. 세션 생성 시 항상 명시값이 들어가 실害는 없으나 stale
+- 서빙 모델 로깅 미구현 — Claude `message_start.message.model` / Gemini `chunk.modelVersion` 으로 가능. `lib/streamReply.js` 에 `onMeta` 콜백 추가 + `sessions`/`moderation_logs` 에 컬럼 필요
+- root `@anthropic-ai/sdk` 0.86.1 → 0.137.0 (moderate, semver major)
+- web 잔여 취약점 5건은 전부 `next@16.4.2` 필요 → 위 #3 과 묶임
 
 ---
 
