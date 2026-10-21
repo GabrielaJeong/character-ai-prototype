@@ -6,7 +6,7 @@ const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 const { generateMemory }  = require('../lib/memory');
 const { streamReply }     = require('../lib/streamReply');
-const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS, resolveModel } = require('../lib/chatModels');
 
 const DEFAULT_MODEL     = 'claude-sonnet-5';
 const DEFAULT_CHARACTER = 'ihwa';
@@ -34,7 +34,10 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'sessionId and message are required' });
   }
 
-  const model       = ALLOWED_MODELS.has(rawModel) ? rawModel : DEFAULT_MODEL;
+  // 구 모델 ID(gemini-3.7/3.5-flash)를 현행으로 옮긴 뒤 검증한다.
+  // 옮기지 않으면 목록에 없어 DEFAULT_MODEL(claude-sonnet-5)로 떨어져 프로바이더가 바뀐다.
+  const reqModel    = resolveModel(rawModel);
+  const model       = ALLOWED_MODELS.has(reqModel) ? reqModel : DEFAULT_MODEL;
   const characterId = rawCharId || DEFAULT_CHARACTER;
 
   // Create session if new, otherwise verify ownership

@@ -4,7 +4,11 @@ const fs        = require('fs');
 const path      = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const { callGemini } = require('../lib/gemini');
-const { CHAT_MODEL_IDS: ALLOWED_MODELS, GEMINI_MODEL_IDS: GEMINI_MODELS } = require('../lib/chatModels');
+const {
+  CHAT_MODEL_IDS: ALLOWED_MODELS,
+  GEMINI_MODEL_IDS: GEMINI_MODELS,
+  resolveModel,
+} = require('../lib/chatModels');
 
 const client = new Anthropic();
 
@@ -45,7 +49,8 @@ router.post('/chat', async (req, res) => {
     return res.status(400).json({ error: '메시지가 너무 깁니다 (4000자 이하).' });
   }
 
-  const model = ALLOWED_MODELS.has(req.body.model) ? req.body.model : DEFAULT_MODEL;
+  const reqModel = resolveModel(req.body.model);
+  const model = ALLOWED_MODELS.has(reqModel) ? reqModel : DEFAULT_MODEL;
   const sid   = req.body.builderSessionId ||
     ('b-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 5));
 

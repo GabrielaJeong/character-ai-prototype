@@ -2,7 +2,7 @@ const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 const { streamReply } = require('../lib/streamReply');
-const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS, resolveModel } = require('../lib/chatModels');
 
 const DEFAULT_MODEL     = 'claude-sonnet-5';
 const DEFAULT_CHARACTER = 'ihwa';
@@ -36,10 +36,14 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'No assistant message to regenerate' });
   }
 
-  let model = session.model || DEFAULT_MODEL;
-  if (rawModel && ALLOWED_MODELS.has(rawModel) && rawModel !== model) {
-    stmt.updateSessionModel.run(rawModel, sessionId);
-    model = rawModel;
+  // sessions.model 에 구 ID가 남아 있을 수 있어 읽는 지점에서 옮긴다.
+  // (원래 여기는 ALLOWED_MODELS 검증을 거치지 않아 구 ID가 그대로 API 로 나갔다)
+  const stored = resolveModel(session.model);
+  let model = ALLOWED_MODELS.has(stored) ? stored : DEFAULT_MODEL;
+  const reqModel = resolveModel(rawModel);
+  if (rawModel && ALLOWED_MODELS.has(reqModel) && reqModel !== model) {
+    stmt.updateSessionModel.run(reqModel, sessionId);
+    model = reqModel;
   }
 
   // 기존 assistant 삭제는 stream 완료 후로 미룸. 대신 prompt 컨텍스트에서 제외:
