@@ -3,8 +3,8 @@
 > Folio 프로토타입 → 프로덕션 마이그레이션 마스터 플랜.
 > 결정 사항 / 단계 / 체크리스트 / 미결정 사항 추적.
 
-**최종 업데이트**: 2026-05-05
-**현재 단계**: Phase A 진입 (React 마이그레이션)
+**최종 업데이트**: 2026-10-21
+**현재 단계**: **Phase A 완료** (cutover 2026-08-30, D-019) → **Phase D(결제) 대기 중**
 
 ---
 
@@ -24,9 +24,9 @@
 ## 2. 마이그레이션 순서 (최종)
 
 ```
-[Phase A] React 마이그레이션          ← 지금 진행
+[Phase A] React 마이그레이션          ← ✅ 완료 (2026-08-30 cutover)
     ↓
-[Phase D] 결제 시스템 통합            ← 백엔드 설계 중
+[Phase D] 결제 시스템 통합            ← 다음 단계 (미착수)
     ↓
 [Phase B] PostgreSQL 마이그레이션     ← AWS 이전과 묶기
     ↓
@@ -43,7 +43,7 @@
 
 ---
 
-## 3. Phase A — React 마이그레이션 (현재 진행)
+## 3. Phase A — React 마이그레이션 (✅ 완료)
 
 ### 결정된 스택
 
@@ -57,38 +57,40 @@
 | 라우팅 | **Next.js 파일 기반** | 현재 ROUTES 배열 → 폴더 구조 매핑 |
 | 백엔드 | **현재 Express 서버 유지** | API 호출 형태 그대로, mock 인터페이스 가능 |
 
-### 작업 분해 (예상 3~4주)
+### 작업 분해 (실제 2026-05-27 ~ 08-30)
+
+> 체크 상태는 cutover 완료 시점(D-019)·CHANGELOG v0.32~v0.33 기준으로 소급 정리했다.
 
 **Week 1 — 환경 + 기반**
-- [ ] Next.js 14 프로젝트 생성 (`apps/web` 또는 별도 리포)
-- [ ] 기존 디자인 토큰 (`style.css` `:root` 변수) → globals.css 이식
-- [ ] 글로벌 layout (스플래시 / bottom-nav / 토스트)
-- [ ] AuthContext (Zustand) — `_currentUser` 대체
-- [ ] API 클라이언트 (`lib/api.ts`) — fetch wrapper + 에러 처리
-- [ ] 라우팅: 파일 기반 (app/[route]/page.tsx) 매핑 테이블 작성
+- [x] Next.js 14 프로젝트 생성 (`apps/web` 또는 별도 리포)
+- [x] 기존 디자인 토큰 (`style.css` `:root` 변수) → globals.css 이식
+- [x] 글로벌 layout (스플래시 / bottom-nav / 토스트)
+- [x] AuthContext (Zustand) — `_currentUser` 대체
+- [x] API 클라이언트 (`lib/api.ts`) — fetch wrapper + 에러 처리
+- [x] 라우팅: 파일 기반 (app/[route]/page.tsx) 매핑 테이블 작성
 
 **Week 2 — 핵심 화면**
-- [ ] `/` 홈 (캐릭터 그리드)
-- [ ] `/character/[id]` 인트로
-- [ ] `/persona/select`, `/persona/new` (linked / standalone 모드)
-- [ ] `/character/[id]/chat` 채팅 (스트리밍은 별도 hook)
-- [ ] `/explore` 탐색 + 큐레이션
+- [x] `/` 홈 (캐릭터 그리드)
+- [x] `/character/[id]` 인트로
+- [x] `/persona/select`, `/persona/new` (linked / standalone 모드)
+- [x] `/character/[id]/chat` 채팅 (스트리밍은 별도 hook)
+- [x] `/explore` 탐색 + 큐레이션
 
 **Week 3 — 보조 화면**
-- [ ] `/login`, `/signup`, `/reset-password`
-- [ ] `/mypage` (페르소나/캐릭터/책갈피 탭)
-- [ ] `/notification` 알림함
-- [ ] `/creator/@[username]` 크리에이터 프로필
-- [ ] `/builder`, `/builder/chat`, `/builder/manual` 빌더
-- [ ] 404 페이지
+- [x] `/login`, `/signup`, `/reset-password`
+- [x] `/mypage` (페르소나/캐릭터/책갈피 탭)
+- [x] `/notification` 알림함
+- [x] `/creator/@[username]` 크리에이터 프로필
+- [x] `/builder`, `/builder/chat`, `/builder/manual` 빌더
+- [x] 404 페이지
 
 **Week 4 — 통합 + 안정화**
-- [ ] 인증 게이트 + 리다이렉트 로직 (`L-011` `L-017` 패턴 그대로)
-- [ ] 모바일 인터랙션 검증 (`L-012` 체크리스트)
-- [ ] 데모 모드 (`DEMO_MODE` 분기)
-- [ ] E2E 시나리오 수동 테스트 + 자동 테스트 일부
-- [ ] Vercel 또는 별도 호스팅 배포
-- [ ] 기존 Folio 도메인 cutover
+- [x] 인증 게이트 + 리다이렉트 로직 (`L-011` `L-017` 패턴 그대로)
+- [x] 모바일 인터랙션 검증 (`L-012` 체크리스트)
+- [x] 데모 모드 (`DEMO_MODE` 분기)
+- [x] E2E 시나리오 수동 테스트 + 자동 테스트 일부
+- [x] Vercel 또는 별도 호스팅 배포
+- [x] 기존 Folio 도메인 cutover
 
 ### 기존 자산 활용
 
@@ -177,9 +179,18 @@ PostgreSQL은 아직 안 옮기므로:
 
 ## 7. 미결정 사항 (Open Questions)
 
-- [ ] React 새 코드베이스 위치: 모노레포(`apps/web`) vs 별도 리포
-- [ ] CSS 전략: 현재 globals.css 그대로 vs CSS Modules vs Tailwind
-- [ ] 백엔드 mock 인터페이스 필요성 (Phase B 전까지 SQLite 직접 사용해도 됨)
+### 7.1 Phase A에서 확정됨 (2026-10-21 정리)
+
+3장 진행 중 결론이 난 항목들. 더는 미결정이 아니다.
+
+| 항목 | 확정 내용 | 근거 |
+|------|-----------|------|
+| React 코드베이스 위치 | **같은 리포 + `web/` 폴더** (모노레포 도구 없이 단순 분리) | 3장 "확정된 결정" · 실제 `web/` 구조 |
+| CSS 전략 | **`globals.css` 토큰 + CSS Modules**. Tailwind 미채택 | `web/app/globals.css` + `*.module.css` 46개, tailwind 설정 없음 |
+| 백엔드 mock 인터페이스 | **불필요 — 만들지 않음.** Express API를 그대로 사용 | `api.mock.ts` 미생성, cutover까지 실 API로 완주 |
+
+### 7.2 남은 미결정
+
 - [ ] 결제 PG 선택 (Toss Payments / PortOne / Stripe Korea)
 - [ ] 토큰 vs 구독 모델
 - [ ] AWS 이전 트리거 (MAU 임계값?)
@@ -207,13 +218,13 @@ PostgreSQL은 아직 안 옮기므로:
 
 Phase A는 다음 조건 만족 시 종료 선언:
 
-- [ ] 모든 화면이 React로 이식 완료 + 동일 기능
-- [ ] 모바일 핵심 인터랙션 동작 검증 (L-012 체크리스트)
-- [ ] 인증 게이트 모든 플로우 동작 (L-011, L-017 패턴)
-- [ ] 데모 모드 동작
-- [ ] CI 통과 (테스트 추가 포함)
-- [ ] 프로덕션 도메인 cutover 완료 후 1주 안정 운영
-- [ ] LESSONS·DECISIONS에 React 마이그레이션 학습 기록
+- [x] 모든 화면이 React로 이식 완료 + 동일 기능 — 27개 페이지 + 어드민 8페이지
+- [ ] 모바일 핵심 인터랙션 동작 검증 (L-012 체크리스트) — **수동 QA 기록 없음, 미확인**
+- [x] 인증 게이트 모든 플로우 동작 (L-011, L-017 패턴) — `useRequireAuth` 6개 라우트 (ML-014)
+- [x] 데모 모드 동작 — `demo-login` + 체험 배너 (v0.33)
+- [x] CI 통과 (테스트 추가 포함) — 백엔드 jest + web Vitest 24, CI에 web job 추가
+- [x] 프로덕션 도메인 cutover 완료 후 1주 안정 운영 — 2026-08-30 cutover
+- [x] LESSONS·DECISIONS에 React 마이그레이션 학습 기록 — D-019 · D-020 · L-018 · ML-011~014
 
 ---
 
@@ -229,7 +240,7 @@ Phase A는 다음 조건 만족 시 종료 선언:
 | ~~R5-2~~ | ~~High~~ | ✅ **해결** — 탈퇴/유저삭제 파일 정리 | `lib/paths.deleteUserFiles`, `routes/auth.js`, `routes/admin.js` | 아바타 + 본인 제작 캐릭터 dir·이미지 삭제(프리빌트/타인 보존). DELETE `/me` + admin DELETE `/users`에서 호출 |
 | ~~R5-3~~ | ~~High~~ | ✅ **해결** — Builder 비용/메모리 보호 | `routes/builder.js`, `server.js` | 입력길이 4000자 제한 + `builderSessions` Map **TTL 30분·최대 500**(메모리 누수 차단) + 전용 `builderLimiter`(15분 30req). 비로그인 데모 흐름은 의도 유지 |
 | ~~R5-4~~ | ~~Medium~~ | ✅ **해결** — 아바타 서버측 크기 검증 | `routes/auth.js` PATCH `/me` | `lib/imageData.parseImageDataUrl`로 decoded 5MB 검증. (이전 확장자 파일 정리는 R5-2 파일정리와 함께) |
-| R5-5 | Medium | R3/R4 보안 경계 회귀 테스트 부재 | `tests/` | 캐릭터 생성/삭제/system 권한, adult 단건 gate, sessions safety 소유권, 탈퇴 파일 정리, Builder limiter |
+| R5-5 | Medium | **부분 완료** — R3/R4 보안 경계 회귀 테스트 | `tests/api/` (15 describe, 51 tests) | ✅ 커버: 보안 헤더·로그인 rate limit·세션 쿠키·세션 소유권/격리·safety 소유권. ❌ 미커버: 캐릭터 생성/삭제 권한, 탈퇴 파일 정리, Builder limiter |
 | ~~R5-6~~ | ~~Low~~ | ✅ **해결** — 루트 lint flat config 전환 완료 | `eslint.config.js` | 원인: `eslintrc.json`(dot 누락)이라 미작동 + ESLint v10 flat config 요구. flat config 작성, public/·web/ ignore, jest globals 분리. error 0. 잔여 warning 9개(기존 백엔드 unused var)는 별도 정리 대상 |
 | ~~R5-7~~ | ~~Medium~~ | ✅ **해결** — 캐릭터 생성 이미지 서버측 크기 검증 | `routes/characters.js` POST `/create` | `parseImageDataUrl` 공용 헬퍼로 decoded 5MB 검증. 파일 생성 전 검증해 orphan dir 방지 |
 | ~~R5-8~~ | ~~Low~~ | ✅ **해결** — 알림 단건 read 소유권 | `routes/notifications.js`, `db/index.js` markOneRead | INSERT를 `SELECT ... WHERE n.id=? AND (user_id IS NULL OR user_id=me)`로 변경 — 본인/broadcast만 read row 생성 |
@@ -243,9 +254,10 @@ Phase A는 다음 조건 만족 시 종료 선언:
 
 ## 10. 참고 문서
 
-- `docs/DECISIONS.md` — D-014 (React), D-017 (DB 영속화)
+- `docs/DECISIONS.md` — D-014 (React 채택), D-017 (DB 영속화), **D-019 (마이그레이션 설계·cutover 완료)**, D-020 (Layer 3 모델 보정)
 - `docs/LESSONS.md` — L-011~L-017 (마이그레이션 시 회귀 방지)
 - `docs/DESIGN_SYSTEM.md` — 토큰·컴포넌트 1:1 이식 기준
 - `docs/SECURITY.md` — 보안 정책 (React에서도 동일 적용)
 - `docs/CONVENTIONS.md` — 코딩 규칙 (React 컨벤션은 추후 보강)
-- `CHANGELOG.md` — 현재 v0.30 시점
+- `CHANGELOG.md` — 현재 **v0.33** 시점 (2026-09-05)
+- `docs/CURRENT_STATE.md` — ⚠ 2026-06-04 기준으로 정체됨. cutover 반영 필요
