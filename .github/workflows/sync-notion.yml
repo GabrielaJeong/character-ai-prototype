@@ -1,0 +1,62 @@
+name: Sync to Notion
+
+on:
+  push:
+    branches: [main, dev]
+    # 동기화 소스가 바뀐 push만 돌린다. 코드 커밋마다 Notion을 두드릴 필요는 없다.
+    # (커밋 로그 DB는 소스 변경 없이도 쌓여야 하므로 scripts/lib 변경 외에
+    #  매일 한 번 schedule로도 돌린다.)
+    paths:
+      - 'CHANGELOG.md'
+      - 'docs/**'
+      - 'data/curation.json'
+      - 'prompts/characters/**'
+      - 'scripts/sync-notion.js'
+      - 'lib/notion.js'
+      - 'lib/notionMarkdown.js'
+      - '.github/workflows/sync-notion.yml'
+
+  schedule:
+    - cron: '0 18 * * *' # 매일 03:00 KST — 커밋 로그 DB 따라잡기
+
+  workflow_dispatch:
+    inputs:
+      only:
+        description: '동기화 대상 (docs,log,chars / 비우면 전부)'
+        required: false
+        default: ''
+      force:
+        description: '변경 없는 페이지도 다시 쓰기'
+        type: boolean
+        required: false
+        default: false
+
+# 두 실행이 겹치면 같은 페이지를 중복 생성할 수 있다. 큐에 세워 순차 처리한다.
+concurrency:
+  group: notion-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 커밋 로그 동기화에 전체 git 이력이 필요하다
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 동기화 스크립트는 Node 내장 모듈과 전역 fetch만 쓴다 — npm install 불필요.
+      - name: Sync
+        run: |
+          node scripts/sync-notion.js \
+            ${{ inputs.only && format('--only={0}', inputs.only) || '' }} \
+            ${{ inputs.force && '--force' || '' }}
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
