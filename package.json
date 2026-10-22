@@ -24,6 +24,15 @@
     "coveragePathIgnorePatterns": [
       "/node_modules/",
       "/tests/"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
+    "globalTeardown": "<rootDir>/tests/globalTeardown.js",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/web/"
     ]
   },
   "repository": {
