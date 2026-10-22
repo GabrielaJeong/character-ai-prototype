@@ -73,6 +73,7 @@ module.exports = async (req, res) => {
 
   // Codex R2 F1: route-level accumulator
   let accumulated = '';
+  let servedModel = null; // 실제 서빙 모델 (messages.served_model)
   let streamError = null;
   try {
     await streamReply({
@@ -86,6 +87,9 @@ module.exports = async (req, res) => {
         if (aborted) return;
         sseWrite(res, { type: 'delta', text });
       },
+      onMeta: (meta) => {
+        if (meta?.servedModel) servedModel = meta.servedModel;
+      },
     });
   } catch (err) {
     console.error('Regenerate stream error:', err.message);
@@ -95,7 +99,7 @@ module.exports = async (req, res) => {
   // Codex R2 F2: 새 응답이 있으면 (성공/partial 무관) 기존 교체. 없으면 기존 유지.
   if (accumulated) {
     stmt.deleteLastAssistantMessage.run(sessionId);
-    stmt.addMessage.run(sessionId, 'assistant', accumulated);
+    stmt.addAssistantMessage.run(sessionId, accumulated, servedModel);
   }
 
   if (streamError) {

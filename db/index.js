@@ -195,6 +195,10 @@ try { db.exec(`ALTER TABLE users ADD COLUMN public_id TEXT`); } catch (_) {}
 try { db.exec(`ALTER TABLE users ADD COLUMN username TEXT`); } catch (_) {}
 try { db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL`); } catch (_) {}
 try { db.exec(`ALTER TABLE moderation_logs ADD COLUMN public_id TEXT`); } catch (_) {}
+// 공급사가 요청 ID와 다른 모델로 서빙할 수 있다(실측 2026-10-21: gemini-3.7-flash
+// → 3.8-flash). 같은 세션 안에서도 답변마다 달라질 수 있어 sessions 가 아니라
+// messages 에, assistant 답변 단위로 남긴다. NULL = 기록 이전 또는 미취득.
+try { db.exec(`ALTER TABLE messages ADD COLUMN served_model TEXT`); } catch (_) {}
 
 // ── Backfill public_ids ───────────────────────────────────
 const _setPubId = db.prepare('UPDATE users SET public_id = ? WHERE id = ?');
@@ -254,6 +258,10 @@ const stmt = {
   `),
 
   addMessage:  db.prepare('INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)'),
+  // assistant 답변 전용 — 실제 서빙된 모델을 함께 남긴다 (애널리틱스 served_model)
+  addAssistantMessage: db.prepare(
+    "INSERT INTO messages (session_id, role, content, served_model) VALUES (?, 'assistant', ?, ?)"
+  ),
   getMessages: db.prepare('SELECT role, content FROM messages WHERE session_id = ? ORDER BY created_at ASC'),
   getAllMessages: db.prepare('SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC'),
 
