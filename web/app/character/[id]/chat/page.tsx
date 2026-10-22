@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, use, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams, notFound } from 'next/navigation';
 import { useCharacters, useCharacterDetail, useSession } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
@@ -173,7 +173,10 @@ function highlightDialogue(text: string): React.ReactNode[] {
   return parts;
 }
 
-export default function ChatPage({ params }: { params: { id: string } }) {
+// Next 15: params 가 Promise 다. Suspense 바깥에서 use() 로 풀어 내부에는
+// 평범한 객체로 넘긴다 — 내부에서 풀면 Suspense 가 매번 다시 걸린다.
+export default function ChatPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   return (
     <Suspense fallback={<div className={styles.wrap} />}>
       <ChatInner params={params} />

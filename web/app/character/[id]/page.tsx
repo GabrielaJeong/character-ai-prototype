@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter, notFound } from 'next/navigation';
 import Image from 'next/image';
 import { useCharacters } from '@/lib/hooks';
@@ -42,7 +42,9 @@ import styles from './page.module.css';
  */
 type Tab = 'about' | 'notes' | 'comments';
 
-export default function CharacterIntroPage({ params }: { params: { id: string } }) {
+// Next 15: params 가 Promise 다. 클라이언트 컴포넌트라 await 대신 React use() 로 푼다.
+export default function CharacterIntroPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const router = useRouter();
   const { characters, isLoading } = useCharacters();
   const user = useAuthStore((s) => s.user);
