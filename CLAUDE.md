@@ -211,21 +211,22 @@ character-ai-prototype/
 5. **API 응답에서 DB 컬럼 누락** — list/detail/SQL 3곳 동시 검토 필수
 6. **프롬프트 엔지니어링 노하우 전체 공개** — `notes.rules`에는 관찰 가능한 특성만
 7. **username 충돌** — 변경 자체는 허용(정보수정 모달), 단 변경 시 DB unique 재검증 필수 (D-019. 과거 immutable 정책에서 완화됨)
-8. **프로덕션 DB 파일 수정** — `db/chat.db` 직접 편집 금지 (마이그레이션 스크립트 사용)
-9. **config.json과 system.md 독립 작성** — notes 내용은 system.md 기반으로만
-10. **데이터 파일 삭제·덮어쓰기 — 사용자 확인 없이 금지**
+8. **로컬 데이터(`db/`, 업로드 파일, `.env`)는 보존한다. 삭제·덮어쓰기·이동·초기화 전에 반드시 사용자 확인.**
 
-    대상: `db/` (DB 파일·WAL·SHM), 업로드 파일(`public/uploads/`, `public/images/`),
-    `.env`, `data/` 의 런타임 JSON.
+    대상: `db/`(DB 파일·WAL·SHM), 업로드 파일(`public/uploads/`, `public/images/`),
+    `.env`·`.env.*`, `data/` 의 런타임 JSON.
 
-    - 지우거나 덮어쓰기 **전에 반드시 사용자에게 묻는다.** 사후 보고는 복구가 안 된다
-      (`.gitignore` 대상이라 git 으로 되돌릴 수 없고, Git Bash `rm` 은 휴지통을 거치지 않는다)
+    - **복구 경로가 없다.** `.gitignore` 대상이라 git 으로 되돌릴 수 없고, Git Bash `rm` 은
+      휴지통을 거치지 않는다. 사후 보고로는 아무것도 되돌아오지 않는다
     - **재현·실험이 필요하면 복사본이나 임시 경로를 쓴다.** 예: `DB_PATH=$(mktemp -d)/x.db npm test`
-    - 진단·조사 지시를 받았을 때는 **읽기만 한다.** 파괴적 명령을 진단 명령 체인에
-      끼워 넣지 않는다
+    - **진단·조사 지시("진단해줘", "고치지는 마")에서는 읽기만 한다.** 파괴적 명령을
+      진단 명령 체인에 끼워 넣지 않는다
+    - 스키마 변경은 파일을 직접 고치지 말고 `db/index.js` 의 멱등 마이그레이션 패턴을 쓴다
+      (`try { db.exec('ALTER TABLE ... ADD COLUMN ...') } catch (_) {}`)
     - 2026-10-22 실제 사고: WAL 락 경합을 "깨끗한 상태에서" 재현하려고 `rm -f db/chat.db`
       를 실행해 로컬 개발 DB(유저 2명 + 연결 데이터)를 복구 불가능하게 날렸다. `DB_PATH`
       를 임시 경로로 주면 끝날 일이었다 — 바로 다음 단계에서 그걸 해결책으로 제안했다. (L-026)
+9. **config.json과 system.md 독립 작성** — notes 내용은 system.md 기반으로만
 
 ## Red Flags — 이 패턴 작성 시 멈추고 확인
 
