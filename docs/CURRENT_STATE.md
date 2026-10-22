@@ -1,8 +1,8 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-10-22 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
-> **재가동 점검 진행 중** — 아래 '재가동 점검' 절 참조. 미푸시 브랜치 3개 있음.
+> 최종 업데이트: 2026-10-23 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
+> **재가동 점검 진행 중** — 아래 '재가동 점검' 절 참조. PR 4건 dev 머지 완료, **main 배포는 보류**.
 
 ---
 
@@ -46,19 +46,25 @@
 > v0.33(2026-09-05) 이후 7주 공백 뒤 재가동. 조사 결과 전문은 세션 로그 기준이며,
 > 아래는 **다음 세션이 이어받기 위한 상태 요약**이다.
 
-### 미푸시 브랜치 — 전부 로컬 커밋만, push 안 함
+### dev 에 머지된 PR (2026-10-22) — **main 배포은 보류**
 
-| 브랜치 | 커밋 | 내용 | 상태 |
+| PR | 브랜치 | 내용 | CI |
 |---|---|---|---|
-| `chore/dep-audit-2026-10` | `daddf0d` | `npm audit fix` (root+web, `--force` 미사용) | ✅ 검증 완료 |
-| `chore/node-24` | `7f00ade` | Node 24 통일 — `engines`·`.nvmrc`·CI 3곳 | ✅ 검증 완료 |
-| `chore/layer3-model-alignment` | `a0651e8` | 서빙 모델 일치 — `gemini-3.8-flash` 명시 + 구 ID 별칭 | ✅ 검증 완료 |
+| #1 | `chore/node-24` | Node 24 통일 — `engines: "24.x"`·`.nvmrc`·CI 3곳 | ✅ Node 24 |
+| #2 | `chore/dep-audit-2026-10` | `npm audit fix` — root critical/high → 0 | ✅ |
+| #4 | `fix/session-secret-guard` | `SESSION_SECRET` 가드의 `NODE_ENV` 의존 구멍 차단 | ✅ |
+| #3 | `chore/layer3-model-alignment` | 서빙 모델 일치 + `messages.served_model` | ✅ |
 
-세 브랜치 모두 `dev` 기준으로 분기했고 서로 독립이다. 각각 백엔드 jest 60 · eslint 0 error ·
-web tsc · vitest 36 통과 확인.
+머지 순서 #2 → #4 → #3. 각 단계마다 base 를 dev 최신으로 올려 CI 를 재실행했다
+(`ci.yml` 트리거가 `[main, dev]` 한정이라 브랜치 푸시만으로는 CI 가 돌지 않는다 —
+PR 을 열어야 `pull_request` 트리거가 걸린다).
 
-> **푸시 금지 이유**: Railway 가 `main` 자동 배포, Vercel 도 `main` 프로덕션(+모든 브랜치 프리뷰 배포).
-> 그리고 2026-10-21 Railway 플랫폼 장애로 **전 리전 빌드 중단** 상태였다.
+> **`web` job 상태가 `in_progress` 로 멈추는 현상**: run 레벨은 `success` 이고 로그에
+> `Compiled successfully`·`Complete job` 까지 찍혔는데 job/check-runs 상태만 갱신이 안 됐다.
+> 같은 run 을 **재실행(attempt 2)** 하면 정상으로 바뀐다. 머지 전 확인 필요.
+
+> **main 배포 보류 이유**: 배포 전 R5-1(Railway Volume·`RUNTIME_DATA_DIR`) 확인이 선행돼야
+> 하고, 2026-10-21~22 Railway 플랫폼 장애로 빌드가 단계적으로만 풀리는 중이었다.
 
 ### 완료된 작업
 
@@ -66,6 +72,7 @@ web tsc · vitest 36 통과 확인.
 - **Node 버전**: 로컬 24.14.1 / CI 20 / Railway 미지정 → 전부 24 로 고정. `better-sqlite3@12.8.0` 이 Node 24 공식 지원(`engines`) + 클린 설치 prebuilt 확인
 - **모델 정합성**: 자동 라우팅 발견(`3.7-flash`→`3.8-flash`, `3.5-flash`→`3.6-flash`) → 피커 중복 제거, 기본값 `gemini-3.8-flash` 명시, `LEGACY_MODEL_ALIASES` 추가 (L-023)
 - **문서**: `CUTOVER_CHECKLIST` 실측 항목 10개 근거와 함께 체크 (L-024), `PRODUCTION_PLAN` 7.3 신설
+- **테스트 키 분리**: 로컬 `.env` 를 테스트 전용 키로 교체 (L-023 예산 규칙 ⑤ 충족). `.env.example` 에 발급처 분리 규약 명시
 
 ### 남은 작업
 
@@ -77,9 +84,21 @@ web tsc · vitest 36 통과 확인.
 | 4 | `ihwa.png` 25MB → 다른 캐릭터 수준(1.5~2MB) | 미착수 |
 | 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
 | 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
+| 7 | **`actions/checkout`·`actions/setup-node` @v4 → @v5** | 미착수. 전 CI 런에 `Node.js 20 is deprecated... forced to run on Node.js 24` 경고. 액션 자체가 Node 20 타깃이라 나는 것으로 우리 런타임과 무관하며 동작엔 지장 없다. 경고 제거 목적 |
+| 8 | **Vercel 프로젝트 중복 정리** | `character-ai-prototype` 와 `character-ai-prototype-vn3a` 두 개가 같은 repo 에 연결돼 있다. 아래 참조 |
 
 ### 알려진 미해결 사항
 
+- **Vercel 프로젝트가 2개** — `character-ai-prototype` / `character-ai-prototype-vn3a`.
+  `-vn3a` 는 Vercel 이 프로젝트명 충돌 시 붙이는 접미사라 **같은 repo 를 두 번 import** 한 결과로 보인다.
+  2026-10-22 PR 체크에서 처음 드러났고 **repo·문서 어디에도 기록이 없다**. 실측 결과:
+  - 둘 다 동일한 Folio 앱을 서빙 (루트 HTML 12,850 bytes 바이트 단위 동일)
+  - 둘 다 `BACKEND_ORIGIN` 설정됨 — `/api/*` 가 같은 Railway 백엔드로 프록시 (`X-Railway-*` 통과)
+  - 둘 다 `/images` 프록시·`/admin` 미들웨어 307 정상
+  - 즉 **같은 DB 를 보는 공개 진입점이 두 개**다. 세션 쿠키는 `vercel.app` 이 PSL 등재 도메인이라
+    서로 공유되지 않는다 (L-022)
+  - Railway 의 `FRONTEND_ORIGIN` 은 접미사 없는 쪽을 가리킨다 → 그쪽이 운영
+  - 각 프로젝트의 production 브랜치·root directory·env 는 **대시보드에서만 확인 가능**
 - `prompts/models/gemini-3.7-flash.md` — 별칭이 Layer 3 조회 전에 걸려 **더 이상 로드되지 않는 고아**. `gemini-3.8-flash.md` 의 출처라 남겨뒀다
 - `sessions.model` 컬럼 DEFAULT 가 `'claude-sonnet-4-6'` — v0.33 에서 제거된 모델. 세션 생성 시 항상 명시값이 들어가 실害는 없으나 stale
 - 서빙 모델 로깅 미구현 — Claude `message_start.message.model` / Gemini `chunk.modelVersion` 으로 가능. `lib/streamReply.js` 에 `onMeta` 콜백 추가 + `sessions`/`moderation_logs` 에 컬럼 필요
