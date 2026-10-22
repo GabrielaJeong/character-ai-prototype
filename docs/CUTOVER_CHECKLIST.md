@@ -2,7 +2,10 @@
 
 > Vanilla SPA(`public/`) → Next 앱(`web/`) cutover 실행 체크리스트.
 > PRODUCTION_PLAN §9(Phase A 종료 조건)·§9.5(R5 백로그) 연계.
-> **현재 상태**: 배포 설정 코드 준비 완료(next.config 프록시·middleware env). 아래 ⛔ 항목은 실행 전 처리 필요.
+> **현재 상태**: **cutover 완료** (2026-08-30, D-019).
+> 2026-10-21 재가동 점검에서 실측으로 확인된 항목을 근거와 함께 체크했다. 이 문서는
+> 원래 계획서로만 쓰여 실행 후 갱신되지 않았다 — 19개 전부 미체크 상태였다 (L-024).
+> **아직 미확인 3개**: §4 Volume/env · §3-1 SSE 프록시 · §6 스모크 대부분.
 
 ---
 
@@ -65,22 +68,30 @@
   - `SESSION_SECRET`(필수), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`
   - `NODE_ENV=production` → 세션쿠키 `secure:true` 활성 ([server.js](../server.js) L142)
   - `app.set('trust proxy', 1)` 이미 설정됨 ✅ (프록시 뒤 secure 쿠키/rate-limit 정상)
-- [ ] 백엔드 공개 도메인 확보(예: `https://folio-api.up.railway.app`) → Vercel `BACKEND_ORIGIN`에 사용
+- [x] 백엔드 공개 도메인 확보 → Vercel `BACKEND_ORIGIN`에 사용
+      <br>근거(2026-10-21): `https://folio-charc.up.railway.app/api/characters` → 200 `application/json`
 - [ ] (선택) 기존 admin.html은 Railway가 계속 서빙 → `/admin`은 백엔드 직접도 접근 가능하나, **운영 어드민은 Vercel `/admin`(Next) 사용**
 
 ## 5. Vercel (프론트) 설정
 
-- [ ] New Project → **Root Directory = `web`**
-- [ ] Framework = Next.js (자동 감지)
-- [ ] env:
-  - `BACKEND_ORIGIN = https://<railway-backend-domain>` ← rewrites + middleware 공용 (코드 준비됨)
-  - `NEXT_PUBLIC_API_URL`은 **비워둠**(빈 값) → 클라가 same-origin `/api` 호출, rewrites가 프록시
-- [ ] 배포 → Vercel 프리뷰 URL에서 §6 스모크 테스트
-- [ ] predev 훅은 dev 전용이라 Vercel 빌드 영향 없음
+- [x] New Project → **Root Directory = `web`**
+      <br>근거: `https://character-ai-prototype.vercel.app/` 이 Next 앱 서빙 (`Server: Vercel`, `X-Matched-Path: /`, `Vary: RSC, Next-Router-State-Tree`)
+- [x] Framework = Next.js (자동 감지)
+      <br>근거: 위 응답의 `/_next/static/*` 청크·RSC 헤더
+- [x] env:
+  - [x] `BACKEND_ORIGIN = https://<railway-backend-domain>` ← rewrites + middleware 공용
+        <br>근거: Vercel 도메인의 `/api/characters` → 200 이면서 응답에 `X-Railway-Edge`·`X-Railway-Request-Id` 통과 = rewrite destination 해석됨
+  - [x] `NEXT_PUBLIC_API_URL`은 **비워둠**(빈 값) → 클라가 same-origin `/api` 호출, rewrites가 프록시
+        <br>근거: 배포된 HTML·JS 청크 6종에서 `railway.app` 문자열 0회 — 값이 있었다면 번들에 박힌다
+- [x] 배포 (프로덕션까지 완료)
+      <br>근거: 위 도메인 200 서빙 + §7 도메인 전환 완료. §6 스모크는 일부만 확인(아래)
+- [x] predev 훅은 dev 전용이라 Vercel 빌드 영향 없음
+      <br>근거: 로컬 `npm run build` 성공(2026-10-22, Node 24) — predev 미개입
 
 ## 6. 스모크 테스트 (프리뷰 URL)
 
-- [ ] 홈/탐색/캐릭터 인트로 렌더 + 이미지(/images 프록시) 표시
+- [x] 홈 렌더 + 이미지(`/images` 프록시) 표시 — **부분 확인**
+      <br>근거: `/` 200 / `/images/{ihwa,jaeheon,sehyun,yujin}.png` 전부 200. 탐색·인트로 화면의 **시각 검증은 미실시**
 - [ ] **로그인** → 새로고침 유지(쿠키 first-party 확인). "로그인 기억하기" 30일/세션 동작
 - [ ] **채팅 SSE 스트리밍**(§3-1) — 토큰이 흐르듯 오는지 ⭐
 - [ ] 페르소나 생성/아바타 업로드(5MB 서버검증), 빌더 1회
@@ -89,8 +100,10 @@
 
 ## 7. 도메인 cutover
 
-- [ ] 스테이징 OK 후, 기존 Folio 도메인을 Vercel로 전환(DNS/도메인 연결)
-- [ ] Railway 백엔드는 `BACKEND_ORIGIN` 도메인 유지(프론트가 프록시로 의존)
+- [x] 기존 Folio 도메인을 Vercel로 전환
+      <br>근거: Railway 루트가 `https://character-ai-prototype.vercel.app/` 로 302 (`FRONTEND_ORIGIN` 설정됨) + `public/index.html`·`admin.html` 부재 + D-019 "cutover 완료 (2026-08-30)"
+- [x] Railway 백엔드는 `BACKEND_ORIGIN` 도메인 유지(프론트가 프록시로 의존)
+      <br>근거: `folio-charc.up.railway.app` 생존 + Vercel 프록시 경유 200
 - [ ] cutover 후 **1주 안정 운영 모니터링**(PRODUCTION_PLAN §9 종료조건)
 
 ## 8. 롤백
@@ -108,7 +121,9 @@
 | `trust proxy`·세션 secure·DB_PATH | ✅ 기존 적용 |
 | **R5-1 파일 영속성(경로 env화 + 부팅 시드)** | ✅ **코드 완료** — Railway Volume 생성 + `RUNTIME_DATA_DIR=/data`만 남음 |
 | **R5-2 탈퇴 파일정리** | ✅ **코드 완료** (`deleteUserFiles`) |
-| SSE-over-proxy 검증 | ⚠️ 스테이징에서 |
+| SSE-over-proxy 검증 | ⚠️ **여전히 미확인** — cutover 후에도 검증 기록 없음 |
+| Vercel 프로젝트·env·배포·도메인 전환 | ✅ **완료 확인** (2026-10-21 실측, §5·§7) |
+| Railway Volume·`RUNTIME_DATA_DIR` | ❓ **미확인** — Railway CLI 인증 만료 + 플랫폼 장애로 조회 불가 |
 
 > **배포 전 남은 실행 작업**: ① Railway Volume `/data` 생성 + env(`RUNTIME_DATA_DIR`·`DB_PATH`·`BACKEND_ORIGIN`) ② Vercel 프로젝트(root=`web`, `BACKEND_ORIGIN`) ③ 스테이징 스모크(특히 SSE) ④ 도메인 전환. **코드 준비는 완료.**
 
