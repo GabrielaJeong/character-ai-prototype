@@ -6,7 +6,7 @@ const { stmt } = require('../db');
 const { verifyOwnership } = require('../lib/sessionOwnership');
 const { generateMemory }  = require('../lib/memory');
 const { streamReply }     = require('../lib/streamReply');
-const { CHAT_MODEL_IDS: ALLOWED_MODELS } = require('../lib/chatModels');
+const { CHAT_MODEL_IDS: ALLOWED_MODELS, resolveModel } = require('../lib/chatModels');
 
 const DEFAULT_MODEL     = 'claude-sonnet-5';
 const DEFAULT_CHARACTER = 'ihwa';
@@ -34,7 +34,10 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'sessionId and message are required' });
   }
 
-  const model       = ALLOWED_MODELS.has(rawModel) ? rawModel : DEFAULT_MODEL;
+  // 구 모델 ID(gemini-3.7/3.5-flash)를 현행으로 옮긴 뒤 검증한다.
+  // 옮기지 않으면 목록에 없어 DEFAULT_MODEL(claude-sonnet-5)로 떨어져 프로바이더가 바뀐다.
+  const reqModel    = resolveModel(rawModel);
+  const model       = ALLOWED_MODELS.has(reqModel) ? reqModel : DEFAULT_MODEL;
   const characterId = rawCharId || DEFAULT_CHARACTER;
 
   // Create session if new, otherwise verify ownership
@@ -110,6 +113,8 @@ router.post('/', async (req, res) => {
   // Codex R2 F1: 라우트 레벨 accumulator. streamReply 내부 acc는 중간 throw 시 lost되어
   // 빈 string만 반환되므로 partial 저장이 의미 없었음. onDelta에서 직접 누적해야 안전.
   let accumulated = '';
+  // 실제 서빙된 모델. 요청 ID 와 다를 수 있어 답변마다 기록한다(messages.served_model).
+  let servedModel = null;
   try {
     await streamReply({
       model,
@@ -122,20 +127,23 @@ router.post('/', async (req, res) => {
         if (aborted) return;
         sseWrite(res, { type: 'delta', text });
       },
+      onMeta: (meta) => {
+        if (meta?.servedModel) servedModel = meta.servedModel;
+      },
     });
   } catch (err) {
     console.error('Chat stream error:', err.message);
     if (!aborted) {
       sseWrite(res, { type: 'error', error: 'AI 응답에 실패했습니다.' });
     }
-    if (accumulated) stmt.addMessage.run(sessionId, 'assistant', accumulated);
+    if (accumulated) stmt.addAssistantMessage.run(sessionId, accumulated, servedModel);
     if (!aborted) res.end();
     return;
   }
 
   // Save complete assistant message
   if (accumulated) {
-    stmt.addMessage.run(sessionId, 'assistant', accumulated);
+    stmt.addAssistantMessage.run(sessionId, accumulated, servedModel);
   }
 
   // ── Safety violation auto-logging (전연령 모드) ───────
