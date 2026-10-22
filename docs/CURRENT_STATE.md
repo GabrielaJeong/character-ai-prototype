@@ -81,15 +81,16 @@ PR 을 열어야 `pull_request` 트리거가 걸린다).
 | 1 | **R5-1 확인** — `railway login` → `railway variables \| grep RUNTIME_DATA_DIR` + `railway volume list` | Railway CLI 인증 만료 + 플랫폼 장애. **DB 는 `DB_PATH` 로 이미 영속화**(체크리스트 §9), 위험은 업로드 파일에 한정 |
 | 2 | 세 브랜치 머지 → `dev` → `main` 배포 | Railway 빌드 중단 해제 대기. 순서: R5-1 확인 → `chore/dep-audit` 배포 |
 | 3 | **Next 14 → 15 → 16** | 미착수. 영향 집계: async `params` 4개 파일(전부 `'use client'` → `use()`), `cookies/headers/searchParams`/Route Handler **0건**. 16 추가: `middleware.ts`→`proxy.ts`, `next lint` 제거, ESLint flat config |
-| 4 | `ihwa.png` 25MB → 다른 캐릭터 수준(1.5~2MB) | 미착수 |
+| ~~4~~ | ~~`ihwa.png` 25MB → 다른 캐릭터 수준~~ | ✅ **PR #5** — 25,074,295 → **1,771,506 B**(-92.9%). 원인은 압축이 아니라 tEXt 22.2MB. 무손실(IDAT 바이트 동일). 머지 대기 |
 | 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
 | 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
 | 7 | **`actions/checkout`·`actions/setup-node` @v4 → @v5** | 미착수. 전 CI 런에 `Node.js 20 is deprecated... forced to run on Node.js 24` 경고. 액션 자체가 Node 20 타깃이라 나는 것으로 우리 런타임과 무관하며 동작엔 지장 없다. 경고 제거 목적 |
-| 8 | **Vercel 프로젝트 중복 정리** | `character-ai-prototype` 와 `character-ai-prototype-vn3a` 두 개가 같은 repo 에 연결돼 있다. 아래 참조 |
+| ~~8~~ | ~~Vercel 프로젝트 중복 정리~~ | ✅ **완료 (2026-10-22)** — `-vn3a` **Pause + Git 연결 해제**. 교훈은 L-025 |
 
 ### 알려진 미해결 사항
 
-- **Vercel 프로젝트가 2개** — `character-ai-prototype` / `character-ai-prototype-vn3a`.
+- ~~**Vercel 프로젝트가 2개**~~ → **2026-10-22 `-vn3a` Pause + Git 연결 해제로 정리됨** (L-025).
+  아래는 당시 실측 기록 — `character-ai-prototype` / `character-ai-prototype-vn3a`.
   `-vn3a` 는 Vercel 이 프로젝트명 충돌 시 붙이는 접미사라 **같은 repo 를 두 번 import** 한 결과로 보인다.
   2026-10-22 PR 체크에서 처음 드러났고 **repo·문서 어디에도 기록이 없다**. 실측 결과:
   - 둘 다 동일한 Folio 앱을 서빙 (루트 HTML 12,850 bytes 바이트 단위 동일)
@@ -102,6 +103,9 @@ PR 을 열어야 `pull_request` 트리거가 걸린다).
 - `prompts/models/gemini-3.7-flash.md` — 별칭이 Layer 3 조회 전에 걸려 **더 이상 로드되지 않는 고아**. `gemini-3.8-flash.md` 의 출처라 남겨뒀다
 - `sessions.model` 컬럼 DEFAULT 가 `'claude-sonnet-4-6'` — v0.33 에서 제거된 모델. 세션 생성 시 항상 명시값이 들어가 실害는 없으나 stale
 - 서빙 모델 로깅 미구현 — Claude `message_start.message.model` / Gemini `chunk.modelVersion` 으로 가능. `lib/streamReply.js` 에 `onMeta` 콜백 추가 + `sessions`/`moderation_logs` 에 컬럼 필요
+- **생성 프롬프트가 git 이력에 남아 있다** — 캐릭터 PNG 의 tEXt 에 NovelAI `Description`·`Comment`(프롬프트 전문)가
+  들어 있었다. PR #5 가 현재 파일에서는 제거하지만 **과거 blob 에는 그대로 남는다**. 저장소가 PUBLIC 이라
+  이력에서 지우려면 `filter-repo`/BFG + force push 가 필요하고 되돌릴 수 없어 별도 판단이 필요하다 (L-004)
 - root `@anthropic-ai/sdk` 0.86.1 → 0.137.0 (moderate, semver major)
 - web 잔여 취약점 5건은 전부 `next@16.4.2` 필요 → 위 #3 과 묶임
 
