@@ -2,7 +2,8 @@
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
 > 최종 업데이트: 2026-10-23 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
-> **재가동 점검 진행 중** — 아래 '재가동 점검' 절 참조. PR 4건 dev 머지 완료, **main 배포는 보류**.
+> **재가동 점검 1차 세션 종료.** PR 5건 dev 머지, 2건 열린 채 대기. **main 배포는 보류**.
+> 다음 세션은 아래 '남은 작업'의 열린 PR 2건부터 이어간다.
 
 ---
 
@@ -41,27 +42,37 @@
 
 ---
 
-## 🔧 재가동 점검 (2026-10-21 ~ 진행 중)
+## 🔧 재가동 점검 (2026-10-21 ~ 10-23, 1차 세션 종료)
 
 > v0.33(2026-09-05) 이후 7주 공백 뒤 재가동. 조사 결과 전문은 세션 로그 기준이며,
 > 아래는 **다음 세션이 이어받기 위한 상태 요약**이다.
 
-### dev 에 머지된 PR (2026-10-22) — **main 배포은 보류**
+### PR 현황 — **main 배포는 보류**
 
-| PR | 브랜치 | 내용 | CI |
-|---|---|---|---|
-| #1 | `chore/node-24` | Node 24 통일 — `engines: "24.x"`·`.nvmrc`·CI 3곳 | ✅ Node 24 |
-| #2 | `chore/dep-audit-2026-10` | `npm audit fix` — root critical/high → 0 | ✅ |
-| #4 | `fix/session-secret-guard` | `SESSION_SECRET` 가드의 `NODE_ENV` 의존 구멍 차단 | ✅ |
-| #3 | `chore/layer3-model-alignment` | 서빙 모델 일치 + `messages.served_model` | ✅ |
+**dev 에 머지됨 (2026-10-22)**
 
-머지 순서 #2 → #4 → #3. 각 단계마다 base 를 dev 최신으로 올려 CI 를 재실행했다
-(`ci.yml` 트리거가 `[main, dev]` 한정이라 브랜치 푸시만으로는 CI 가 돌지 않는다 —
-PR 을 열어야 `pull_request` 트리거가 걸린다).
+| PR | 브랜치 | 내용 |
+|---|---|---|
+| #1 | `chore/node-24` | Node 24 통일 — `engines: "24.x"`·`.nvmrc`·CI 3곳 |
+| #2 | `chore/dep-audit-2026-10` | `npm audit fix` — root critical/high → 0 |
+| #4 | `fix/session-secret-guard` | `SESSION_SECRET` 가드의 `NODE_ENV` 의존 구멍 차단 |
+| #3 | `chore/layer3-model-alignment` | 서빙 모델 일치 + `messages.served_model` |
+| #5 | `fix/image-metadata-strip` | PNG 텍스트 청크 제거 — ihwa 25MB → 1.77MB, 프롬프트 노출 차단 |
 
-> **`web` job 상태가 `in_progress` 로 멈추는 현상**: run 레벨은 `success` 이고 로그에
+**열린 채 대기 — 다음 세션 시작점**
+
+| PR | 브랜치 | 내용 | CI | 상태 |
+|---|---|---|---|---|
+| **#6** | `chore/next-15` | Next 14 → 15 + React 19 (async params 4파일) | ✅ job·check 모두 success | **머지만 남음** |
+| **#7** | `fix/test-db-isolation` | 워커별 임시 DB 로 테스트 격리 | ✅ | 머지 대기 |
+
+머지는 매번 base 를 dev 최신으로 올려 CI 를 재실행했다 — `ci.yml` 트리거가 `[main, dev]`
+한정이라 **브랜치 푸시만으로는 CI 가 돌지 않는다. PR 을 열어야** `pull_request` 트리거가 걸린다.
+
+> **`web` job 이 `in_progress` 로 멈추는 현상**: run 레벨은 `success` 이고 로그에
 > `Compiled successfully`·`Complete job` 까지 찍혔는데 job/check-runs 상태만 갱신이 안 됐다.
-> 같은 run 을 **재실행(attempt 2)** 하면 정상으로 바뀐다. 머지 전 확인 필요.
+> `check-runs` API 로 교차 확인해도 동일. 같은 run 을 **재실행(attempt 2)** 하면 정상이 된다.
+> 머지 전 job 레벨까지 확인할 것.
 
 > **main 배포 보류 이유**: 배포 전 R5-1(Railway Volume·`RUNTIME_DATA_DIR`) 확인이 선행돼야
 > 하고, 2026-10-21~22 Railway 플랫폼 장애로 빌드가 단계적으로만 풀리는 중이었다.
@@ -73,19 +84,27 @@ PR 을 열어야 `pull_request` 트리거가 걸린다).
 - **모델 정합성**: 자동 라우팅 발견(`3.7-flash`→`3.8-flash`, `3.5-flash`→`3.6-flash`) → 피커 중복 제거, 기본값 `gemini-3.8-flash` 명시, `LEGACY_MODEL_ALIASES` 추가 (L-023)
 - **문서**: `CUTOVER_CHECKLIST` 실측 항목 10개 근거와 함께 체크 (L-024), `PRODUCTION_PLAN` 7.3 신설
 - **테스트 키 분리**: 로컬 `.env` 를 테스트 전용 키로 교체 (L-023 예산 규칙 ⑤ 충족). `.env.example` 에 발급처 분리 규약 명시
+- **이미지 자산**: PNG 텍스트 청크 제거로 29.09MB → 6.85MB. 동시에 공개돼 있던 NovelAI 생성 프롬프트 차단 (PR #5, D-021)
+- **CI 실패 진단**: `database is locked` 원인 규명 → 테스트 DB 격리로 해결 (PR #7). 진단 중 개발 DB 유실 사고 (L-026)
+- **Vercel 중복 정리**: `-vn3a` Pause + Git 연결 해제 (L-025)
 
 ### 남은 작업
 
 | # | 작업 | 블로커 |
 |---|---|---|
 | 1 | **R5-1 확인** — `railway login` → `railway variables \| grep RUNTIME_DATA_DIR` + `railway volume list` | Railway CLI 인증 만료 + 플랫폼 장애. **DB 는 `DB_PATH` 로 이미 영속화**(체크리스트 §9), 위험은 업로드 파일에 한정 |
-| 2 | 세 브랜치 머지 → `dev` → `main` 배포 | Railway 빌드 중단 해제 대기. 순서: R5-1 확인 → `chore/dep-audit` 배포 |
-| 3 | **Next 14 → 15 → 16** | 미착수. 영향 집계: async `params` 4개 파일(전부 `'use client'` → `use()`), `cookies/headers/searchParams`/Route Handler **0건**. 16 추가: `middleware.ts`→`proxy.ts`, `next lint` 제거, ESLint flat config |
+| 2 | `dev` → `main` 배포 | Railway 빌드 중단 해제 대기. 순서: **R5-1 확인 → 배포**. dev 가 main 보다 30+ 커밋 앞섬 |
+| 3 | **Next 15 머지** (PR #6) | CI 통과, 머지만 남음. **16 은 보류** — 아래 참조 |
 | ~~4~~ | ~~`ihwa.png` 25MB → 다른 캐릭터 수준~~ | ✅ **PR #5** — 25,074,295 → **1,771,506 B**(-92.9%). 원인은 압축이 아니라 tEXt 22.2MB. 무손실(IDAT 바이트 동일). 머지 대기 |
 | 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
 | 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
 | 7 | **`actions/checkout`·`actions/setup-node` @v4 → @v5** | 미착수. 전 CI 런에 `Node.js 20 is deprecated... forced to run on Node.js 24` 경고. 액션 자체가 Node 20 타깃이라 나는 것으로 우리 런타임과 무관하며 동작엔 지장 없다. 경고 제거 목적 |
 | ~~8~~ | ~~Vercel 프로젝트 중복 정리~~ | ✅ **완료 (2026-10-22)** — `-vn3a` **Pause + Git 연결 해제**. 교훈은 L-025 |
+| 9 | **PR #6·#7 머지** | 둘 다 CI 통과. base 를 dev 최신으로 올리고 job 레벨 확인 후 머지 |
+| 10 | **vitest 취약점 2건** (`@vitest/mocker`·`vitest`, 둘 다 `fix: true`) | 별도 브랜치·PR 로 처리하기로 함. 미착수 |
+| 11 | **로컬 개발 DB 재구성** | 사고로 유실(L-026). 방법: 앱에서 회원가입 → `node scripts/admin-reset.js <email> <pw> admin`. `demo_user` 는 `DEMO_MODE=true` 에서 체험 로그인 시 자동 생성. **격리(PR #7) 머지 후에 할 것** — 안 그러면 테스트가 또 오염시킨다 |
+| 12 | **`.claude/settings.json` 권한 설정 적용** | 안 작성 완료, **사용자 확인 대기**. 아래 '대기 중인 확인' 참조 |
+| 13 | `db/chat.db` 테스트 잔여물 정리 | `auth_sessions` 3행·`notifications` 4행. 격리 확인 후 지워도 된다고 승인받음 — **지우기 전 재확인** |
 
 ### 알려진 미해결 사항
 
@@ -102,12 +121,39 @@ PR 을 열어야 `pull_request` 트리거가 걸린다).
   - 각 프로젝트의 production 브랜치·root directory·env 는 **대시보드에서만 확인 가능**
 - `prompts/models/gemini-3.7-flash.md` — 별칭이 Layer 3 조회 전에 걸려 **더 이상 로드되지 않는 고아**. `gemini-3.8-flash.md` 의 출처라 남겨뒀다
 - `sessions.model` 컬럼 DEFAULT 가 `'claude-sonnet-4-6'` — v0.33 에서 제거된 모델. 세션 생성 시 항상 명시값이 들어가 실害는 없으나 stale
-- 서빙 모델 로깅 미구현 — Claude `message_start.message.model` / Gemini `chunk.modelVersion` 으로 가능. `lib/streamReply.js` 에 `onMeta` 콜백 추가 + `sessions`/`moderation_logs` 에 컬럼 필요
-- **생성 프롬프트가 git 이력에 남아 있다** — 캐릭터 PNG 의 tEXt 에 NovelAI `Description`·`Comment`(프롬프트 전문)가
-  들어 있었다. PR #5 가 현재 파일에서는 제거하지만 **과거 blob 에는 그대로 남는다**. 저장소가 PUBLIC 이라
-  이력에서 지우려면 `filter-repo`/BFG + force push 가 필요하고 되돌릴 수 없어 별도 판단이 필요하다 (L-004)
+- ~~서빙 모델 로깅 미구현~~ → **PR #3 에서 구현**. `lib/streamReply.js` `onMeta` + `messages.served_model`. 라이브 검증 완료(Claude·Gemini 각 1회)
+- **생성 프롬프트가 git 이력에 남아 있다** — PR #5 가 현재 파일에서는 제거했으나 **과거 blob 에는 남는다**.
+  → **D-021: 이력 재작성은 하지 않기로 결정.** 공개 저장소라 이미 복제됐을 수 있어 효과가 제한적이고,
+  되돌릴 수 없는 force push 비용 대비 노출 자산(이미지 프롬프트)의 가치가 낮다.
+  이미지 추가 시 메타데이터 제거를 `SESSION_CHECKLIST` 에 추가함
 - root `@anthropic-ai/sdk` 0.86.1 → 0.137.0 (moderate, semver major)
-- web 잔여 취약점 5건은 전부 `next@16.4.2` 필요 → 위 #3 과 묶임
+- web 잔여 취약점: PR #6(Next 15)로 **critical 1 → 0**. 남은 9건 중 `postcss`·`next` 는 `next@16.4.2` 필요,
+  `eslint-config-next` 계열은 npm 이 **다운그레이드를 fix 로 제시**하므로 따르지 않는다
+- Next 15 빌드 경고 `Next.js inferred your workspace root` — 홈 디렉터리의 떠돌이 lockfile
+  (`C:/Users/user/package-lock.json`)을 workspace root 로 골랐다. **repo 밖 파일이라 CI 영향 없음, 로컬 한정**
+
+### Next 16 — 보류 (2026-10-23 결정)
+
+**보안 사유는 해소됐다.** Next 15.5.28 로 올리면서 CVE-2026-29057(rewrites HTTP 스머글링,
+15.5.13+ 에서 수정)과 Image Optimizer `remotePatterns` DoS(critical)가 모두 사라진다.
+
+**16 은 변경 범위 대비 이득이 없다.** 남은 16 전용 취약점은 `postcss`·`next` 의 moderate/high
+뿐인데, 그 대가로 `middleware.ts`→`proxy.ts` 개명, `next lint` 제거(ESLint CLI 전환),
+ESLint flat config 전환, `next/image` 기본값 3종 변경(`qualities`·`minimumCacheTTL`·`imageSizes`),
+Turbopack 기본화를 한꺼번에 받아야 한다.
+
+재검토 트리거: 16 전용 critical 취약점이 나오거나, 15 가 EOL 수순에 들어갈 때.
+
+### 대기 중인 확인 (다음 세션에서 물어볼 것)
+
+1. **`.claude/settings.json` 권한 설정 적용 여부** — 안은 스크래치패드의
+   `PROPOSED-claude-settings.json` 에 있다. `permissions.ask` 로 `rm`·`mv`·`git reset --hard`·
+   `git clean`·`Remove-Item` 등과 `Edit(db/**)`·`Edit(.env)`·`Edit(public/uploads/**)` 를
+   실행 전 승인 대상으로 둔다.
+   한계: 권한 규칙은 **명령 문자열 앞부분 매칭**이라 `cd x && rm y`·리다이렉션·`find -exec rm`
+   은 빠져나간다. 확률을 낮추는 장치이지 보증이 아니다
+2. **`db/chat.db` 테스트 잔여물 삭제** — 승인은 받았으나 지우기 전 재확인하기로 함
+3. **로컬 개발 DB 재구성 시점** — PR #7(격리) 머지 후
 
 ---
 
