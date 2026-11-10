@@ -9,8 +9,14 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { CHARS_DIR, MODELS_DIR, IMAGES_DIR, UPLOADS_DIR, DATA_JSON_DIR, deleteUserFiles } =
-  require('../../lib/paths');
+const {
+  CHARS_DIR,
+  MODELS_DIR,
+  IMAGES_DIR,
+  UPLOADS_DIR,
+  DATA_JSON_DIR,
+  deleteUserFiles,
+} = require('../../lib/paths');
 
 const REPO = path.resolve(__dirname, '..', '..');
 const inRepo = (p) => path.resolve(p).startsWith(REPO + path.sep);
