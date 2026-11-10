@@ -1,10 +1,11 @@
 const express  = require('express');
 const router   = express.Router();
 const fs       = require('fs');
-const path     = require('path');
 const { stmt } = require('../db');
 const { parseImageDataUrl } = require('../lib/imageData');
-const { CHARS_DIR, IMAGES_DIR } = require('../lib/paths');
+const {
+  charReadFile, charWriteFile, readCharConfig, listCharacterIds, deleteCharacter, imageWritePath,
+} = require('../lib/paths');
 
 // ── Auth helpers (Codex R4 F1) ─────────────────────────────
 function requireAuth(req, res, next) {
@@ -12,11 +13,7 @@ function requireAuth(req, res, next) {
   next();
 }
 
-function loadCharConfig(id) {
-  const p = path.join(CHARS_DIR, id, 'config.json');
-  if (!fs.existsSync(p)) return null;
-  try { return JSON.parse(fs.readFileSync(p, 'utf-8')); } catch { return null; }
-}
+const loadCharConfig = readCharConfig;
 
 /** 캐릭터 owner 또는 admin만 통과. 프리빌트(owner_user_id 없음)는 admin만. */
 function requireOwnerOrAdmin(req, res, next) {
@@ -47,9 +44,7 @@ router.get('/', (req, res) => {
       adultEnabled = !!(user?.adult_content_enabled);
     }
 
-    const dirs = fs.readdirSync(CHARS_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name);
+    const dirs = listCharacterIds();
 
     // ── 통계 집계 ─────────────────────────────────────────
     const now7dAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60;
@@ -72,16 +67,15 @@ router.get('/', (req, res) => {
 
     const characters = dirs
       .map(id => {
-        const configPath = path.join(CHARS_DIR, id, 'config.json');
-        if (!fs.existsSync(configPath)) return null;
+        const configPath = charReadFile(id, 'config.json');
+        if (!configPath) return null;
         try {
           const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 
           // ── 배지 판정 ──────────────────────────────────
-          const charDir   = path.join(CHARS_DIR, id);
           const configStat = fs.statSync(configPath);
-          const sysMdPath  = path.join(charDir, 'system.md');
-          const sysMtime   = fs.existsSync(sysMdPath) ? fs.statSync(sysMdPath).mtimeMs : 0;
+          const sysMdPath  = charReadFile(id, 'system.md');
+          const sysMtime   = sysMdPath ? fs.statSync(sysMdPath).mtimeMs : 0;
           const updatedMs  = Math.max(configStat.mtimeMs, sysMtime);
           const createdAt  = config.created_at
             ? new Date(config.created_at).getTime()
@@ -136,8 +130,8 @@ router.get('/', (req, res) => {
 // 에게만 노출. 나머지(all/toggleable)는 누구나 조회 가능 (필터 없음).
 router.get('/:id', (req, res) => {
   const charId = req.params.id;
-  const configPath = path.join(CHARS_DIR, charId, 'config.json');
-  if (!fs.existsSync(configPath)) {
+  const configPath = charReadFile(charId, 'config.json');
+  if (!configPath) {
     return res.status(404).json({ error: 'Character not found' });
   }
   let config;
@@ -185,19 +179,16 @@ router.post('/create', requireAuth, (req, res) => {
   }
 
   const id = 'char_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  const charDir = path.join(CHARS_DIR, id);
 
   try {
-    fs.mkdirSync(charDir, { recursive: true });
-
-    // Write system.md
-    fs.writeFileSync(path.join(charDir, 'system.md'), systemPrompt, 'utf-8');
+    // 쓰기는 항상 런타임 레이어로 — charWriteFile이 디렉터리까지 만든다.
+    fs.writeFileSync(charWriteFile(id, 'system.md'), systemPrompt, 'utf-8');
 
     // Save image if provided (검증 완료된 버퍼)
     let imagePath = null;
     if (img) {
       const filename = `${id}.${img.ext}`;
-      fs.writeFileSync(path.join(IMAGES_DIR, filename), img.buffer);
+      fs.writeFileSync(imageWritePath(filename), img.buffer);
       imagePath = `/images/${filename}`;
     }
 
@@ -234,7 +225,7 @@ router.post('/create', requireAuth, (req, res) => {
       },
     };
 
-    fs.writeFileSync(path.join(charDir, 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+    fs.writeFileSync(charWriteFile(id, 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
 
     res.json({ success: true, id, config });
   } catch (err) {
@@ -246,19 +237,18 @@ router.post('/create', requireAuth, (req, res) => {
 // GET /api/characters/:id/system — return system.md for editing
 // Codex R4 F1: prompt engineering IP 보호 + 프리빌트는 admin만, 유저 제작은 owner+admin만
 router.get('/:id/system', requireOwnerOrAdmin, (req, res) => {
-  const sysPath = path.join(CHARS_DIR, req.params.id, 'system.md');
-  if (!fs.existsSync(sysPath)) return res.status(404).json({ error: 'Not found' });
+  const sysPath = charReadFile(req.params.id, 'system.md');
+  if (!sysPath) return res.status(404).json({ error: 'Not found' });
   res.json({ systemPrompt: fs.readFileSync(sysPath, 'utf-8') });
 });
 
 // DELETE /api/characters/:id
 // Codex R4 F1: owner 또는 admin만. 프리빌트는 admin만 삭제 가능.
 router.delete('/:id', requireOwnerOrAdmin, (req, res) => {
-  const id      = req.params.id;
-  const charDir = path.join(CHARS_DIR, id);
-  if (!fs.existsSync(charDir)) return res.status(404).json({ error: 'Not found' });
+  // 존재 확인은 requireOwnerOrAdmin 이 config 로드로 이미 했다.
+  // 프리빌트는 repo 에 있어 지울 수 없으므로 런타임에 삭제 표식을 세운다.
   try {
-    fs.rmSync(charDir, { recursive: true, force: true });
+    deleteCharacter(req.params.id);
     res.json({ ok: true });
   } catch (err) {
     console.error('Delete character error:', err.message);
