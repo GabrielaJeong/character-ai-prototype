@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePersonas } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
@@ -20,7 +20,9 @@ import styles from './page.module.css';
  *
  * 정적 세그먼트(new/select)가 우선이라 `/persona/new`·`/persona/select`와 충돌 없음.
  */
-export default function PersonaEditPage({ params }: { params: { id: string } }) {
+// Next 15: params 가 Promise 다. 클라이언트 컴포넌트라 await 대신 React use() 로 푼다.
+export default function PersonaEditPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const router = useRouter();
   const personaId = Number(params.id);
   const { user, ready } = useRequireAuth(`/persona/${params.id}`, {
