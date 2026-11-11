@@ -78,7 +78,7 @@
 
 - [x] **Volume 생성·마운트** — 2026-11-11 사용자 확인 (코드 폴더 `/app` 금지 — L-016)
 - [ ] env 확인:
-  - **`RUNTIME_DATA_DIR=/data`** ← R5-1 런타임 파일 루트. **아직 미설정 — 이제 넣으면 된다**.
+  - **`RUNTIME_DATA_DIR=/data`** ← R5-1 런타임 파일 루트. **적용·실측 완료(2026-11-12)**.
         `DB_PATH` 가 가리키는 디렉터리와 같아야 한다(`/data/chat.db` → `/data`).
         선행 조건이었던 레이어링 코드(D-022) 배포는 **2026-11-11 완료**(`fe0341d`,
         `ihwa.png` 최적화본 1,771,506B 서빙 실측 확인). 순서를 뒤집었으면
@@ -139,13 +139,14 @@
 | middleware `BACKEND_ORIGIN` 단일화 | ✅ 코드 준비 |
 | `trust proxy`·세션 secure | ✅ 코드 적용 |
 | Railway `DB_PATH` env | ✅ **적용 확인**(2026-11-11 사용자 확인) — 계정·대화 영속 중 |
-| **R5-1 파일 영속성(레이어링, D-022)** | ✅ **코드 배포 완료**(2026-11-11, `fe0341d`) — `RUNTIME_DATA_DIR=/data` env 만 남음 |
-| **R5-2 탈퇴 파일정리** | ✅ **코드 완료** (`deleteUserFiles`) |
+| **R5-1 파일 영속성(레이어링, D-022)** | ✅ **배포·env·실측 전부 완료**(2026-11-12, `fe0341d`) |
+| **R5-2 탈퇴 파일정리** | ✅ **프로덕션 실측 완료**(2026-11-12) — 탈퇴 시 아바타 정리됨, 프리빌트 무사 |
 | SSE-over-proxy 검증 | ⚠️ **여전히 미확인** — cutover 후에도 검증 기록 없음 |
 | Vercel 프로젝트·env·배포·도메인 전환 | ✅ **완료 확인** (2026-10-21 실측, §5·§7) |
 | Railway Volume | ✅ **있음**(2026-11-11 사용자 확인) |
-| `RUNTIME_DATA_DIR` | ❌ **미설정** — 업로드 파일만 비영속. 선행 배포가 끝났으므로 **지금 추가 가능** |
+| `RUNTIME_DATA_DIR` | ✅ **적용 완료**(2026-11-12) — 업로드 → 재배포 → 바이트 동일 생존 실측함 |
 
-> **배포 전 남은 실행 작업**: ① Railway Volume `/data` 생성 + env(`RUNTIME_DATA_DIR`·`DB_PATH`·`BACKEND_ORIGIN`) ② Vercel 프로젝트(root=`web`, `BACKEND_ORIGIN`) ③ 스테이징 스모크(특히 SSE) ④ 도메인 전환. **코드 준비는 완료.**
+> **2026-11-12 현재**: ① Railway Volume·env(`RUNTIME_DATA_DIR`·`DB_PATH`·`BACKEND_ORIGIN`) ✅ ② Vercel 프로젝트 ✅ ④ 도메인 전환 ✅.
+> **남은 것은 ③ SSE-over-proxy 스모크 하나다** — cutover 후에도 검증 기록이 없다.
 
-> **다음 실제 코드 작업 후보**: R5-1 경로 env화(가장 큰 덩어리). 원하면 이걸 다음으로 진행.
+> **다음 실제 코드 작업 후보**: ~~R5-1 경로 env화~~ ✅ 완료(D-022, 2026-11-12). 남은 후보는 SSE 스모크와 `status: 'inactive'` 미적용 결함(CURRENT_STATE §남은 작업 4번).
