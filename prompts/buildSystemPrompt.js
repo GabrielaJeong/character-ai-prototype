@@ -1,6 +1,6 @@
 const fs   = require('fs');
 const path = require('path');
-const { CHARS_DIR, MODELS_DIR } = require('../lib/paths');
+const { charReadFile, modelPromptRead } = require('../lib/paths');
 
 const PROMPTS_DIR = __dirname; // repo 고정 자산(guardrails/safety)용. characters·models는 런타임 경로.
 
@@ -9,16 +9,17 @@ function buildSystemPrompt(characterId, persona, note = '', safety = 'on', model
     path.join(PROMPTS_DIR, 'common', 'guardrails.md'),
     'utf-8'
   );
-  const charPrompt = fs.readFileSync(
-    path.join(CHARS_DIR, characterId, 'system.md'),
-    'utf-8'
-  );
+  const charFile = charReadFile(characterId, 'system.md');
+  if (!charFile) {
+    throw Object.assign(new Error(`캐릭터 프롬프트 없음: ${characterId}`), { code: 'ENOENT' });
+  }
+  const charPrompt = fs.readFileSync(charFile, 'utf-8');
 
   // Model-specific corrections (skip if file doesn't exist)
   let modelCorrections = '';
   if (model) {
-    const modelFile = path.join(MODELS_DIR, `${model}.md`);
-    if (fs.existsSync(modelFile)) {
+    const modelFile = modelPromptRead(model);
+    if (modelFile) {
       const raw = fs.readFileSync(modelFile, 'utf-8').trim();
       // 헤더만 남은 껍데기 파일은 주입하지 않는다.
       // 어드민 모델 편집기(PUT /api/admin/models/:id)로 템플릿만 저장하면 내용 없는

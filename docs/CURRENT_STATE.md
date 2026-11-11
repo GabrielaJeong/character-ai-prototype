@@ -76,6 +76,12 @@
 
 > **main 배포 보류 이유**: 배포 전 R5-1(Railway Volume·`RUNTIME_DATA_DIR`) 확인이 선행돼야
 > 하고, 2026-10-21~22 Railway 플랫폼 장애로 빌드가 단계적으로만 풀리는 중이었다.
+>
+> **2026-11-11 해소**: Volume·`DB_PATH` 는 적용돼 있고(사용자 확인) `RUNTIME_DATA_DIR` 만
+> 미설정이다. 그런데 점검 중 R5-1 원안(부팅 시드)이 **repo 수정을 영구히 차단**하는
+> 결함을 안고 있음을 발견해 레이어링으로 재설계했다 (D-022 / L-027).
+> 켜는 순서가 중요하다: **레이어링 배포 → 그 다음 `RUNTIME_DATA_DIR` 추가.**
+> 거꾸로 하면 최적화 전 `ihwa.png`(25MB·메타데이터 포함)가 Volume 에 박혀 영구히 가린다.
 
 ### 완료된 작업
 
@@ -87,15 +93,21 @@
 - **이미지 자산**: PNG 텍스트 청크 제거로 29.09MB → 6.85MB. 동시에 공개돼 있던 NovelAI 생성 프롬프트 차단 (PR #5, D-021)
 - **CI 실패 진단**: `database is locked` 원인 규명 → 테스트 DB 격리로 해결 (PR #7). 진단 중 개발 DB 유실 사고 (L-026)
 - **Vercel 중복 정리**: `-vn3a` Pause + Git 연결 해제 (L-025)
+- **테스트 파일 격리**: `RUNTIME_DATA_DIR` 을 워커별 임시 경로로. 테스트가 git 추적 파일
+  `public/images/user_2.jpg` 를 지운 사고 차단 (PR #8)
+- **R5-1 재설계**: 부팅 시드 → 2층 레이어링. 원안은 복사 때문에 repo 수정이 프로덕션에
+  영원히 전파되지 않는 결함이 있었다 (D-022 / L-027). 런타임 업로드를 git 추적에서 제외하고
+  `.gitignore` 에 `public/images/user_*`·`char_*`·`.runtime/` 추가
 
 ### 남은 작업
 
 | # | 작업 | 블로커 |
 |---|---|---|
-| 1 | **R5-1 확인** — `railway login` → `railway variables \| grep RUNTIME_DATA_DIR` + `railway volume list` | Railway CLI 인증 만료 + 플랫폼 장애. **DB 는 `DB_PATH` 로 이미 영속화**(체크리스트 §9), 위험은 업로드 파일에 한정 |
-| 2 | `dev` → `main` 배포 | Railway 빌드 중단 해제 대기. 순서: **R5-1 확인 → 배포**. dev 가 main 보다 30+ 커밋 앞섬 |
-| 3 | **Next 15 머지** (PR #6) | CI 통과, 머지만 남음. **16 은 보류** — 아래 참조 |
+| ~~1~~ | ~~R5-1 확인~~ | ✅ **확인 완료**(2026-11-11): Volume 있음 / `DB_PATH` 있음(계정·대화 영속) / `RUNTIME_DATA_DIR` **미설정**. 프로덕션 런타임 업로드는 실측 **0건**(런타임 캐릭터 0, 큐레이션이 repo 커밋본과 바이트 동일, 아바타는 git 추적분 1개뿐) → 잃을 데이터 없음 |
+| 2 | `dev` → `main` 배포 | 사용자 승인 대기. 순서: **레이어링(D-022) 머지 → 배포 → `RUNTIME_DATA_DIR=/data` 추가**. 역순 금지 (L-027) |
+| ~~3~~ | ~~Next 15 머지 (PR #6)~~ | ✅ **머지 완료**(2026-11-10) `b36a5bb`. **16 은 보류** — 아래 참조 |
 | ~~4~~ | ~~`ihwa.png` 25MB → 다른 캐릭터 수준~~ | ✅ **PR #5** — 25,074,295 → **1,771,506 B**(-92.9%). 원인은 압축이 아니라 tEXt 22.2MB. 무손실(IDAT 바이트 동일). 머지 대기 |
+| 4 | **`status: 'inactive'` 가 실제로 안 걸린다** | admin UI 에서 설정·표시되지만 공개 `/api/characters` 가 필터하지 않아 비활성 캐릭터가 계속 노출된다. 레이어링 작업(D-022) 중 발견. 기존 결함이라 범위 밖으로 두고 기록만 |
 | 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
 | 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
 | 7 | **`actions/checkout`·`actions/setup-node` @v4 → @v5** | 미착수. 전 CI 런에 `Node.js 20 is deprecated... forced to run on Node.js 24` 경고. 액션 자체가 Node 20 타깃이라 나는 것으로 우리 런타임과 무관하며 동작엔 지장 없다. 경고 제거 목적 |

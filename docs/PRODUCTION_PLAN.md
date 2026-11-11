@@ -292,7 +292,7 @@ Phase A는 다음 조건 만족 시 종료 선언:
 
 | # | 심각도 | 항목 | 위치 | 메모 |
 |---|---|---|---|---|
-| ~~R5-1~~ | ~~Critical~~ | ✅ **코드 완료** — 파일 영속성(경로 env화 + 부팅 시드) | `lib/paths.js` + 라우트/`server.js` | 런타임 파일을 `RUNTIME_DATA_DIR`(Volume) 하위로. `seedRuntimeData()`가 프리빌트 seed-if-missing. dev는 no-op(경로=repo). **남은 것: Railway Volume 생성 + `RUNTIME_DATA_DIR=/data` env**(배포 실행). 상세: `docs/CUTOVER_CHECKLIST.md` §2·§4 |
+| ~~R5-1~~ | ~~Critical~~ | ✅ **코드 완료** — 파일 영속성(2층 레이어링, D-022) | `lib/paths.js` + 라우트/`server.js` | 읽기 `RUNTIME → REPO 폴백` / 쓰기 `항상 RUNTIME`. 복사(시드)하지 않으므로 repo 수정이 계속 전파된다. dev 기본값은 `.runtime/`(gitignore). **남은 것: `RUNTIME_DATA_DIR=/data` env — 반드시 배포 후에**(L-027). Volume·`DB_PATH` 는 적용 확인(2026-11-11). 상세: `docs/CUTOVER_CHECKLIST.md` §2·§4 |
 | ~~R5-2~~ | ~~High~~ | ✅ **해결** — 탈퇴/유저삭제 파일 정리 | `lib/paths.deleteUserFiles`, `routes/auth.js`, `routes/admin.js` | 아바타 + 본인 제작 캐릭터 dir·이미지 삭제(프리빌트/타인 보존). DELETE `/me` + admin DELETE `/users`에서 호출 |
 | ~~R5-3~~ | ~~High~~ | ✅ **해결** — Builder 비용/메모리 보호 | `routes/builder.js`, `server.js` | 입력길이 4000자 제한 + `builderSessions` Map **TTL 30분·최대 500**(메모리 누수 차단) + 전용 `builderLimiter`(15분 30req). 비로그인 데모 흐름은 의도 유지 |
 | ~~R5-4~~ | ~~Medium~~ | ✅ **해결** — 아바타 서버측 크기 검증 | `routes/auth.js` PATCH `/me` | `lib/imageData.parseImageDataUrl`로 decoded 5MB 검증. (이전 확장자 파일 정리는 R5-2 파일정리와 함께) |

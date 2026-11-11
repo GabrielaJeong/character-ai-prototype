@@ -2,12 +2,11 @@ const express    = require('express');
 const bcrypt     = require('bcryptjs');
 const Joi        = require('joi');
 const fs         = require('fs');
-const path       = require('path');
 const router     = express.Router();
 const { randomUUID } = require('crypto');
 const { stmt }   = require('../db');
 const { parseImageDataUrl } = require('../lib/imageData');
-const { IMAGES_DIR, deleteUserFiles } = require('../lib/paths');
+const { imageWritePath, deleteUserFiles } = require('../lib/paths');
 
 // ── Validation schemas ────────────────────────────────────
 const registerSchema = Joi.object({
@@ -199,7 +198,7 @@ router.patch('/me', async (req, res) => {
     const img = parseImageDataUrl(avatarData);
     if (img.error) return res.status(400).json({ error: img.error });
     const filename = `user_${req.session.userId}.${img.ext}`;
-    fs.writeFileSync(path.join(IMAGES_DIR, filename), img.buffer);
+    fs.writeFileSync(imageWritePath(filename), img.buffer);
     stmt.updateAvatar.run(`/images/${filename}`, req.session.userId);
   }
 

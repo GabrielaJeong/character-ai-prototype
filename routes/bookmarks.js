@@ -1,9 +1,7 @@
 const express = require('express');
 const router  = express.Router();
-const fs      = require('fs');
-const path    = require('path');
 const { stmt } = require('../db');
-const { CHARS_DIR } = require('../lib/paths');
+const { readCharConfig } = require('../lib/paths');
 
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
@@ -24,9 +22,8 @@ router.post('/:characterId', requireAuth, (req, res) => {
 
   // 캐릭터 오너에게 SOCIAL 알림 생성
   try {
-    const configPath = path.join(CHARS_DIR, characterId, 'config.json');
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const config = readCharConfig(characterId);
+    if (config) {
       const ownerId = config.owner_user_id;
       if (ownerId && ownerId !== userId) {
         const me = stmt.getUserById.get(userId);

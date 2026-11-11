@@ -6,11 +6,12 @@ const helmet         = require('helmet');
 const rateLimit      = require('express-rate-limit');
 const { randomUUID } = require('crypto');
 const { db, stmt }   = require('./db');
-const { seedRuntimeData, IMAGES_DIR, UPLOADS_DIR } = require('./lib/paths');
+const { ensureRuntimeDirs, IMAGES_DIR, UPLOADS_DIR } = require('./lib/paths');
 
-// R5-1: RUNTIME_DATA_DIR(=Volume) 지정 시 repo 프리빌트/시드를 런타임 디렉터리로 seed-if-missing.
-// dev(미지정)는 no-op. 파일 서빙·라우트보다 먼저 실행되어야 함.
-seedRuntimeData();
+// R5-1: 런타임 쓰기 디렉터리만 보장한다(RUNTIME_DATA_DIR = Volume, 미지정 시 .runtime/).
+// repo 프리빌트를 복사하지는 않는다 — 읽기는 런타임 → repo 폴백이다(lib/paths.js).
+// 파일 서빙·라우트보다 먼저 실행되어야 함.
+ensureRuntimeDirs();
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -229,7 +230,7 @@ app.use('/api/creator',          require('./routes/creator'));
 
 // ── Public curation read ──────────────────────────────────
 const fs   = require('fs');
-const { CURATION_FILE } = require('./lib/paths');
+const { readDataJson, CURATION_JSON } = require('./lib/paths');
 app.get('/api/version', (_req, res) => {
   try {
     const changelog = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf-8');
@@ -240,7 +241,9 @@ app.get('/api/version', (_req, res) => {
 
 app.get('/api/curation', (_req, res) => {
   try {
-    res.json(JSON.parse(fs.readFileSync(CURATION_FILE, 'utf-8')));
+    const data = readDataJson(CURATION_JSON);
+    if (!data) return res.status(500).json({ error: '큐레이션 로드 실패' });
+    res.json(data);
   } catch { res.status(500).json({ error: '큐레이션 로드 실패' }); }
 });
 
