@@ -116,7 +116,7 @@
 | 4 | **`status: 'inactive'` 가 실제로 안 걸린다** | admin UI 에서 설정·표시되지만 공개 `/api/characters` 가 필터하지 않아 비활성 캐릭터가 계속 노출된다. 레이어링 작업(D-022) 중 발견. 기존 결함이라 범위 밖으로 두고 기록만 |
 | 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
 | 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
-| 7 | **Railway 가 `dev` 푸시에도 배포를 건다** | `railway-app[bot]` 이 dev 전용 커밋(`3a3d95a`·`63564ba`·`d746560`)에 대해서도 같은 project/environment 로 production 배포 기록을 남긴다. 다만 라이브 서비스가 서빙하는 빌드는 main(`fe0341d`, `ihwa.png` mtime 17:12:34)이고 사용자 Redeploy 도 `fe0341d` 를 재배포했다 — 즉 **dev 를 따라가는 별도 서비스가 같은 환경에 있을 가능성**. Railway 대시보드에서 서비스 목록·각 Source 브랜치 확인 필요. 라이브가 dev 로 오염된 적은 없음 |
+| 7 | **Dev 서비스가 인증 없이 공개돼 있다** | Railway project 에 서비스가 둘이다 — `Dev`(dev 브랜치 → `dev-production-7601.up.railway.app`, Volume 없음) 와 `character-ai-prototype`(main → `folio-charc.up.railway.app`, Volume 연결). **라이브가 dev 로 오염된 적은 없다**(2026-11-12 사용자 대시보드 확인). 다만 Dev 가 인증 없이 접근되고 회원가입도 열려 있다(`check-username` 200, `demo-available` false). 채팅은 유료 API 를 태우는데 [server.js](../server.js) L160 에서 API 키는 `recommended` 라 없어도 부팅된다 — Dev 에 키가 있는지는 밖에서 판별 불가(확인하려면 유료 호출이 필요해 안 함). **조치**: Dev → Variables 에서 운영 키 여부 확인, 미사용 시 Settings → Networking 에서 공개 도메인 제거. 24시간 Online 이라 컴퓨트 비용도 계속 나간다 |
 | 7 | **`actions/checkout`·`actions/setup-node` @v4 → @v5** | 미착수. 전 CI 런에 `Node.js 20 is deprecated... forced to run on Node.js 24` 경고. 액션 자체가 Node 20 타깃이라 나는 것으로 우리 런타임과 무관하며 동작엔 지장 없다. 경고 제거 목적 |
 | ~~8~~ | ~~Vercel 프로젝트 중복 정리~~ | ✅ **완료 (2026-10-22)** — `-vn3a` **Pause + Git 연결 해제**. 교훈은 L-025 |
 | 9 | **PR #6·#7 머지** | 둘 다 CI 통과. base 를 dev 최신으로 올리고 job 레벨 확인 후 머지 |
