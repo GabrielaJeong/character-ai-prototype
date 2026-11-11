@@ -78,11 +78,11 @@
 
 - [x] **Volume 생성·마운트** — 2026-11-11 사용자 확인 (코드 폴더 `/app` 금지 — L-016)
 - [ ] env 확인:
-  - **`RUNTIME_DATA_DIR=/data`** ← R5-1 런타임 파일 루트. **미설정 확인(2026-11-11)**.
-        `DB_PATH` 가 가리키는 디렉터리와 같아야 한다.
-        **반드시 레이어링 코드(D-022) 배포 후에 넣는다** — 그 전에 넣으면 당시 main 의
-        `seedRuntimeData()` 가 최적화 전 `ihwa.png`(25MB, 메타데이터 포함)를 Volume 에
-        복사하고, `express.static(IMAGES_DIR)` 이 먼저 서빙하므로 영구히 가린다 (L-027)
+  - **`RUNTIME_DATA_DIR=/data`** ← R5-1 런타임 파일 루트. **아직 미설정 — 이제 넣으면 된다**.
+        `DB_PATH` 가 가리키는 디렉터리와 같아야 한다(`/data/chat.db` → `/data`).
+        선행 조건이었던 레이어링 코드(D-022) 배포는 **2026-11-11 완료**(`fe0341d`,
+        `ihwa.png` 최적화본 1,771,506B 서빙 실측 확인). 순서를 뒤집었으면
+        구 `seedRuntimeData()` 가 25MB 원본을 Volume 에 복사해 영구히 가렸다 (L-027)
   - `DB_PATH=/data/chat.db` — **적용 확인(2026-11-11)**: 계정·대화는 영속 중
   - `SESSION_SECRET`(필수), `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`
   - `NODE_ENV=production` → 세션쿠키 `secure:true` 활성 ([server.js](../server.js) L142)
@@ -139,12 +139,12 @@
 | middleware `BACKEND_ORIGIN` 단일화 | ✅ 코드 준비 |
 | `trust proxy`·세션 secure | ✅ 코드 적용 |
 | Railway `DB_PATH` env | ✅ **적용 확인**(2026-11-11 사용자 확인) — 계정·대화 영속 중 |
-| **R5-1 파일 영속성(레이어링, D-022)** | ✅ **코드 완료** — `RUNTIME_DATA_DIR=/data` env 만 남음. 배포 **후에** 넣을 것 (L-027) |
+| **R5-1 파일 영속성(레이어링, D-022)** | ✅ **코드 배포 완료**(2026-11-11, `fe0341d`) — `RUNTIME_DATA_DIR=/data` env 만 남음 |
 | **R5-2 탈퇴 파일정리** | ✅ **코드 완료** (`deleteUserFiles`) |
 | SSE-over-proxy 검증 | ⚠️ **여전히 미확인** — cutover 후에도 검증 기록 없음 |
 | Vercel 프로젝트·env·배포·도메인 전환 | ✅ **완료 확인** (2026-10-21 실측, §5·§7) |
 | Railway Volume | ✅ **있음**(2026-11-11 사용자 확인) |
-| `RUNTIME_DATA_DIR` | ❌ **미설정**(2026-11-11 사용자 확인) — 업로드 파일만 비영속. 배포 후 추가 |
+| `RUNTIME_DATA_DIR` | ❌ **미설정** — 업로드 파일만 비영속. 선행 배포가 끝났으므로 **지금 추가 가능** |
 
 > **배포 전 남은 실행 작업**: ① Railway Volume `/data` 생성 + env(`RUNTIME_DATA_DIR`·`DB_PATH`·`BACKEND_ORIGIN`) ② Vercel 프로젝트(root=`web`, `BACKEND_ORIGIN`) ③ 스테이징 스모크(특히 SSE) ④ 도메인 전환. **코드 준비는 완료.**
 
