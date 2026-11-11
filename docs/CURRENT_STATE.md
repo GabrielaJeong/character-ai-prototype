@@ -1,14 +1,17 @@
 # CURRENT_STATE.md
 
 > Folio 현재 상태 스냅샷. 다음 세션 시작 시 빠른 파악용.
-> 최종 업데이트: 2026-06-04 (React 마이그레이션 Phase A — 어드민 제외 전 화면 이식 완료)
+> 최종 업데이트: 2026-10-23 (v0.33 기준 — Phase A 완료, 프로덕션 cutover 완료)
+> **재가동 점검 1차 세션 종료.** PR 5건 dev 머지, 2건 열린 채 대기. **main 배포는 보류**.
+> 다음 세션은 아래 '남은 작업'의 열린 PR 2건부터 이어간다.
 
 ---
 
-## 🔄 React (Next.js) 마이그레이션 — Phase A (진행 중)
+## ✅ React (Next.js) 마이그레이션 — Phase A (완료)
 
 > Vanilla SPA(`public/`) → Next.js 14 App Router + TS(`web/`). 상세: `web/MIGRATION_HISTORY.md`.
-> `dev` 브랜치에서 진행. cutover 전까지 `public/` SPA가 프로덕션. **SSE 전환으로 일부 API는 web 전용** (D-019).
+> **2026-08-30 cutover 완료** (D-019). 레거시 SPA 제거 — `public/index.html`·`admin.html` 없음.
+> 현재 Express는 **API + 정적 자원 전용**, 화면은 전부 `web/`.
 
 ### 이식 완료 화면 (web/app/)
 - [x] 홈 `/` (큐레이션: 추천/공지/TOP.creators/GENRE/UPCOMING/footer)
@@ -26,7 +29,8 @@
 ### 미이식 화면
 - [x] **어드민 `/admin`** — **완료**. 서버 게이트(middleware) + 8 페이지(대시보드/유저/캐릭터/**모델 관리**/모더레이션/알림/eval/큐레이션). 큐레이션은 드래그/이미지업로드/스냅샷 히스토리/미리보기 전부. 모델 관리는 Layer 3 프롬프트 좌목록+우에디터. web 신규 의존성: chart.js + react-chartjs-2.
   - PV 집계에서 `/admin` 제외(server.js) — 어드민 조회가 앱 PV 부풀리던 버그 수정. 과거 admin PV 58행 정리 완료.
-  - **남은 것 = cutover + R5 인프라 백로그뿐.** 어드민 데이터 페이지 런타임 시각검증은 사용자 브라우저 확인 권장(어드민 세션 필요). 그 전까진 기존 `public/admin.html`(Express adminPageGuard)이 운영용.
+  - **cutover 완료.** `public/admin.html`(Express adminPageGuard)은 제거됐고 `/admin`이 유일한 어드민이다.
+  - 남은 것 = R5 백로그 중 **R5-5(회귀 테스트) 부분 완료**분뿐. `docs/PRODUCTION_PLAN.md` 9.5 참조.
 - [ ] mypage 메뉴 placeholder (좋아요/팔로잉/설정/고객지원) — 원본도 미구현 toast. 기능 자체가 없음
 
 ### 인프라 (web/)
@@ -38,11 +42,138 @@
 
 ---
 
+## 🔧 재가동 점검 (2026-10-21 ~ 10-23, 1차 세션 종료)
+
+> v0.33(2026-09-05) 이후 7주 공백 뒤 재가동. 조사 결과 전문은 세션 로그 기준이며,
+> 아래는 **다음 세션이 이어받기 위한 상태 요약**이다.
+
+### PR 현황 — **main 배포는 보류**
+
+**dev 에 머지됨 (2026-10-22)**
+
+| PR | 브랜치 | 내용 |
+|---|---|---|
+| #1 | `chore/node-24` | Node 24 통일 — `engines: "24.x"`·`.nvmrc`·CI 3곳 |
+| #2 | `chore/dep-audit-2026-10` | `npm audit fix` — root critical/high → 0 |
+| #4 | `fix/session-secret-guard` | `SESSION_SECRET` 가드의 `NODE_ENV` 의존 구멍 차단 |
+| #3 | `chore/layer3-model-alignment` | 서빙 모델 일치 + `messages.served_model` |
+| #5 | `fix/image-metadata-strip` | PNG 텍스트 청크 제거 — ihwa 25MB → 1.77MB, 프롬프트 노출 차단 |
+
+**열린 채 대기 — 다음 세션 시작점**
+
+| PR | 브랜치 | 내용 | CI | 상태 |
+|---|---|---|---|---|
+| **#6** | `chore/next-15` | Next 14 → 15 + React 19 (async params 4파일) | ✅ job·check 모두 success | **머지만 남음** |
+| **#7** | `fix/test-db-isolation` | 워커별 임시 DB 로 테스트 격리 | ✅ | 머지 대기 |
+
+머지는 매번 base 를 dev 최신으로 올려 CI 를 재실행했다 — `ci.yml` 트리거가 `[main, dev]`
+한정이라 **브랜치 푸시만으로는 CI 가 돌지 않는다. PR 을 열어야** `pull_request` 트리거가 걸린다.
+
+> **`web` job 이 `in_progress` 로 멈추는 현상**: run 레벨은 `success` 이고 로그에
+> `Compiled successfully`·`Complete job` 까지 찍혔는데 job/check-runs 상태만 갱신이 안 됐다.
+> `check-runs` API 로 교차 확인해도 동일. 같은 run 을 **재실행(attempt 2)** 하면 정상이 된다.
+> 머지 전 job 레벨까지 확인할 것.
+
+> **main 배포 보류 이유**: 배포 전 R5-1(Railway Volume·`RUNTIME_DATA_DIR`) 확인이 선행돼야
+> 하고, 2026-10-21~22 Railway 플랫폼 장애로 빌드가 단계적으로만 풀리는 중이었다.
+>
+> **2026-11-11 해소**: Volume·`DB_PATH` 는 적용돼 있고(사용자 확인) `RUNTIME_DATA_DIR` 만
+> 미설정이다. 그런데 점검 중 R5-1 원안(부팅 시드)이 **repo 수정을 영구히 차단**하는
+> 결함을 안고 있음을 발견해 레이어링으로 재설계했다 (D-022 / L-027).
+> 켜는 순서가 중요하다: **레이어링 배포 → 그 다음 `RUNTIME_DATA_DIR` 추가.**
+> 거꾸로 하면 최적화 전 `ihwa.png`(25MB·메타데이터 포함)가 Volume 에 박혀 영구히 가린다.
+
+### 완료된 작업
+
+- **의존성**: root critical 1·high 8 → **0**. `proxy-addr` critical(IP 스푸핑 — limiter 5종이 전부 IP 기반) 해소. web 9 → 5
+- **Node 버전**: 로컬 24.14.1 / CI 20 / Railway 미지정 → 전부 24 로 고정. `better-sqlite3@12.8.0` 이 Node 24 공식 지원(`engines`) + 클린 설치 prebuilt 확인
+- **모델 정합성**: 자동 라우팅 발견(`3.7-flash`→`3.8-flash`, `3.5-flash`→`3.6-flash`) → 피커 중복 제거, 기본값 `gemini-3.8-flash` 명시, `LEGACY_MODEL_ALIASES` 추가 (L-023)
+- **문서**: `CUTOVER_CHECKLIST` 실측 항목 10개 근거와 함께 체크 (L-024), `PRODUCTION_PLAN` 7.3 신설
+- **테스트 키 분리**: 로컬 `.env` 를 테스트 전용 키로 교체 (L-023 예산 규칙 ⑤ 충족). `.env.example` 에 발급처 분리 규약 명시
+- **이미지 자산**: PNG 텍스트 청크 제거로 29.09MB → 6.85MB. 동시에 공개돼 있던 NovelAI 생성 프롬프트 차단 (PR #5, D-021)
+- **CI 실패 진단**: `database is locked` 원인 규명 → 테스트 DB 격리로 해결 (PR #7). 진단 중 개발 DB 유실 사고 (L-026)
+- **Vercel 중복 정리**: `-vn3a` Pause + Git 연결 해제 (L-025)
+- **테스트 파일 격리**: `RUNTIME_DATA_DIR` 을 워커별 임시 경로로. 테스트가 git 추적 파일
+  `public/images/user_2.jpg` 를 지운 사고 차단 (PR #8)
+- **R5-1 재설계**: 부팅 시드 → 2층 레이어링. 원안은 복사 때문에 repo 수정이 프로덕션에
+  영원히 전파되지 않는 결함이 있었다 (D-022 / L-027). 런타임 업로드를 git 추적에서 제외하고
+  `.gitignore` 에 `public/images/user_*`·`char_*`·`.runtime/` 추가
+
+### 남은 작업
+
+| # | 작업 | 블로커 |
+|---|---|---|
+| ~~1~~ | ~~R5-1 확인~~ | ✅ **확인 완료**(2026-11-11): Volume 있음 / `DB_PATH` 있음(계정·대화 영속) / `RUNTIME_DATA_DIR` **미설정**. 프로덕션 런타임 업로드는 실측 **0건**(런타임 캐릭터 0, 큐레이션이 repo 커밋본과 바이트 동일, 아바타는 git 추적분 1개뿐) → 잃을 데이터 없음 |
+| 2 | `dev` → `main` 배포 | 사용자 승인 대기. 순서: **레이어링(D-022) 머지 → 배포 → `RUNTIME_DATA_DIR=/data` 추가**. 역순 금지 (L-027) |
+| ~~3~~ | ~~Next 15 머지 (PR #6)~~ | ✅ **머지 완료**(2026-11-10) `b36a5bb`. **16 은 보류** — 아래 참조 |
+| ~~4~~ | ~~`ihwa.png` 25MB → 다른 캐릭터 수준~~ | ✅ **PR #5** — 25,074,295 → **1,771,506 B**(-92.9%). 원인은 압축이 아니라 tEXt 22.2MB. 무손실(IDAT 바이트 동일). 머지 대기 |
+| 4 | **`status: 'inactive'` 가 실제로 안 걸린다** | admin UI 에서 설정·표시되지만 공개 `/api/characters` 가 필터하지 않아 비활성 캐릭터가 계속 노출된다. 레이어링 작업(D-022) 중 발견. 기존 결함이라 범위 밖으로 두고 기록만 |
+| 5 | **기본 모델 재벤치마크** | `gemini-3.8-flash.md` 는 3.7 기준 임시 보정. TTFT 수치(4.6s)도 3.7 요청 기준 |
+| 6 | SSE-over-proxy 검증 (§3-1) | cutover 후에도 기록 없음 |
+| 7 | **`actions/checkout`·`actions/setup-node` @v4 → @v5** | 미착수. 전 CI 런에 `Node.js 20 is deprecated... forced to run on Node.js 24` 경고. 액션 자체가 Node 20 타깃이라 나는 것으로 우리 런타임과 무관하며 동작엔 지장 없다. 경고 제거 목적 |
+| ~~8~~ | ~~Vercel 프로젝트 중복 정리~~ | ✅ **완료 (2026-10-22)** — `-vn3a` **Pause + Git 연결 해제**. 교훈은 L-025 |
+| 9 | **PR #6·#7 머지** | 둘 다 CI 통과. base 를 dev 최신으로 올리고 job 레벨 확인 후 머지 |
+| 10 | **vitest 취약점 2건** (`@vitest/mocker`·`vitest`, 둘 다 `fix: true`) | 별도 브랜치·PR 로 처리하기로 함. 미착수 |
+| 11 | **로컬 개발 DB 재구성** | 사고로 유실(L-026). 방법: 앱에서 회원가입 → `node scripts/admin-reset.js <email> <pw> admin`. `demo_user` 는 `DEMO_MODE=true` 에서 체험 로그인 시 자동 생성. **격리(PR #7) 머지 후에 할 것** — 안 그러면 테스트가 또 오염시킨다 |
+| 12 | **`.claude/settings.json` 권한 설정 적용** | 안 작성 완료, **사용자 확인 대기**. 아래 '대기 중인 확인' 참조 |
+| 13 | `db/chat.db` 테스트 잔여물 정리 | `auth_sessions` 3행·`notifications` 4행. 격리 확인 후 지워도 된다고 승인받음 — **지우기 전 재확인** |
+
+### 알려진 미해결 사항
+
+- ~~**Vercel 프로젝트가 2개**~~ → **2026-10-22 `-vn3a` Pause + Git 연결 해제로 정리됨** (L-025).
+  아래는 당시 실측 기록 — `character-ai-prototype` / `character-ai-prototype-vn3a`.
+  `-vn3a` 는 Vercel 이 프로젝트명 충돌 시 붙이는 접미사라 **같은 repo 를 두 번 import** 한 결과로 보인다.
+  2026-10-22 PR 체크에서 처음 드러났고 **repo·문서 어디에도 기록이 없다**. 실측 결과:
+  - 둘 다 동일한 Folio 앱을 서빙 (루트 HTML 12,850 bytes 바이트 단위 동일)
+  - 둘 다 `BACKEND_ORIGIN` 설정됨 — `/api/*` 가 같은 Railway 백엔드로 프록시 (`X-Railway-*` 통과)
+  - 둘 다 `/images` 프록시·`/admin` 미들웨어 307 정상
+  - 즉 **같은 DB 를 보는 공개 진입점이 두 개**다. 세션 쿠키는 `vercel.app` 이 PSL 등재 도메인이라
+    서로 공유되지 않는다 (L-022)
+  - Railway 의 `FRONTEND_ORIGIN` 은 접미사 없는 쪽을 가리킨다 → 그쪽이 운영
+  - 각 프로젝트의 production 브랜치·root directory·env 는 **대시보드에서만 확인 가능**
+- `prompts/models/gemini-3.7-flash.md` — 별칭이 Layer 3 조회 전에 걸려 **더 이상 로드되지 않는 고아**. `gemini-3.8-flash.md` 의 출처라 남겨뒀다
+- `sessions.model` 컬럼 DEFAULT 가 `'claude-sonnet-4-6'` — v0.33 에서 제거된 모델. 세션 생성 시 항상 명시값이 들어가 실害는 없으나 stale
+- ~~서빙 모델 로깅 미구현~~ → **PR #3 에서 구현**. `lib/streamReply.js` `onMeta` + `messages.served_model`. 라이브 검증 완료(Claude·Gemini 각 1회)
+- **생성 프롬프트가 git 이력에 남아 있다** — PR #5 가 현재 파일에서는 제거했으나 **과거 blob 에는 남는다**.
+  → **D-021: 이력 재작성은 하지 않기로 결정.** 공개 저장소라 이미 복제됐을 수 있어 효과가 제한적이고,
+  되돌릴 수 없는 force push 비용 대비 노출 자산(이미지 프롬프트)의 가치가 낮다.
+  이미지 추가 시 메타데이터 제거를 `SESSION_CHECKLIST` 에 추가함
+- root `@anthropic-ai/sdk` 0.86.1 → 0.137.0 (moderate, semver major)
+- web 잔여 취약점: PR #6(Next 15)로 **critical 1 → 0**. 남은 9건 중 `postcss`·`next` 는 `next@16.4.2` 필요,
+  `eslint-config-next` 계열은 npm 이 **다운그레이드를 fix 로 제시**하므로 따르지 않는다
+- Next 15 빌드 경고 `Next.js inferred your workspace root` — 홈 디렉터리의 떠돌이 lockfile
+  (`C:/Users/user/package-lock.json`)을 workspace root 로 골랐다. **repo 밖 파일이라 CI 영향 없음, 로컬 한정**
+
+### Next 16 — 보류 (2026-10-23 결정)
+
+**보안 사유는 해소됐다.** Next 15.5.28 로 올리면서 CVE-2026-29057(rewrites HTTP 스머글링,
+15.5.13+ 에서 수정)과 Image Optimizer `remotePatterns` DoS(critical)가 모두 사라진다.
+
+**16 은 변경 범위 대비 이득이 없다.** 남은 16 전용 취약점은 `postcss`·`next` 의 moderate/high
+뿐인데, 그 대가로 `middleware.ts`→`proxy.ts` 개명, `next lint` 제거(ESLint CLI 전환),
+ESLint flat config 전환, `next/image` 기본값 3종 변경(`qualities`·`minimumCacheTTL`·`imageSizes`),
+Turbopack 기본화를 한꺼번에 받아야 한다.
+
+재검토 트리거: 16 전용 critical 취약점이 나오거나, 15 가 EOL 수순에 들어갈 때.
+
+### 대기 중인 확인 (다음 세션에서 물어볼 것)
+
+1. **`.claude/settings.json` 권한 설정 적용 여부** — 안은 스크래치패드의
+   `PROPOSED-claude-settings.json` 에 있다. `permissions.ask` 로 `rm`·`mv`·`git reset --hard`·
+   `git clean`·`Remove-Item` 등과 `Edit(db/**)`·`Edit(.env)`·`Edit(public/uploads/**)` 를
+   실행 전 승인 대상으로 둔다.
+   한계: 권한 규칙은 **명령 문자열 앞부분 매칭**이라 `cd x && rm y`·리다이렉션·`find -exec rm`
+   은 빠져나간다. 확률을 낮추는 장치이지 보증이 아니다
+2. **`db/chat.db` 테스트 잔여물 삭제** — 승인은 받았으나 지우기 전 재확인하기로 함
+3. **로컬 개발 DB 재구성 시점** — PR #7(격리) 머지 후
+
+---
+
 ## 구현 완료 기능
 
 ### 유저 기능
 - [x] 4명 프리빌트 캐릭터 대화 (이화, 영일, 지세현, 박재헌)
-- [x] 멀티 모델 (Claude 5종: Sonnet 4.6 / Opus 4.8·4.7·4.6 / Haiku 4.5 + Gemini 4종: 2.5 Flash·Pro / 3.1 Pro / 3.5 Flash, 기본 Gemini 3.1 Pro). 정규 목록: `lib/chatModels.js`. 모델별 Layer 3 보정 프롬프트는 어드민 `/admin/models`에서 편집(`prompts/models/{id}.md`)
+- [x] 멀티 모델 12종 — Claude 6종(Opus 5 / Sonnet 5 / Opus 4.8·4.7·4.6 / Haiku 4.5) + Gemini 6종(3.7 Flash / 3.6 Flash / 3.5 Flash / 3.1 Pro / 2.5 Pro·Flash). **기본 `gemini-3.7-flash`**(TTFT 최적화, v0.33). 정규 목록: `lib/chatModels.js`. 모델별 Layer 3 보정 프롬프트는 어드민 `/admin/models`에서 편집(`prompts/models/{id}.md`)
 - [x] 소설/채팅 모드, 응답 재생성 + 페이지네이션
 - [x] 캐릭터 빌더 (AI 대화형 + 직접 제작)
 - [x] 유저 페르소나 시스템
@@ -87,14 +218,15 @@
 - [x] CHANGELOG.md 자동 생성 훅 (`[release]` 태그 커밋 시)
 - [x] CLAUDE.md (클로드 코드 진입점, Red Flags 11종)
 - [x] docs/CONVENTIONS.md (코딩 규칙 + 모바일 3종 체크리스트)
-- [x] docs/DECISIONS.md (설계 결정 16건 — D-001~D-016)
-- [x] docs/LESSONS.md (실수 패턴 12건 — L-001~L-012)
+- [x] docs/DECISIONS.md (설계 결정 20건 — D-001~D-020)
+- [x] docs/LESSONS.md (실수 패턴 22건 — L-001~L-022)
 - [x] docs/SECURITY.md (보안 정책 + 어드민 보호)
 - [x] docs/DESIGN_SYSTEM.md (토큰·컴포넌트·인터랙션)
 - [x] docs/SESSION_CHECKLIST.md
 - [x] ESLint + Prettier + .editorconfig
-- [x] Jest + supertest (49개 테스트 통과, `forceExit: true`)
-- [x] GitHub Actions CI
+- [x] Jest + supertest — 백엔드 **60개** 통과 (`forceExit: true`)
+- [x] Vitest — web **36개** 통과 (어드민 게이트·store·SSE 파서)
+- [x] GitHub Actions — CI(백엔드 + web job) + **Sync to Notion**(repo 문서 → Notion 미러)
 - [x] **Git 브랜치 전략** (작업 = `dev`, 릴리즈 = `main` merge)
 
 ---
@@ -121,10 +253,6 @@
 ### 하네스 확장
 - [ ] Sentry 에러 로깅 (프로덕션 단계)
 - [ ] 테스트 커버리지 50% 달성
-- [ ] React 마이그레이션 준비 작업 (D-014 참조)
-  - 전역 상태 단일 객체화
-  - app.js 화면 단위 분리
-  - onclick 인라인 → 함수 분리
 
 ---
 
@@ -149,13 +277,21 @@
 - L-015: Railway 컨테이너 ephemeral 파일시스템 — 매 배포 데이터 손실
 - L-016: Volume 마운트 경로가 코드 디렉토리와 충돌 → 모듈 로드 실패
 - L-017: `railway run`은 로컬 실행 — 컨테이너 / Volume 접근 불가
+- L-018: SSR 오버레이(Splash) FOUC — 진짜 원인은 fadeIn 0.3s 애니메이션
+- L-019: React StrictMode의 "한 번만 실행" 가드는 useState 아닌 useRef
+- L-020: Express SSE 클라이언트 abort 감지는 `res.on('close')` (req.on 아님)
+- L-021: 외부 코드리뷰 finding은 severity·영향범위로 분리, 묶음 적용 금지
+- L-022: 포트폴리오 iframe 안에서는 세션 쿠키가 아예 전송되지 않음
 
 ---
 
 ## 배포 상태
 
-- Railway 자동 배포 중 (GitHub `main` push 시)
-- 커스텀 도메인 적용 (`folio-charc.up.railway.app`)
-- GitHub Actions CI 통과 (49개 테스트, jest forceExit으로 워커 종료 보장)
+- **구성**: 백엔드 Express(Railway) = API + 정적 자원 / 프론트 Next.js(`web/`) = 전 화면
+  - `BACKEND_ORIGIN` — web(next.config·middleware)의 프록시 대상
+  - `FRONTEND_ORIGIN` — Express가 남은 HTML 요청을 넘길 프론트 도메인 (미설정 시 404 JSON)
+  - `RUNTIME_DATA_DIR` / `DB_PATH` — Railway Volume 경로 (R5-1·D-017)
+- Railway 자동 배포 (GitHub `main` push 시), 커스텀 도메인 `folio-charc.up.railway.app`
+- GitHub Actions — CI(백엔드 60 + web 36) / Sync to Notion
 - 환경변수: `DEMO_MODE=true` 설정 시 데모 체험 활성화
-- 포트폴리오 사이트 (`gabby-pm-portfolio.vercel.app`) iframe 임베딩 가능
+- 포트폴리오 사이트 (`gabby-pm-portfolio.vercel.app`) iframe 임베딩 가능 (D-016·L-022)

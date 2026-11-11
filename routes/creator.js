@@ -1,9 +1,8 @@
 const express  = require('express');
 const router   = express.Router();
 const fs       = require('fs');
-const path     = require('path');
 const { stmt } = require('../db');
-const { CHARS_DIR } = require('../lib/paths');
+const { charWriteFile, readCharConfig, listCharacterIds } = require('../lib/paths');
 
 // GET /api/creator/:username
 router.get('/:username', (req, res) => {
@@ -28,16 +27,11 @@ router.get('/:username', (req, res) => {
     const sessionTotals  = Object.fromEntries(stmt.charSessionCounts.all().map(r => [r.character_id, r.cnt]));
     const bookmarkTotals = Object.fromEntries(stmt.charBookmarkCounts.all().map(r => [r.character_id, r.cnt]));
 
-    const dirs = fs.readdirSync(CHARS_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name);
-
-    for (const id of dirs) {
+    for (const id of listCharacterIds()) {
       if (!id.startsWith('char_')) continue;
-      const cfgPath = path.join(CHARS_DIR, id, 'config.json');
-      if (!fs.existsSync(cfgPath)) continue;
       try {
-        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        const cfg = readCharConfig(id);
+        if (!cfg) continue;
         if (cfg.owner_user_id !== user.id) continue;
         // 성인 캐릭터는 성인 토글 ON일 때만 노출 (선재 누수 차단)
         if (cfg.rating === 'adult_only' && !adultEnabled) continue;
@@ -88,15 +82,14 @@ router.patch('/:charId/pin', (req, res) => {
   const { charId } = req.params;
   if (!charId.startsWith('char_')) return res.status(400).json({ error: '잘못된 캐릭터 ID입니다' });
 
-  const cfgPath = path.join(CHARS_DIR, charId, 'config.json');
-  if (!fs.existsSync(cfgPath)) return res.status(404).json({ error: '캐릭터를 찾을 수 없습니다' });
+  const cfg = readCharConfig(charId);
+  if (!cfg) return res.status(404).json({ error: '캐릭터를 찾을 수 없습니다' });
 
   try {
-    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     if (cfg.owner_user_id !== req.session.userId) return res.status(403).json({ error: '권한이 없습니다' });
 
     cfg.pinned = !cfg.pinned;
-    fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), 'utf8');
+    fs.writeFileSync(charWriteFile(charId, 'config.json'), JSON.stringify(cfg, null, 2), 'utf8');
     res.json({ pinned: cfg.pinned });
   } catch (err) {
     console.error('Pin error:', err.message);

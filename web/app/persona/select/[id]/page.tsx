@@ -2,7 +2,7 @@
 
 // useSearchParams 사용 → Suspense boundary 필요 (ML-004).
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams, notFound } from 'next/navigation';
 import { useCharacters, usePersonas } from '@/lib/hooks';
 import { useUIStore } from '@/store/ui';
@@ -22,7 +22,10 @@ import styles from './page.module.css';
  *   - 제출 시: 변경된 값으로 chat prep 세팅, `{{user}}` 치환, /character/<charId>/chat 이동
  *   - 백엔드 PATCH는 호출 안 함 — 일회성 수정만 (원본 동작과 동일)
  */
-export default function PersonaSelectEditPage({ params }: { params: { id: string } }) {
+// Next 15: params 가 Promise 다. Suspense 바깥에서 use() 로 풀어 내부에는
+// 평범한 객체로 넘긴다.
+export default function PersonaSelectEditPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   return (
     <Suspense fallback={null}>
       <PersonaSelectEditInner params={params} />

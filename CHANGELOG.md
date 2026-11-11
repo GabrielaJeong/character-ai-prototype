@@ -1,12 +1,137 @@
-<!-- changelog-last-commit: 8942c50d89a18f9fb953cedf789296bb87972d2c -->
-<!-- changelog-last-version: 0.30 -->
+<!-- changelog-last-commit: cb661d1 -->
+<!-- changelog-last-version: 0.33 -->
 
 
 
 # Folio — 업데이트 로그
 
 > AI 캐릭터 채팅 플랫폼 프로토타입  
-> 기록 기준: Git 커밋 이력
+> 기록 기준: Git 커밋 이력  
+> v0.19는 릴리즈 커밋이 없어 기록에서 빠져 있음.
+
+---
+
+## v0.33 — 2026-09-05
+**프로덕션 cutover 완료 + Claude 5·Gemini 3.7 모델 라인업 + Vitest + 체험 모드 복원**
+
+### 주요 기능
+- Express를 API 전용으로 전환, 레거시 SPA 제거 (D-019 완료)
+- Claude 5·Gemini 3.6/3.7 추가, Sonnet 4.6 제거
+- 신규 모델 Layer 3 보정 3종 + 이화 지칭 규칙
+- 체험 모드 진입점 랜딩 노출 + 체험 배너 복원
+- 포트폴리오 iframe 임베드 대응 — 인증 지점은 새 탭으로 유도 (옵션 C)
+- 파일 영속성 (R5-1) + 탈퇴 파일정리 (R5-2)
+- cutover 설정 준비 — Next prod 프록시 + 체크리스트
+
+### 버그 수정
+- Gemini thinkingBudget 0 거부 모델에서 채팅 전체가 실패하던 문제
+- 백엔드에 세션이 없을 때 복구 불가능하던 문제
+- 헤더만 있는 모델 보정 파일이 시스템 프롬프트에 주입되던 문제
+- 로그인 게이트가 보호 라우트를 빈 화면으로 남기던 문제
+- BACKEND_ORIGIN 정규화 — 스킴 누락 시 배포 빌드가 죽던 문제
+- demo-login 응답 shape을 login·me와 일치시킴
+- 대화 시작 버튼에 인증 가드 — 비로그인 시 맥락 잃고 홈으로 튕기던 문제
+- 로그인·로그아웃 시 SWR 캐시 재검증 — 이전 신분 데이터가 남던 문제
+- CSP frame-ancestors 추가 — 포트폴리오 iframe 임베드 복구
+- Builder Map TTL/최대치 + 전용 limiter (메모리 누수 차단)
+- R5 소형 백로그 다수 + PV 비화면 요청 혼입 처리
+
+### 성능
+- 채팅 기본 모델을 Gemini 3.1 Pro → 3.7 Flash (TTFT 최적화)
+- Gemini thinking 예산 제한으로 첫 토큰 지연(TTFT) 단축
+
+### 테스트
+- Vitest 도입 — 어드민 게이트·store·SSE 파서 24 tests
+- CI: web/ job 추가 + dev 브랜치 트리거
+
+### 기타
+- v0.33 [release] cutover + 모델 라인업 + Vitest + 체험 모드
+
+---
+
+## v0.32 — 2026-06-09
+**Next.js 14 전면 마이그레이션 + 어드민 완성 + SSE 스트리밍 + 모델 관리**
+
+### 주요 기능 — Next.js 마이그레이션
+- Next.js 14 App Router + TypeScript scaffolding (Phase A)
+- 전체 27개 페이지 완성 — 홈 / 인트로 / 채팅 / 페르소나 / 인증 / 마이페이지 / 히스토리 / 탐색 / 알림 / 크리에이터 / 빌더 / 페르소나 상세
+- Day 1: globals + API client + Auth store (zustand)
+- Day 2: Toast / Splash / Modal / AuthGate / LogoutModal / BottomNav (글로벌 인프라)
+- Day 3: `/` 홈 (LandingHeader + CharacterCard + 추천 그리드 + Notice/Creators/Genres/Upcoming/Footer)
+- Day 4: `/character/[id]` 캐릭터 인트로 + Safety segment (전연령/성인 모드 토글)
+- Day 5: Persona flow (4 routes) + chatPrep store
+- Day 6: 채팅 `/character/[id]/chat` + ModelPicker + ChatInput + 노트/프로필 모달
+- Day 7: Auth (login / register / forgot / reset-password) 통합 화면
+- Day 8: Mypage 완성 (profile + settings + tabs + 정보수정 모달 + 성인 인증 + 아바타 업로드 + 탈퇴)
+- Day 9: `/history` + 기존 세션 로드 + chatPrep persistence
+- Day 10: Explore 큐레이션 + 랭킹 + BROADCAST/TAG.CLOUD/EDITOR.PICKS
+- Day 11: Notification 알림함
+- Day 12: Creator 프로필 (/creator/@:username)
+- Day 13: Builder 캐릭터 제작 (AI 대화형 + 직접 제작)
+- Day 14: 페르소나 상세/편집 + 아바타 업로드
+- Day 15: 어드민 서버 측 게이트 (middleware)
+
+### 주요 기능 — 어드민 완성
+- Step 2-1: 셸 (사이드바 + 페이지 라우팅)
+- Step 2-2: 유저 관리 (/admin/users)
+- Step 2-3: 캐릭터 관리 (/admin/characters)
+- Step 2-4: 알림 관리 (/admin/notifications)
+- Step 2-5: 모더레이션 (/admin/moderation)
+- Step 2-6: 대시보드 chart.js
+- Step 2-7: 캐릭터 평가 eval (/admin/eval)
+- Step 2-8: 큐레이션 (드래그/업로드/히스토리) — 어드민 완성
+
+### 주요 기능 — 기타
+- SSE 스트리밍 — token-by-token typewriter UX (ChatGPT 스타일)
+- typewriter smoothing — SDK chunk 크기와 무관하게 글자 단위 부드러운 출력
+- 비밀번호 재설정에 보기 토글 + 실시간 일치 표시
+- 로그인 기억하기 (remember me)
+- Claude Opus 4.7/4.8, Gemini 3.5 Flash 모델 추가
+- 어드민 모델 관리 — Layer 3 보정 프롬프트 편집 (/admin/models)
+- 모델 목록 단일화 — lib/chatModels.js에서 파생
+- useDragScroll hook — 데스크탑 마우스 드래그 가로 스크롤
+
+### 버그 수정
+- Splash FOUC 디버깅 여정 (L-018) — fadeIn 애니메이션이 원인, Client Component + React state로 해결
+- chat StrictMode dev에서 useEffect 이중 실행으로 prep loop (ML-011)
+- SSE abort 감지를 res.on('close')로 교체 (ML-012)
+- chat hydration이 비로그인 시 AuthGate intendedPath 덮어쓰던 버그
+- Creator 성인필터 누락 차단 + owner-bypass 제거
+- predev 훅으로 .next 자동 정리 — 수동 삭제가 IDE 오류 유발하던 문제
+- PV 집계에서 어드민(/admin) 제외
+- Codex QA 리뷰 R1~R8 누적 처리 (보안 critical 포함)
+
+### 리팩터링
+- 어드민 모델 관리 UX — 좌 목록 + 우 에디터 2단
+- 라우트 인증 정책 일관 적용 — useRequireAuth + 6개 페이지 가드 (ML-014)
+- 루트 ESLint flat config 전환
+
+### 문서
+- PRODUCTION_PLAN.md 신규 — 프로덕션 마이그레이션 마스터 플랜
+- MIGRATION_CHECKLIST + MIGRATION_HISTORY 하네스
+- ML-011~014, L-018 학습 문서화
+- 메인 docs에 React 마이그레이션 반영
+
+### 기타
+- v0.32 [release] Next.js 전면 마이그레이션 + 어드민 + SSE + 모델 관리
+
+---
+
+## v0.31 — 2026-05-19
+**어드민 진입 개선 + /signup 라우트 분리 + 후속 문서화**
+
+### 주요 기능
+- 마이페이지에 어드민 대시보드 진입 버튼 추가
+- admin 부트스트랩용 임시 HTTP 엔드포인트
+- /signup 라우트 분리 — 회원가입 URL을 /login에서 분리
+
+### 문서
+- L-017: Railway 컨테이너 접근 불가 학습
+- D-018: 임시 HTTP 엔드포인트 결정
+- Red Flag #15 추가
+
+### 기타
+- v0.31 [release] 어드민 진입 + /signup 분리 + 학습 문서화
 
 ---
 

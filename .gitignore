@@ -148,3 +148,12 @@ vite.config.ts.timestamp-*
 *.db
 *.db-shm
 *.db-wal
+
+# 런타임 데이터 (R5-1). 프로덕션은 RUNTIME_DATA_DIR(Railway Volume)로 덮어쓴다.
+# 유저 아바타·제작 캐릭터·업로드·admin 편집물이 들어가는 곳 — repo 에 섞이면 안 된다.
+.runtime/
+
+# 런타임 업로드가 repo 에 추적되는 사고 방지 (user_2.jpg 가 실제로 그랬다).
+# 프리빌트 캐릭터 이미지는 파일명이 캐릭터 이름(ihwa.png 등)이라 영향 없다.
+public/images/user_*
+public/images/char_*

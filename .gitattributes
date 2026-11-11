@@ -1,0 +1,30 @@
+# 줄바꿈을 LF 로 통일한다.
+#
+# 이유: core.autocrlf=true 환경(Windows)에서는 워킹 카피가 CRLF, CI(리눅스)는 LF가
+# 되어 같은 파일의 내용 해시가 서로 달라진다. Notion 동기화(scripts/sync-notion.js)가
+# 내용 해시로 변경을 감지하는데, 이 차이 때문에 매 실행이 전체 교체로 돌았다.
+# 해시 쪽도 정규화해 두었지만(hash12), 근본은 여기서 잡는다.
+
+* text=auto eol=lf
+
+# 바이너리 — 어떤 변환도 하지 않는다
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.pdf  binary
+*.db   binary
+*.sqlite binary
+*.sqlite3 binary
+
+# 줄바꿈이 의미를 갖는 파일
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf

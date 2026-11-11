@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "sync:notion": "node scripts/sync-notion.js"
   },
   "jest": {
     "testEnvironment": "node",
@@ -23,6 +24,15 @@
     "coveragePathIgnorePatterns": [
       "/node_modules/",
       "/tests/"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
+    "globalTeardown": "<rootDir>/tests/globalTeardown.js",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/web/"
     ]
   },
   "repository": {
@@ -57,5 +67,8 @@
     "jest": "^30.3.0",
     "prettier": "^3.8.3",
     "supertest": "^7.2.2"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

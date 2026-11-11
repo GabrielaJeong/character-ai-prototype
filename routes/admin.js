@@ -1,13 +1,17 @@
 const express    = require('express');
 const router     = express.Router();
 const fs         = require('fs');
-const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
 const { db, stmt, adminGraphSeries, adminGraphSeriesDistinct, adminModerationFilter } = require('../db');
 const { buildSystemPrompt } = require('../prompts/buildSystemPrompt');
 const { CHAT_MODELS, CHAT_MODEL_IDS, GEMINI_MODEL_IDS } = require('../lib/chatModels');
 
-const { CHARS_DIR, MODELS_DIR, UPLOADS_DIR, CURATION_FILE, BCAST_HIST_FILE, COL_HIST_FILE, deleteUserFiles } = require('../lib/paths');
+const {
+  uploadWritePath, deleteUserFiles,
+  isPrebuilt, charReadFile, charWriteFile, readCharConfig, listCharacterIds, deleteCharacter,
+  modelPromptRead, modelPromptWrite,
+  readDataJson, writeDataJson, CURATION_JSON, BCAST_HIST_JSON, COL_HIST_JSON,
+} = require('../lib/paths');
 
 const anthropic  = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -23,16 +27,12 @@ router.use(requireAdmin);
 // ── Helper: load all character configs ───────────────────
 function loadAllCharacters() {
   try {
-    return fs.readdirSync(CHARS_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => {
-        const configPath = path.join(CHARS_DIR, d.name, 'config.json');
-        if (!fs.existsSync(configPath)) return null;
-        try {
-          const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-          cfg._isPrebuilt = !d.name.startsWith('char_');
-          return cfg;
-        } catch { return null; }
+    return listCharacterIds()
+      .map(id => {
+        const cfg = readCharConfig(id);
+        if (!cfg) return null;
+        cfg._isPrebuilt = isPrebuilt(id);
+        return cfg;
       })
       .filter(Boolean);
   } catch { return []; }
@@ -141,14 +141,9 @@ router.post('/eval/run', async (req, res) => {
   console.log(`[eval] START char=${characterId} model=${model}`);
 
   // 캐릭터 config에서 추천 페르소나 로드
-  const configPath = path.join(CHARS_DIR, characterId, 'config.json');
   let persona = { name: '유저', age: 25, appearance: '', personality: '', notes: '' };
-  if (fs.existsSync(configPath)) {
-    try {
-      const cfg = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      if (cfg.recommendedPersona) persona = cfg.recommendedPersona;
-    } catch (_) {}
-  }
+  const evalCfg = readCharConfig(characterId);
+  if (evalCfg?.recommendedPersona) persona = evalCfg.recommendedPersona;
 
   // 실제 채팅과 동일한 full system prompt 빌드 (guardrails + model corrections + safety + persona)
   let systemPrompt = '';
@@ -156,8 +151,8 @@ router.post('/eval/run', async (req, res) => {
     systemPrompt = buildSystemPrompt(characterId, persona, '', 'on', model);
   } catch (_) {
     // system.md가 없는 경우 fallback
-    const sysPath = path.join(CHARS_DIR, characterId, 'system.md');
-    if (fs.existsSync(sysPath)) systemPrompt = fs.readFileSync(sysPath, 'utf-8');
+    const sysPath = charReadFile(characterId, 'system.md');
+    if (sysPath) systemPrompt = fs.readFileSync(sysPath, 'utf-8');
   }
 
   let aiResponse = '';
@@ -183,8 +178,8 @@ router.post('/eval/run', async (req, res) => {
   // 평가용: system.md 원본만 슬라이싱 (guardrails/모델보정 제외하고 캐릭터 본질만)
   let charSystemMd = systemPrompt;
   try {
-    const sysPath = path.join(CHARS_DIR, characterId, 'system.md');
-    if (fs.existsSync(sysPath)) charSystemMd = fs.readFileSync(sysPath, 'utf-8');
+    const sysPath = charReadFile(characterId, 'system.md');
+    if (sysPath) charSystemMd = fs.readFileSync(sysPath, 'utf-8');
   } catch (_) {}
 
   // 페르소나 컨텍스트 (적용된 경우)
@@ -303,12 +298,11 @@ router.get('/characters', (req, res) => {
 
 router.get('/characters/:id', (req, res) => {
   const id = req.params.id;
-  const configPath = path.join(CHARS_DIR, id, 'config.json');
-  const sysPath    = path.join(CHARS_DIR, id, 'system.md');
-  if (!fs.existsSync(configPath)) return res.status(404).json({ error: '없음' });
+  const config = readCharConfig(id);
+  if (!config) return res.status(404).json({ error: '없음' });
 
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-  const system = fs.existsSync(sysPath) ? fs.readFileSync(sysPath, 'utf-8') : '';
+  const sysPath = charReadFile(id, 'system.md');
+  const system = sysPath ? fs.readFileSync(sysPath, 'utf-8') : '';
   const sessionCount = stmt.adminCharSessionCount.get(id)?.cnt || 0;
   res.json({ config, system, sessionCount });
 });
@@ -316,42 +310,46 @@ router.get('/characters/:id', (req, res) => {
 // PATCH /api/admin/characters/:id — config.json 또는 system.md 수정
 // Body: { config?: object|string, system?: string }
 router.patch('/characters/:id', (req, res) => {
-  const id         = req.params.id;
-  const configPath = path.join(CHARS_DIR, id, 'config.json');
-  const sysPath    = path.join(CHARS_DIR, id, 'system.md');
+  const id = req.params.id;
   const { config, system } = req.body;
 
+  // 없는 캐릭터면 양쪽 다 404. (전에는 system만 보낼 때 존재 확인을 건너뛰어
+  //  디렉터리 없는 경로에 쓰다가 500이 났다.)
+  if (!readCharConfig(id)) return res.status(404).json({ error: '없음' });
+
+  // 프리빌트를 고치면 런타임 레이어에 오버라이드가 쌓인다 — 그 파일만 repo보다
+  // 우선하고, 손대지 않은 파일은 계속 repo 수정이 반영된다.
   if (config !== undefined) {
-    if (!fs.existsSync(configPath)) return res.status(404).json({ error: '없음' });
     try {
       const parsed = typeof config === 'string' ? JSON.parse(config) : config;
       parsed.id = id; // ID는 항상 원본 유지
-      fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf-8');
+      fs.writeFileSync(charWriteFile(id, 'config.json'), JSON.stringify(parsed, null, 2), 'utf-8');
     } catch (err) {
       return res.status(400).json({ error: 'JSON 파싱 오류: ' + err.message });
     }
   }
 
   if (system !== undefined) {
-    fs.writeFileSync(sysPath, system, 'utf-8');
+    fs.writeFileSync(charWriteFile(id, 'system.md'), system, 'utf-8');
   }
 
   res.json({ ok: true });
 });
 
 router.patch('/characters/:id/status', (req, res) => {
-  const configPath = path.join(CHARS_DIR, req.params.id, 'config.json');
-  if (!fs.existsSync(configPath)) return res.status(404).json({ error: '없음' });
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  const id = req.params.id;
+  const config = readCharConfig(id);
+  if (!config) return res.status(404).json({ error: '없음' });
   config.status = req.body.status === 'inactive' ? 'inactive' : 'active';
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+  fs.writeFileSync(charWriteFile(id, 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
   res.json({ ok: true, status: config.status });
 });
 
 router.delete('/characters/:id', (req, res) => {
-  const charDir = path.join(CHARS_DIR, req.params.id);
-  if (!fs.existsSync(charDir)) return res.status(404).json({ error: '없음' });
-  fs.rmSync(charDir, { recursive: true, force: true });
+  const id = req.params.id;
+  if (!readCharConfig(id)) return res.status(404).json({ error: '없음' });
+  // 프리빌트는 repo에 있어 지울 수 없으므로 런타임에 삭제 표식을 세운다.
+  deleteCharacter(id);
   res.json({ ok: true });
 });
 
@@ -425,9 +423,8 @@ router.post('/upload', (req, res) => {
     if (!data) return res.status(400).json({ error: 'data 필수' });
     // base64 크기 제한: 5MB 실파일 → base64 ~6.7MB → 7MB 문자열 길이로 체크
     if (data.length > 7 * 1024 * 1024) return res.status(400).json({ error: '파일 크기는 5MB 이하여야 합니다.' });
-    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
     const filename = `bc_${Date.now()}_${Math.random().toString(36).slice(2,7)}.${safeExt}`;
-    fs.writeFileSync(path.join(UPLOADS_DIR, filename), Buffer.from(data, 'base64'));
+    fs.writeFileSync(uploadWritePath(filename), Buffer.from(data, 'base64'));
     res.json({ path: `/uploads/${filename}` });
   } catch (e) {
     res.status(500).json({ error: '업로드 실패: ' + e.message });
@@ -436,8 +433,7 @@ router.post('/upload', (req, res) => {
 
 // ── Broadcast History ─────────────────────────────────────
 function _loadBcastHist() {
-  try { return JSON.parse(fs.readFileSync(BCAST_HIST_FILE, 'utf-8')); }
-  catch { return []; }
+  return readDataJson(BCAST_HIST_JSON, []);
 }
 
 router.get('/broadcast-history', (req, res) => {
@@ -454,7 +450,7 @@ router.post('/broadcast-history', (req, res) => {
       savedAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
     });
     if (hist.length > 30) hist.length = 30;
-    fs.writeFileSync(BCAST_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    writeDataJson(BCAST_HIST_JSON, hist);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '히스토리 저장 실패: ' + e.message });
@@ -467,7 +463,7 @@ router.delete('/broadcast-history/:idx', (req, res) => {
     const idx = parseInt(req.params.idx, 10);
     if (isNaN(idx) || idx < 0 || idx >= hist.length) return res.status(404).json({ error: '없음' });
     hist.splice(idx, 1);
-    fs.writeFileSync(BCAST_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    writeDataJson(BCAST_HIST_JSON, hist);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '히스토리 삭제 실패: ' + e.message });
@@ -476,8 +472,7 @@ router.delete('/broadcast-history/:idx', (req, res) => {
 
 // ── Collection History ────────────────────────────────────
 function _loadColHist() {
-  try { return JSON.parse(fs.readFileSync(COL_HIST_FILE, 'utf-8')); }
-  catch { return []; }
+  return readDataJson(COL_HIST_JSON, []);
 }
 
 router.get('/collection-history', (req, res) => {
@@ -494,7 +489,7 @@ router.post('/collection-history', (req, res) => {
       savedAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
     });
     if (hist.length > 30) hist.length = 30;
-    fs.writeFileSync(COL_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    writeDataJson(COL_HIST_JSON, hist);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '히스토리 저장 실패: ' + e.message });
@@ -507,7 +502,7 @@ router.delete('/collection-history/:idx', (req, res) => {
     const idx = parseInt(req.params.idx, 10);
     if (isNaN(idx) || idx < 0 || idx >= hist.length) return res.status(404).json({ error: '없음' });
     hist.splice(idx, 1);
-    fs.writeFileSync(COL_HIST_FILE, JSON.stringify(hist, null, 2), 'utf-8');
+    writeDataJson(COL_HIST_JSON, hist);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '히스토리 삭제 실패: ' + e.message });
@@ -517,7 +512,8 @@ router.delete('/collection-history/:idx', (req, res) => {
 // ── Curation ──────────────────────────────────────────────
 router.get('/curation', (req, res) => {
   try {
-    const data = JSON.parse(fs.readFileSync(CURATION_FILE, 'utf-8'));
+    const data = readDataJson(CURATION_JSON);
+    if (!data) return res.status(500).json({ error: '큐레이션 파일 읽기 실패' });
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: '큐레이션 파일 읽기 실패' });
@@ -526,8 +522,7 @@ router.get('/curation', (req, res) => {
 
 router.put('/curation', (req, res) => {
   try {
-    const data = req.body;
-    fs.writeFileSync(CURATION_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    writeDataJson(CURATION_JSON, req.body);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '큐레이션 파일 저장 실패' });
@@ -538,11 +533,11 @@ router.put('/curation', (req, res) => {
 // GET /api/admin/models — 챗봇 모델 목록 + 각 모델 보정 프롬프트(.md) 내용
 router.get('/models', (req, res) => {
   const items = CHAT_MODELS.map(m => {
-    const file = path.join(MODELS_DIR, `${m.id}.md`);
+    const file = modelPromptRead(m.id);
     let content = '';
     let hasFile = false;
     try {
-      if (fs.existsSync(file)) { content = fs.readFileSync(file, 'utf-8'); hasFile = true; }
+      if (file) { content = fs.readFileSync(file, 'utf-8'); hasFile = true; }
     } catch (_) {}
     return { ...m, hasFile, content };
   });
@@ -556,8 +551,7 @@ router.put('/models/:id', (req, res) => {
   const { content } = req.body;
   if (typeof content !== 'string') return res.status(400).json({ error: 'content(string) 필수' });
   try {
-    if (!fs.existsSync(MODELS_DIR)) fs.mkdirSync(MODELS_DIR, { recursive: true });
-    fs.writeFileSync(path.join(MODELS_DIR, `${id}.md`), content, 'utf-8');
+    fs.writeFileSync(modelPromptWrite(id), content, 'utf-8');
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: '저장 실패: ' + e.message });

@@ -6,11 +6,12 @@ const helmet         = require('helmet');
 const rateLimit      = require('express-rate-limit');
 const { randomUUID } = require('crypto');
 const { db, stmt }   = require('./db');
-const { seedRuntimeData, IMAGES_DIR, UPLOADS_DIR } = require('./lib/paths');
+const { ensureRuntimeDirs, IMAGES_DIR, UPLOADS_DIR } = require('./lib/paths');
 
-// R5-1: RUNTIME_DATA_DIR(=Volume) 지정 시 repo 프리빌트/시드를 런타임 디렉터리로 seed-if-missing.
-// dev(미지정)는 no-op. 파일 서빙·라우트보다 먼저 실행되어야 함.
-seedRuntimeData();
+// R5-1: 런타임 쓰기 디렉터리만 보장한다(RUNTIME_DATA_DIR = Volume, 미지정 시 .runtime/).
+// repo 프리빌트를 복사하지는 않는다 — 읽기는 런타임 → repo 폴백이다(lib/paths.js).
+// 파일 서빙·라우트보다 먼저 실행되어야 함.
+ensureRuntimeDirs();
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -113,18 +114,47 @@ class SQLiteStore extends Store {
 }
 
 // ── 환경변수 검증 (L-013: 프로덕션에서 필수 변수 누락 시 startup fail) ──
-const REQUIRED_PROD_ENV = ['SESSION_SECRET', 'NODE_ENV'];
+//
+// 기존 검사에는 구멍이 있었다. REQUIRED_PROD_ENV 에 NODE_ENV 를 넣어뒀지만 검사
+// 조건이 `isProd`(= NODE_ENV === 'production')라, NODE_ENV 가 비어 있으면 가드가
+// 통째로 건너뛰어진다 — NODE_ENV 가 "누락"으로 보고될 수 있는 경로가 없는 죽은
+// 검사였다. L-013 이 적은 두 증상 중 'NODE_ENV 누락' 쪽은 그대로 열려 있었다.
+// 그래서 NODE_ENV 와 **독립적으로** 배포 환경을 감지한다.
 const isProd = process.env.NODE_ENV === 'production';
-const missingProd = REQUIRED_PROD_ENV.filter(k => !process.env[k]);
 
-if (isProd && missingProd.length) {
-  console.error(`[FATAL] 프로덕션 필수 환경변수 누락: ${missingProd.join(', ')}`);
+// 플랫폼이 자동 주입하는 변수들. 하나라도 있으면 "배포된 컨테이너"로 본다.
+const DEPLOY_SIGNAL_VARS = [
+  'RAILWAY_ENVIRONMENT',
+  'RAILWAY_PROJECT_ID',
+  'RAILWAY_SERVICE_NAME',
+  'RENDER',
+  'FLY_APP_NAME',
+  'DYNO',
+  'KUBERNETES_SERVICE_HOST',
+];
+const deploySignal = DEPLOY_SIGNAL_VARS.find(k => process.env[k]);
+
+// SESSION_SECRET 누락은 기동 거부. 하드코딩 기본값은 공개 저장소에 있어 세션 위조가
+// 가능하므로, 배포 환경에서는 NODE_ENV 설정 여부와 무관하게 절대 쓰지 않는다.
+if ((isProd || deploySignal) && !process.env.SESSION_SECRET) {
+  console.error('[FATAL] SESSION_SECRET 누락 — 하드코딩 기본값으로는 기동하지 않습니다');
   console.error('  → SESSION_SECRET: 세션 쿠키 위조 방지용 (32자+ 랜덤 문자열)');
-  console.error('  → NODE_ENV=production: cookie secure 플래그 활성화');
+  console.error('  → 생성 예: openssl rand -base64 32');
+  if (deploySignal && !isProd) console.error(`  → 배포 환경 감지: ${deploySignal}`);
   process.exit(1);
 }
-if (!isProd && !process.env.SESSION_SECRET) {
-  console.warn('[WARN] SESSION_SECRET not set — using insecure default (dev only)');
+
+// 배포됐는데 NODE_ENV 가 production 이 아니면 쿠키 secure 플래그가 꺼진다(L-013).
+// 기동은 막지 않는다 — 감지 변수는 플랫폼마다 달라 오탐 시 장애가 되기 때문이다.
+if (deploySignal && !isProd) {
+  console.error(
+    `[ERROR] 배포 환경(${deploySignal})인데 NODE_ENV='${process.env.NODE_ENV ?? ''}' — ` +
+      '세션 쿠키 secure 플래그가 꺼집니다. NODE_ENV=production 을 설정하세요.'
+  );
+}
+
+if (!isProd && !deploySignal && !process.env.SESSION_SECRET) {
+  console.warn('[WARN] SESSION_SECRET not set — using insecure default (local dev only)');
 }
 // 권장 변수 (없어도 기동은 되나 기능 제한)
 const recommended = ['ANTHROPIC_API_KEY', 'GEMINI_API_KEY'];
@@ -200,7 +230,7 @@ app.use('/api/creator',          require('./routes/creator'));
 
 // ── Public curation read ──────────────────────────────────
 const fs   = require('fs');
-const { CURATION_FILE } = require('./lib/paths');
+const { readDataJson, CURATION_JSON } = require('./lib/paths');
 app.get('/api/version', (_req, res) => {
   try {
     const changelog = fs.readFileSync(path.join(__dirname, 'CHANGELOG.md'), 'utf-8');
@@ -211,7 +241,9 @@ app.get('/api/version', (_req, res) => {
 
 app.get('/api/curation', (_req, res) => {
   try {
-    res.json(JSON.parse(fs.readFileSync(CURATION_FILE, 'utf-8')));
+    const data = readDataJson(CURATION_JSON);
+    if (!data) return res.status(500).json({ error: '큐레이션 로드 실패' });
+    res.json(data);
   } catch { res.status(500).json({ error: '큐레이션 로드 실패' }); }
 });
 
